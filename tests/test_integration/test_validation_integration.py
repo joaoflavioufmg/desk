@@ -132,8 +132,8 @@ class TestValidationIntegration:
         )
         
         # Verify that only post-warm-up entities are counted in final statistics
-        self.assertEqual(exit_block.entities_disposed, 3)
-        self.assertEqual(service.entities_processed, 3)
+        assert exit_block.entities_disposed == 3
+        assert service.entities_processed == 3
         
         # Total entities that passed through the block (including warm-up) should be higher
-        self.assertEqual(len(exit_block.disposed_entities), 5)
+        assert len(exit_block.disposed_entities) == 5

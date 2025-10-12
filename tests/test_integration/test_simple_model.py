@@ -1,6 +1,7 @@
 # tests/test_integration/test_simple_model.py
 import pytest
 import simpy
+import random
 from core.simulation_model import SimulationModel
 from blocks.create_block import CreateBlock
 from blocks.process_block import ProcessBlock
@@ -65,7 +66,7 @@ class TestSimpleModelIntegration:
             model.env,
             inter_arrival_time=lambda: 5.0,
             max_arrivals=20,
-            priority_generator=lambda: 0 if simpy.random.random() < 0.3 else 1
+            priority_generator=lambda: 0 if random.random() < 0.3 else 1
         )
         
         decision = DecideBlock(

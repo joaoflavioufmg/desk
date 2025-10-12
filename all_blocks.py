@@ -2024,7 +2024,7 @@ class ResourceValidationError(Exception):
     - Valid resource types
     - Consistent resource usage across blocks
     """
-    print(">>> ERRO DE VALIVAÇÃO DE RECURSOS!")
+    # print(">>> VALIVAÇÃO DE RECURSOS!")
     pass
 
 

@@ -1,7 +1,7 @@
 # =====================================================================
 # FILE: analytics/reporting.py
 # =====================================================================
-from analytics.metrics import MetricsCollector
+from .metrics import MetricsCollector
 from typing import Dict
 
 # =====================================================================
