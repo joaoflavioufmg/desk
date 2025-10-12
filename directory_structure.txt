@@ -1,0 +1,303 @@
+https://claude.ai/public/artifacts/b9684e13-9ae5-4d62-837e-2e71a5b7ae85
+
+##########################################################################
+Simulation Framework Refactoring Guide
+📁 Complete Directory Structure
+simulation_framework/
+│
+├── __init__.py
+│
+├── core/
+│   ├── __init__.py
+│   ├── entity.py              # Entity, EventLogger
+│   ├── base_block.py          # BaseBlock (abstract)
+│   └── simulation_model.py    # SimulationModel (slim core)
+│
+├── blocks/
+│   ├── __init__.py
+│   ├── create_block.py        # CreateBlock
+│   ├── process_block.py       # ProcessBlock, MultiProcessBlock
+│   ├── decide_block.py        # DecideBlock
+│   └── dispose_block.py       # DisposeBlock
+│
+├── analytics/
+│   ├── __init__.py
+│   ├── metrics.py             # MetricsCollector
+│   ├── reporting.py           # SimulationReporter
+│   └── plotting.py            # SimulationPlotter
+│
+├── validation/
+│   ├── __init__.py
+│   ├── stability.py           # StabilityAnalyzer
+│   └── warmup.py              # WarmUpAnalyzer
+│
+├── statistics/
+│   ├── __init__.py
+│   └── replication.py         # ReplicationFramework
+│
+├── config/
+│   ├── __init__.py
+│   └── simulation_config.py   # SimulationConfig
+│
+├── utils/
+│   ├── __init__.py
+│   └── helpers.py             # safe_delay_time, etc.
+│
+├── examples/
+│   ├── __init__.py
+│   ├── hospital_example.py
+│   └── simple_queue_example.py
+│
+└── tests/
+    ├── __init__.py
+    ├── test_core/
+    ├── test_blocks/
+    ├── test_analytics/
+    └── test_validation/
+🔄 Migration Checklist
+Phase 1: Extract Analytics (Easiest, Highest Impact)
+Priority: HIGH | Effort: LOW | Impact: HIGH
+
+ Create analytics/ directory
+ Move get_entity_metrics_summary() → analytics/metrics.py::MetricsCollector
+ Move get_resource_metrics_summary() → analytics/metrics.py::MetricsCollector
+ Move print_results() → analytics/reporting.py::SimulationReporter
+ Move plot_activity_metrics() → analytics/plotting.py::SimulationPlotter
+ Move plot_resources_utilization() → analytics/plotting.py::SimulationPlotter
+ Move plot_resource_use_over_time() → analytics/plotting.py::SimulationPlotter
+ Update imports in main code
+ Test: Run existing simulation and verify plots/reports work
+Before:
+
+python
+model.run_simulation(until=1000)
+model.print_results()
+model.plot_activity_metrics()
+After:
+
+python
+from analytics.reporting import SimulationReporter
+from analytics.plotting import SimulationPlotter
+
+model.run_simulation(until=1000)
+reporter = SimulationReporter(model)
+reporter.print_results()
+
+plotter = SimulationPlotter(model)
+plotter.plot_activity_metrics()
+Phase 2: Extract Validation
+Priority: MEDIUM | Effort: LOW | Impact: MEDIUM
+
+ Create validation/ directory
+ Move check_system_stability() → validation/stability.py::StabilityAnalyzer
+ Move _analyze_warm_up_period() → validation/warmup.py::WarmUpAnalyzer
+ Update imports
+ Test: Verify stability checks work
+Before:
+
+python
+model.check_system_stability()
+After:
+
+python
+from validation.stability import StabilityAnalyzer
+
+analyzer = StabilityAnalyzer(model)
+stability = analyzer.check_system_stability()
+Phase 3: Extract ReplicationFramework
+Priority: MEDIUM | Effort: LOW | Impact: LOW
+
+ Create statistics/ directory
+ Move ReplicationFramework → statistics/replication.py
+ Test: Run replications and verify statistics
+Phase 4: Extract Utilities
+Priority: LOW | Effort: LOW | Impact: LOW
+
+ Create utils/ directory
+ Move safe_delay_time() → utils/helpers.py
+ Move _calculate_time_weighted_avg() → utils/statistics.py
+ Update references in ProcessBlock/MultiProcessBlock
+Phase 5: Clean Up SimulationModel (Final)
+Priority: LOW | Effort: MEDIUM | Impact: MEDIUM
+
+ Remove all analytics methods from SimulationModel
+ Remove all validation methods from SimulationModel
+ Keep only: resource management, block management, run_simulation
+ Update documentation
+ Run full test suite
+📊 Benefits Summary
+Before Refactoring
+python
+# SimulationModel.py - 1500+ lines
+class SimulationModel:
+    def __init__(self): ...
+    def run_simulation(self): ...
+    def check_system_stability(self): ...      # Should be separate
+    def get_entity_metrics_summary(self): ...   # Should be separate
+    def get_resource_metrics_summary(self): ... # Should be separate
+    def print_results(self): ...                # Should be separate
+    def plot_activity_metrics(self): ...        # Should be separate
+    def plot_resources_utilization(self): ...   # Should be separate
+    def plot_resource_use_over_time(self): ...  # Should be separate
+    def _analyze_warm_up_period(self): ...      # Should be separate
+    # ... 20+ more methods
+After Refactoring
+python
+# core/simulation_model.py - ~200 lines
+class SimulationModel:
+    def __init__(self): ...
+    def add_resource(self): ...
+    def add_block(self): ...
+    def run_simulation(self): ...
+    # Only 8 core methods!
+
+# analytics/metrics.py - ~150 lines
+class MetricsCollector:
+    def get_entity_metrics_summary(self): ...
+    def get_resource_metrics_summary(self): ...
+
+# analytics/reporting.py - ~100 lines
+class SimulationReporter:
+    def print_results(self): ...
+
+# analytics/plotting.py - ~300 lines
+class SimulationPlotter:
+    def plot_activity_metrics(self): ...
+    def plot_resources_utilization(self): ...
+    def plot_resource_use_over_time(self): ...
+
+# validation/stability.py - ~120 lines
+class StabilityAnalyzer:
+    def check_system_stability(self): ...
+
+# validation/warmup.py - ~100 lines
+class WarmUpAnalyzer:
+    def analyze_warm_up_period(self): ...
+🎯 Quick Wins (Do These First!)
+1. Extract Plotting (30 minutes)
+python
+# Create analytics/plotting.py
+# Move all plot_* methods
+# Update 1 example to use new structure
+# Immediate benefit: 300 lines removed from main class
+2. Extract Reporting (15 minutes)
+python
+# Create analytics/reporting.py
+# Move print_results()
+# Update 1 example
+# Immediate benefit: 100 lines removed
+3. Extract Stability (20 minutes)
+python
+# Create validation/stability.py
+# Move check_system_stability()
+# Update examples
+# Immediate benefit: Clearer separation of concerns
+Total time investment: ~1 hour
+Lines removed from main class: ~400
+Maintainability improvement: Significant
+
+🧪 Testing Strategy
+Unit Tests
+python
+# tests/test_analytics/test_metrics.py
+def test_entity_metrics_calculation():
+    model = create_test_model()
+    metrics = MetricsCollector(model)
+    summary = metrics.get_entity_metrics_summary()
+    assert summary['tempo_medio_sistema'] >= 0
+
+# tests/test_validation/test_stability.py
+def test_stability_analyzer():
+    model = create_test_model()
+    analyzer = StabilityAnalyzer(model)
+    stability = analyzer.check_system_stability()
+    assert 0 < stability < 10  # Reasonable range
+Integration Tests
+python
+# tests/test_integration/test_hospital_workflow.py
+def test_complete_hospital_simulation():
+    model = build_hospital_model()
+    model.run_simulation(until=100)
+    
+    reporter = SimulationReporter(model)
+    reporter.print_results()  # Should not crash
+    
+    plotter = SimulationPlotter(model)
+    # Test that plotting doesn't crash (don't show)
+    plt.ioff()  # Turn off interactive mode
+    plotter.plot_activity_metrics()
+    plt.close('all')
+💡 Design Patterns Applied
+1. Single Responsibility Principle
+Each class has ONE reason to change:
+
+SimulationModel: Simulation orchestration changes
+MetricsCollector: Metrics calculation changes
+SimulationPlotter: Plotting logic changes
+2. Dependency Injection
+python
+# Components depend on abstractions (model interface)
+class MetricsCollector:
+    def __init__(self, model):  # Inject dependency
+        self.model = model
+3. Composition Over Inheritance
+python
+# Instead of massive inheritance hierarchy:
+reporter = SimulationReporter(model)
+plotter = SimulationPlotter(model)
+analyzer = StabilityAnalyzer(model)
+
+# Compose behavior as needed
+reporter.print_results()
+plotter.plot_activity_metrics()
+4. Facade Pattern
+python
+# Optional: Create convenience facade for common workflows
+class SimulationFacade:
+    def __init__(self, model):
+        self.model = model
+        self.reporter = SimulationReporter(model)
+        self.plotter = SimulationPlotter(model)
+        self.analyzer = StabilityAnalyzer(model)
+    
+    def run_complete_analysis(self):
+        self.reporter.print_results()
+        self.plotter.plot_all()
+        self.analyzer.analyze_warm_up_period()
+🚀 Next Steps
+Start with Phase 1 (Extract Analytics) - Biggest immediate impact
+Write tests as you extract each component
+Update documentation to reflect new structure
+Migrate examples one at a time
+Deprecate old methods gradually (keep for backwards compatibility initially)
+📝 Backwards Compatibility Strategy
+During migration, keep old methods but delegate to new classes:
+
+python
+# In SimulationModel (temporary)
+class SimulationModel:
+    def print_results(self):
+        """Deprecated: Use SimulationReporter instead."""
+        import warnings
+        warnings.warn("print_results() is deprecated. "
+                     "Use SimulationReporter(model).print_results()",
+                     DeprecationWarning)
+        from analytics.reporting import SimulationReporter
+        reporter = SimulationReporter(self)
+        reporter.print_results()
+After 6 months: Remove deprecated methods completely.
+
+🎓 Learning Resources
+For your team, explain refactoring using this analogy:
+
+Before: Kitchen where one person cooks, cleans, manages inventory, serves, and handles accounting (1500-line SimulationModel)
+
+After: Restaurant with:
+
+Chef (SimulationModel) - cooks only
+Accountant (MetricsCollector) - handles numbers
+Presenter (SimulationReporter) - presents results
+Artist (SimulationPlotter) - creates visuals
+Inspector (StabilityAnalyzer) - quality checks
+Each person can work independently, be replaced, or upgraded without affecting others.
+
