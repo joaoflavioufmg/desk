@@ -104,6 +104,70 @@ class WIPTracker:
             timeline.append((time, current_wip))
         
         return timeline
+
+    # def _build_wip_timeline(self) -> List[Tuple[float, int]]:
+    #     """
+    #     Build WIP timeline from entity creation and disposal events.
+        
+    #     Returns:
+    #         List of (time, wip_count) tuples
+    #     """
+    #     # Get event_logger
+    #     event_logger = None
+    #     for block in self.model.blocks.values():
+    #         if hasattr(block, 'event_logger') and block.event_logger is not None:
+    #             event_logger = block.event_logger
+    #             break
+
+    #     events = []
+    #     if event_logger is None:
+    #         # Fall back to disposed entities
+    #         total_disposed = sum(b.entities_disposed for b in self.model.dispose_blocks)
+    #         if total_disposed == 0:
+    #             total_created = sum(c.entities_created for c in self.model.create_blocks)
+    #             timeline = [(0.0, 0)]
+    #             if total_created > 0:
+    #                 timeline.append((self.model.env.now, total_created))
+    #             return timeline
+    #         else:
+    #             for dispose_block in self.model.dispose_blocks:
+    #                 for entity in dispose_block.disposed_entities:
+    #                     creation_time = entity.creation_time
+    #                     disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
+    #                     events.append((creation_time, +1))
+    #                     events.append((disposal_time, -1))
+    #     else:
+    #         # Use event log
+    #         df = event_logger.get_dataframe()
+    #         grouped = df[df['activity'].isin(['Arrival', 'Discharge'])].groupby('case_id')
+    #         for case_id, case_df in grouped:
+    #             arrival_row = case_df[case_df['activity'] == 'Arrival']
+    #             discharge_row = case_df[case_df['activity'] == 'Discharge']
+    #             if not arrival_row.empty:
+    #                 arrival_time = arrival_row['timestamp'].values[0]
+    #                 events.append((arrival_time, +1))
+    #                 if not discharge_row.empty:
+    #                     discharge_time = discharge_row['timestamp'].values[0]
+    #                     events.append((discharge_time, -1))
+
+    #     # Sort events
+    #     events.sort(key=lambda x: (x[0], x[1]))
+
+    #     # Build timeline
+    #     timeline = []
+    #     current_wip = 0
+    #     for time, change in events:
+    #         current_wip += change
+    #         timeline.append((time, current_wip))
+
+    #     # Add final point if needed
+    #     now = self.model.env.now
+    #     if timeline and timeline[-1][0] < now:
+    #         timeline.append((now, current_wip))
+    #     elif not timeline:
+    #         timeline = [(0.0, 0), (now, 0)]
+
+    #     return timeline
     
     def _calculate_time_weighted_wip(self, timeline: List[Tuple[float, int]]) -> float:
         """
@@ -156,6 +220,38 @@ class WIPTracker:
             'wip_timeline': []
         }
     
+    # def get_system_time_summary(self) -> Dict[str, Any]:
+    #     """
+    #     Calculate total time in system statistics.
+        
+    #     Returns:
+    #         Dictionary with system time metrics
+    #     """
+    #     if not self.model.dispose_blocks:
+    #         return self._empty_system_time_summary()
+        
+    #     # Get post-warm-up entities
+    #     post_warmup_entities = [
+    #         e for dispose_block in self.model.dispose_blocks
+    #         for e in dispose_block.disposed_entities
+    #         if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
+    #     ]
+        
+    #     if not post_warmup_entities:
+    #         return self._empty_system_time_summary()
+        
+    #     # Calculate system times
+    #     system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        
+    #     return {
+    #         'average_system_time': np.mean(system_times),
+    #         'std_system_time': np.std(system_times),
+    #         'min_system_time': np.min(system_times),
+    #         'max_system_time': np.max(system_times),
+    #         'median_system_time': np.median(system_times),
+    #         'num_entities': len(system_times)
+    #     }
+
     def get_system_time_summary(self) -> Dict[str, Any]:
         """
         Calculate total time in system statistics.
@@ -166,18 +262,48 @@ class WIPTracker:
         if not self.model.dispose_blocks:
             return self._empty_system_time_summary()
         
-        # Get post-warm-up entities
-        post_warmup_entities = [
-            e for dispose_block in self.model.dispose_blocks
-            for e in dispose_block.disposed_entities
-            if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
-        ]
+        # Calculate total disposed entities
+        total_disposed = sum(len(dispose_block.disposed_entities) for dispose_block in self.model.dispose_blocks)
         
-        if not post_warmup_entities:
-            return self._empty_system_time_summary()
-        
-        # Calculate system times
-        system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        if total_disposed > 0:
+            # Original logic for when there are disposed entities
+            post_warmup_entities = [
+                e for dispose_block in self.model.dispose_blocks
+                for e in dispose_block.disposed_entities
+                if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
+            ]
+            
+            if not post_warmup_entities:
+                return self._empty_system_time_summary()
+            
+            system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        else:
+            # Find event_logger
+            event_logger = None
+            for block in self.model.blocks.values():
+                if hasattr(block, 'event_logger') and block.event_logger is not None:
+                    event_logger = block.event_logger
+                    break
+            
+            if event_logger is None:
+                return self._empty_system_time_summary()
+            
+            # Use event log to get earliest timestamp per case_id as entry time
+            df = event_logger.get_dataframe()
+            
+            if df.empty:
+                return self._empty_system_time_summary()
+            
+            grouped = df.groupby('case_id')['timestamp']
+            min_times = grouped.min()
+            
+            post_warmup_min_times = min_times[min_times >= self.model.warm_up_period]
+            
+            if post_warmup_min_times.empty:
+                return self._empty_system_time_summary()
+            
+            now = self.model.env.now
+            system_times = [now - t for t in post_warmup_min_times]
         
         return {
             'average_system_time': np.mean(system_times),
@@ -199,6 +325,51 @@ class WIPTracker:
             'num_entities': 0
         }
     
+    # def plot_wip_over_time(self):
+    #     """Plot WIP evolution over time."""
+    #     wip_summary = self.get_wip_summary()
+    #     timeline = wip_summary['wip_timeline']
+        
+    #     if not timeline:
+    #         print("No WIP data available to plot.")
+    #         return
+
+    #     # --- START MODIFICATION ---
+    #     final_time = self.model.env.now        
+    #     # 1. Ensure the timeline extends to the end of the simulation for plotting
+    #     if timeline[-1][0] < final_time:
+    #         # Append a point at the final time with the final WIP count
+    #         final_wip_count = timeline[-1][1]
+    #         timeline.append((final_time, final_wip_count))
+    #     # --- END MODIFICATION ---
+        
+    #     times = [t for t, _ in timeline]
+    #     wips = [w for _, w in timeline]
+        
+    #     fig, ax = plt.subplots(figsize=(12, 6))
+        
+    #     # Plot as step function
+    #     ax.step(times, wips, where='post', linewidth=2, color='steelblue', label='WIP')
+        
+    #     # Add average line
+    #     ax.axhline(y=wip_summary['average_wip'], color='red', linestyle='--', 
+    #               linewidth=2, label=f"Average WIP: {wip_summary['average_wip']:.2f}")
+        
+    #     # Mark warm-up period
+    #     if self.model.warm_up_period > 0:
+    #         ax.axvline(x=self.model.warm_up_period, color='orange', linestyle='--',
+    #                   linewidth=2, label=f"Warm-up end (t={self.model.warm_up_period})")
+    #         ax.axvspan(0, self.model.warm_up_period, alpha=0.2, color='orange')
+        
+    #     ax.set_xlabel('Simulation Time', fontsize=12, fontweight='bold')
+    #     ax.set_ylabel('Work in Process (WIP)', fontsize=12, fontweight='bold')
+    #     ax.set_title('Work in Process Over Time', fontsize=14, fontweight='bold')
+    #     ax.legend(loc='best', framealpha=0.9)
+    #     ax.grid(True, alpha=0.3)
+        
+    #     plt.tight_layout()
+    #     plt.show()
+
     def plot_wip_over_time(self):
         """Plot WIP evolution over time."""
         wip_summary = self.get_wip_summary()
@@ -207,20 +378,12 @@ class WIPTracker:
         if not timeline:
             print("No WIP data available to plot.")
             return
-
-        # --- START MODIFICATION ---
-        final_time = self.model.env.now        
-        # 1. Ensure the timeline extends to the end of the simulation for plotting
-        if timeline[-1][0] < final_time:
-            # Append a point at the final time with the final WIP count
-            final_wip_count = timeline[-1][1]
-            timeline.append((final_time, final_wip_count))
-        # --- END MODIFICATION ---
         
         times = [t for t, _ in timeline]
         wips = [w for _, w in timeline]
         
-        fig, ax = plt.subplots(figsize=(12, 6))
+        
+        _fig, ax = plt.subplots(figsize=(12, 6))
         
         # Plot as step function
         ax.step(times, wips, where='post', linewidth=2, color='steelblue', label='WIP')
@@ -234,6 +397,18 @@ class WIPTracker:
             ax.axvline(x=self.model.warm_up_period, color='orange', linestyle='--',
                       linewidth=2, label=f"Warm-up end (t={self.model.warm_up_period})")
             ax.axvspan(0, self.model.warm_up_period, alpha=0.2, color='orange')
+        
+        # ✅ NEW: Annotate final WIP if > 0
+        final_wip = wip_summary['final_wip']
+        if final_wip >= 0:
+            ax.annotate(
+                f'Final WIP: {final_wip}\n(entities still in system)',
+                xy=(self.model.env.now, final_wip),
+                xytext=(self.model.env.now * 0.8, final_wip * 1.2),
+                arrowprops=dict(arrowstyle='->', color='red', lw=2),
+                fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7)
+            )
         
         ax.set_xlabel('Simulation Time', fontsize=12, fontweight='bold')
         ax.set_ylabel('Work in Process (WIP)', fontsize=12, fontweight='bold')

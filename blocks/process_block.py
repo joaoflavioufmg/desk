@@ -3,18 +3,32 @@
 # =====================================================================
 from core.base_block import BaseBlock
 from core.entity import Entity, EventLogger
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 import simpy
 
 # =====================================================================
 # FILE: blocks/process_block.py
 # =====================================================================
 class ProcessBlock(BaseBlock):
-    """PROCESS block - seize resource, delay, release resource."""
+    """
+    PROCESS block - performs delay operation with optional resource seizure.
+    
+    Can operate in two modes:
+    1. With resource: seize resource, delay, release resource (traditional queue)
+    2. Without resource: pure delay operation (no queueing)
+    
+    Args:
+        name: Block name
+        env: SimPy environment
+        delay_time: Function returning delay duration
+        resource: Optional resource to seize (None = pure delay)
+        resource_units: Number of resource units to seize (default 1)
+        event_logger: Optional event logger
+    """
     
     def __init__(self, name: str, env: simpy.Environment,
-                 resource: simpy.Resource,
                  delay_time: Callable[[], float],
+                 resource: Optional[simpy.Resource] = None,
                  resource_units: int = 1,
                  event_logger: EventLogger = None):
         super().__init__(name, env, event_logger)
@@ -30,101 +44,58 @@ class ProcessBlock(BaseBlock):
 
         # Store resource name for logging
         self.resource_name = None
-
+    
     def set_resource_name(self, name: str):
         """Set the resource name for event logging."""
-        self.resource_name = name     
-
-
-    # def process_entity(self, entity: Entity):
-    #     """Process an entity through seize-delay-release WITH DEBUGGING."""
-    #     entity.route_history.append(self.name)
-        
-    #     self._monitor_resource()
-    #     # Log queue start
-    #     queue_start = self.env.now
-        
-    #     # # DEBUG: Check resource state BEFORE seizing
-    #     # print(f"[t={self.env.now:.2f}] BEFORE seize - resource.count={self.resource.count}, queue={len(self.resource.queue)}")
-        
-    #     # Seize resource (with priority if it's a PriorityResource)
-    #     if hasattr(self.resource, 'request'):
-    #         if isinstance(self.resource, simpy.PriorityResource):
-    #             req = self.resource.request(priority=entity.priority)
-    #         else:
-    #             req = self.resource.request()
-    #     else:
-    #         req = self.resource.request()
-            
-    #     with req:
-    #         yield req  # Wait for resource
-
-    #         # # DEBUG: Check resource state AFTER seizing
-    #         # print(f"[t={self.env.now:.2f}] AFTER seize - resource.count={self.resource.count}, queue={len(self.resource.queue)}")
-            
-    #         # # Record state after seizing
-    #         # current_queue_length = len(self.resource.queue)
-    #         # current_in_service = self.resource.count
-    #         # data_point = (self.env.now, current_in_service, current_queue_length)
-    #         # self.resource_data.append(data_point)
-    #         # # print(f"[t={self.env.now:.2f}] RECORDED: {data_point}")
-            
-    #         # self.max_queue_length = max(self.max_queue_length, current_queue_length)
-    #         # self.max_in_service = max(self.max_in_service, current_in_service)
-    #         self._monitor_resource()
-
-    #         # Log activity start
-    #         self.log_start(entity, self.resource_name)         
-                        
-    #         # Record queue time
-    #         queue_time = self.env.now - queue_start
-    #         self.total_queue_time += queue_time
-    #         entity.add_attribute(f"{self.name}_queue_time", queue_time)
-            
-    #         # Process (delay)
-    #         if hasattr(self.env, 'model') and hasattr(self.env.model, 'safe_delay_time'):
-    #             delay = self.env.model.safe_delay_time(self.delay_time)
-    #         else:
-    #             delay = max(0.0, self.delay_time())
-
-    #         # print(f"[t={self.env.now:.2f}] PROCESSING for {delay:.2f} time units...")
-    #         yield self.env.timeout(delay)
-
-    #         self._monitor_resource()
-            
-    #         # print(f"[t={self.env.now:.2f}] BEFORE release - resource.count={self.resource.count}, queue={len(self.resource.queue)}")
-            
-    #         # Update statistics
-    #         self.entities_processed += 1
-    #         self.total_delay_time += delay
-    #         entity.add_attribute(f"{self.name}_service_time", delay)
-
-    #         # NEW: Apply configured attributes (e.g., cost, revenue)
-    #         self._apply_attributes(entity)
-            
-    #         # Log activity complete
-    #         self.log_complete(entity, self.resource_name)            
-            
-    #     # # Monitor resource state AFTER release
-    #     # # print(f"[t={self.env.now:.2f}] AFTER release - resource.count={self.resource.count}, queue={len(self.resource.queue)}")
-    #     # current_queue_length = len(self.resource.queue)
-    #     # current_in_service = self.resource.count
-    #     # data_point = (self.env.now, current_in_service, current_queue_length)
-    #     # self.resource_data.append(data_point)
-    #     # # print(f"[t={self.env.now:.2f}] RECORDED: {data_point}")
-        
-    #     # self.max_queue_length = max(self.max_queue_length, current_queue_length)
-    #     # self.max_in_service = max(self.max_in_service, current_in_service)
-    #     self._monitor_resource()
-
-    #     # Send to next block
-    #     yield from self.send_to_next(entity)
-
+        self.resource_name = name
 
     def process_entity(self, entity: Entity):
-        """Process an entity through seize-delay-release with preemption support."""
+        """
+        Process an entity through delay operation with optional resource usage.
+        
+        If resource is None: performs pure delay
+        If resource exists: seizes resource, delays, releases resource
+        """
         entity.route_history.append(self.name)
         
+        if self.resource is None:
+            # Pure delay mode (no resource)
+            yield from self._process_without_resource(entity)
+        else:
+            # Resource-based mode (traditional queue)
+            yield from self._process_with_resource(entity)
+    
+    def _process_without_resource(self, entity: Entity):
+        """Process entity with pure delay (no resource seizure)."""
+        # Log activity start
+        self.log_start(entity, resource_name=None)
+        
+        # Calculate delay
+        if hasattr(self.env, 'model') and hasattr(self.env.model, 'safe_delay_time'):
+            delay = self.env.model.safe_delay_time(self.delay_time)
+        else:
+            delay = max(0.0, self.delay_time())
+        
+        # Perform delay
+        yield self.env.timeout(delay)
+        
+        # Update statistics
+        self.entities_processed += 1
+        self.total_delay_time += delay
+        entity.add_attribute(f"{self.name}_service_time", delay)
+        entity.add_attribute(f"{self.name}_queue_time", 0.0)  # No queueing
+        
+        # Apply configured attributes
+        self._apply_attributes(entity)
+        
+        # Log activity complete
+        self.log_complete(entity, resource_name=None)
+        
+        # Continue to next block
+        yield from self.send_to_next(entity)
+    
+    def _process_with_resource(self, entity: Entity):
+        """Process entity with resource seizure (traditional queue behavior)."""
         self._monitor_resource()
 
         # 🔄 RETRY LOOP - handles preemption during acquisition OR service
@@ -135,8 +106,7 @@ class ProcessBlock(BaseBlock):
             requests = []
             for _ in range(self.resource_units):
                 if isinstance(self.resource, simpy.PreemptiveResource):
-                    # req = self.resource.request(priority=entity.priority, preempt=True)
-                    # ⚠️ KEY FIX: Use preempt=False during request
+                    # ⚠️ Use preempt=False during request
                     # Preemption will still occur during service timeout
                     req = self.resource.request(priority=entity.priority, preempt=False)
                 elif isinstance(self.resource, simpy.PriorityResource):
@@ -209,16 +179,18 @@ class ProcessBlock(BaseBlock):
         # Continue to next block
         yield from self.send_to_next(entity)
 
-
     def _monitor_resource(self):
-        """Monitor resource state for statistics."""
+        """Monitor resource state for statistics (only if resource exists)."""
+        if self.resource is None:
+            return  # Skip monitoring if no resource
+        
         current_queue_length = len(self.resource.queue)
         current_in_service = self.resource.count
         
         self.max_queue_length = max(self.max_queue_length, current_queue_length)
         self.max_in_service = max(self.max_in_service, current_in_service)
         
-        # Always collect data for warm-up analysis, but mark post-warmup data
+        # Always collect data for warm-up analysis
         data_point = (self.env.now, current_in_service, current_queue_length)
         self.resource_data.append(data_point)
 

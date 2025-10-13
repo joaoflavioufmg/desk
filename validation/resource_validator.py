@@ -59,6 +59,8 @@ class ResourceValidator:
     
     Performs comprehensive checks to catch configuration errors before
     simulation runtime, providing clear error messages for fixes.
+    
+    Supports ProcessBlocks with and without resources (pure delay operations).
     """
     
     def __init__(self, model):
@@ -146,6 +148,11 @@ class ResourceValidator:
     def _validate_single_resource_block(self, block_name: str, block):
         """Validate ProcessBlock resource configuration."""
         resource = block.resource
+        
+        # ✅ NEW: Skip validation if block has no resource (pure delay mode)
+        if resource is None:
+            return  # No resource = no validation needed
+        
         units_requested = getattr(block, 'resource_units', 1)
         
         # Find resource name
@@ -220,6 +227,10 @@ class ResourceValidator:
         
         for block_name, block in self.model.blocks.items():
             if isinstance(block, ProcessBlock):
+                # ✅ NEW: Skip if no resource (pure delay mode)
+                if block.resource is None:
+                    continue
+                
                 if block.resource not in registered_resources:
                     self.errors.append(
                         f"UNREGISTERED RESOURCE: Block '{block_name}' uses a resource "
@@ -243,7 +254,9 @@ class ResourceValidator:
                 resources = []
                 
                 if isinstance(block, ProcessBlock):
-                    resources = [block.resource]
+                    # ✅ NEW: Skip if no resource
+                    if block.resource is not None:
+                        resources = [block.resource]
                 else:
                     resources = list(block.resource_requirements.keys())
                 
@@ -326,6 +339,9 @@ class ResourceValidator:
     
     def _find_resource_name(self, resource_obj) -> Optional[str]:
         """Find resource name from resource object."""
+        if resource_obj is None:
+            return None
+        
         for name, res in self.model.resources.items():
             if res == resource_obj:
                 return name
@@ -373,6 +389,9 @@ class ResourceValidator:
         print("RESOURCE CONFIGURATION SUMMARY")
         print("=" * 70)
         
+        # ✅ NEW: Count resource-free blocks
+        delay_only_blocks = []
+        
         for name, resource in sorted(self.model.resources.items()):
             capacity = resource.capacity
             resource_type = self._get_resource_type_name(resource)
@@ -387,7 +406,10 @@ class ResourceValidator:
             
             for block_name, block in self.model.blocks.items():
                 if isinstance(block, ProcessBlock):
-                    if block.resource == resource:
+                    # ✅ NEW: Track delay-only blocks separately
+                    if block.resource is None:
+                        delay_only_blocks.append(block_name)
+                    elif block.resource == resource:
                         units = getattr(block, 'resource_units', 1)
                         using_blocks.append((block_name, units))
                         total_max_usage = max(total_max_usage, units)
@@ -408,6 +430,15 @@ class ResourceValidator:
                       f"({total_max_usage/capacity*100:.0f}% of capacity)")
             else:
                 print(f"  WARNING: Resource not used by any block!")
+        
+        # ✅ NEW: Print delay-only blocks summary
+        if delay_only_blocks:
+            print("\n" + "-" * 70)
+            print("DELAY-ONLY BLOCKS (No Resource Required):")
+            print(f"  Found {len(delay_only_blocks)} pure delay block(s):")
+            for block_name in delay_only_blocks:
+                print(f"    - {block_name} (pure delay operation)")
+            print("  Note: These blocks perform time delays without consuming resources.")
         
         print("=" * 70)
     

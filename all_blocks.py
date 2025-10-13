@@ -15,6 +15,8 @@ import statistics
 import itertools
 import seaborn as sns
 
+from blocks import dispose_block
+
 
 
 # =====================================================================
@@ -1064,10 +1066,18 @@ class SimulationModel:
                         metrics['max_in_service'] = 0
 
 
+    # @property
+    # def entity_count(self) -> int:
+    #     """Total entities disposed (post warm-up)."""
+    #     return sum(block.entities_disposed for block in self.dispose_blocks)
     @property
     def entity_count(self) -> int:
         """Total entities disposed (post warm-up)."""
-        return sum(block.entities_disposed for block in self.dispose_blocks)
+        disposed_sum = sum(block.entities_disposed for block in self.dispose_blocks)
+        if disposed_sum > 0:
+            return disposed_sum
+        return sum(block.entities_created for block in self.create_blocks)
+        
     
     @property
     def overall_throughput(self) -> float:
@@ -1781,6 +1791,10 @@ class WIPTracker:
         
         # Get final WIP (entities still in system)
         final_wip = wip_timeline[-1][1] if wip_timeline else 0
+        # if sum(block.entities_disposed for block in self.dispose_blocks) == 0:
+        #     final_wip = sum(block.entities_created for block in self.create_blocks)
+        # else:
+        #     final_wip = wip_timeline[-1][1] if wip_timeline else 0
         
         return {
             'average_wip': avg_wip,
@@ -1789,6 +1803,43 @@ class WIPTracker:
             'wip_timeline': wip_timeline
         }
     
+    # def _build_wip_timeline(self) -> List[Tuple[float, int]]:
+    #     """
+    #     Build WIP timeline from entity creation and disposal events.
+        
+    #     Returns:
+    #         List of (time, wip_count) tuples
+    #     """
+    #     events = []
+        
+    #     # Add creation events (+1 to WIP)
+    #     for create_block in self.model.create_blocks:
+    #         # Entities are created at specific times based on inter-arrival
+    #         # We need to reconstruct this from disposed entities
+    #         pass
+        
+    #     # Add disposal events (-1 from WIP)
+    #     for dispose_block in self.model.dispose_blocks:
+    #         for entity in dispose_block.disposed_entities:
+    #             creation_time = entity.creation_time
+    #             disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
+                
+    #             events.append((creation_time, +1))  # Entity enters system
+    #             events.append((disposal_time, -1))  # Entity exits system
+        
+    #     # Sort events by time
+    #     events.sort(key=lambda x: x[0])
+        
+    #     # Build timeline
+    #     timeline = []
+    #     current_wip = 0
+        
+    #     for time, change in events:
+    #         current_wip += change
+    #         timeline.append((time, current_wip))
+        
+    #     return timeline
+
     def _build_wip_timeline(self) -> List[Tuple[float, int]]:
         """
         Build WIP timeline from entity creation and disposal events.
@@ -1796,34 +1847,61 @@ class WIPTracker:
         Returns:
             List of (time, wip_count) tuples
         """
+        # Get event_logger
+        event_logger = None
+        for block in self.model.blocks.values():
+            if hasattr(block, 'event_logger') and block.event_logger is not None:
+                event_logger = block.event_logger
+                break
+
         events = []
-        
-        # Add creation events (+1 to WIP)
-        for create_block in self.model.create_blocks:
-            # Entities are created at specific times based on inter-arrival
-            # We need to reconstruct this from disposed entities
-            pass
-        
-        # Add disposal events (-1 from WIP)
-        for dispose_block in self.model.dispose_blocks:
-            for entity in dispose_block.disposed_entities:
-                creation_time = entity.creation_time
-                disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
-                
-                events.append((creation_time, +1))  # Entity enters system
-                events.append((disposal_time, -1))  # Entity exits system
-        
-        # Sort events by time
-        events.sort(key=lambda x: x[0])
-        
+        if event_logger is None:
+            # Fall back to disposed entities
+            total_disposed = sum(b.entities_disposed for b in self.model.dispose_blocks)
+            if total_disposed == 0:
+                total_created = sum(c.entities_created for c in self.model.create_blocks)
+                timeline = [(0.0, 0)]
+                if total_created > 0:
+                    timeline.append((self.model.env.now, total_created))
+                return timeline
+            else:
+                for dispose_block in self.model.dispose_blocks:
+                    for entity in dispose_block.disposed_entities:
+                        creation_time = entity.creation_time
+                        disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
+                        events.append((creation_time, +1))
+                        events.append((disposal_time, -1))
+        else:
+            # Use event log
+            df = event_logger.get_dataframe()
+            grouped = df[df['activity'].isin(['Arrival', 'Discharge'])].groupby('case_id')
+            for case_id, case_df in grouped:
+                arrival_row = case_df[case_df['activity'] == 'Arrival']
+                discharge_row = case_df[case_df['activity'] == 'Discharge']
+                if not arrival_row.empty:
+                    arrival_time = arrival_row['timestamp'].values[0]
+                    events.append((arrival_time, +1))
+                    if not discharge_row.empty:
+                        discharge_time = discharge_row['timestamp'].values[0]
+                        events.append((discharge_time, -1))
+
+        # Sort events
+        events.sort(key=lambda x: (x[0], x[1]))
+
         # Build timeline
         timeline = []
         current_wip = 0
-        
         for time, change in events:
             current_wip += change
             timeline.append((time, current_wip))
-        
+
+        # Add final point if needed
+        now = self.model.env.now
+        if timeline and timeline[-1][0] < now:
+            timeline.append((now, current_wip))
+        elif not timeline:
+            timeline = [(0.0, 0), (now, 0)]
+
         return timeline
     
     def _calculate_time_weighted_wip(self, timeline: List[Tuple[float, int]]) -> float:
@@ -1877,6 +1955,38 @@ class WIPTracker:
             'wip_timeline': []
         }
     
+    # def get_system_time_summary(self) -> Dict[str, Any]:
+    #     """
+    #     Calculate total time in system statistics.
+        
+    #     Returns:
+    #         Dictionary with system time metrics
+    #     """
+    #     if not self.model.dispose_blocks:
+    #         return self._empty_system_time_summary()
+        
+    #     # Get post-warm-up entities
+    #     post_warmup_entities = [
+    #         e for dispose_block in self.model.dispose_blocks
+    #         for e in dispose_block.disposed_entities
+    #         if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
+    #     ]
+        
+    #     if not post_warmup_entities:
+    #         return self._empty_system_time_summary()
+        
+    #     # Calculate system times
+    #     system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        
+    #     return {
+    #         'average_system_time': np.mean(system_times),
+    #         'std_system_time': np.std(system_times),
+    #         'min_system_time': np.min(system_times),
+    #         'max_system_time': np.max(system_times),
+    #         'median_system_time': np.median(system_times),
+    #         'num_entities': len(system_times)
+    #     }
+
     def get_system_time_summary(self) -> Dict[str, Any]:
         """
         Calculate total time in system statistics.
@@ -1887,18 +1997,45 @@ class WIPTracker:
         if not self.model.dispose_blocks:
             return self._empty_system_time_summary()
         
-        # Get post-warm-up entities
-        post_warmup_entities = [
-            e for dispose_block in self.model.dispose_blocks
-            for e in dispose_block.disposed_entities
-            if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
-        ]
+        # Calculate total disposed entities
+        total_disposed = sum(len(dispose_block.disposed_entities) for dispose_block in self.model.dispose_blocks)
         
-        if not post_warmup_entities:
-            return self._empty_system_time_summary()
-        
-        # Calculate system times
-        system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        if total_disposed > 0:
+            # Original logic for when there are disposed entities
+            post_warmup_entities = [
+                e for dispose_block in self.model.dispose_blocks
+                for e in dispose_block.disposed_entities
+                if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
+            ]
+            
+            if not post_warmup_entities:
+                return self._empty_system_time_summary()
+            
+            system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
+        else:
+            # Find event_logger
+            event_logger = None
+            for block in self.model.blocks.values():
+                if hasattr(block, 'event_logger') and block.event_logger is not None:
+                    event_logger = block.event_logger
+                    break
+            
+            if event_logger is None:
+                # If no logger and no disposed, return empty
+                return self._empty_system_time_summary()
+            
+            # Use event log to get creation times
+            df = event_logger.get_dataframe()
+            arrival_df = df[df['activity'] == 'Arrival']
+            
+            # Filter post-warmup creations
+            post_warmup_arrivals = arrival_df[arrival_df['timestamp'] >= self.model.warm_up_period]
+            
+            if post_warmup_arrivals.empty:
+                return self._empty_system_time_summary()
+            
+            now = self.model.env.now
+            system_times = [now - timestamp for timestamp in post_warmup_arrivals['timestamp']]
         
         return {
             'average_system_time': np.mean(system_times),
@@ -1955,6 +2092,18 @@ class WIPTracker:
             ax.axvline(x=self.model.warm_up_period, color='orange', linestyle='--',
                       linewidth=2, label=f"Warm-up end (t={self.model.warm_up_period})")
             ax.axvspan(0, self.model.warm_up_period, alpha=0.2, color='orange')
+
+        # ✅ NEW: Annotate final WIP if > 0
+        final_wip = wip_summary['final_wip']
+        if final_wip >= 0:
+            ax.annotate(
+                f'Final WIP: {final_wip}\n(entities still in system)',
+                xy=(self.model.env.now, final_wip),
+                xytext=(self.model.env.now * 0.8, final_wip * 1.2),
+                arrowprops=dict(arrowstyle='->', color='red', lw=2),
+                fontsize=10,
+                bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.7)
+            )
         
         ax.set_xlabel('Simulation Time', fontsize=12, fontweight='bold')
         ax.set_ylabel('Work in Process (WIP)', fontsize=12, fontweight='bold')
@@ -4566,10 +4715,13 @@ def build_hospital_model(event_logger=None):
     treatment_decision.add_route("Non_Urgent", pharmacy_block,
                                 condition=needs_only_medication)
     
-    moderate_treatment.add_route("Urgent", consultation,
-                                probability=0.8)
-    minor_treatment.add_route("Semi_Urgent", consultation,
-                                probability=0.9)
+    moderate_treatment.add_route("Urgent", consultation, probability=0.8)
+    # Importante! Para contabilizar as saídas e o WIP
+    moderate_treatment.add_route("No_Consult", discharge, probability=0.2)
+
+    minor_treatment.add_route("Semi_Urgent", consultation, probability=0.9)
+    # Importante! Para contabilizar as saídas e o WIP
+    minor_treatment.add_route("No_Consult", discharge, probability=0.1)
 
     consultation.connect_to(need_medication)
 

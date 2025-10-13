@@ -186,14 +186,11 @@ def build_hospital_model(event_logger=None):
     treatment_decision.add_route("Non_Urgent", pharmacy_block,
                                 condition=needs_only_medication)
     
-    moderate_treatment.add_route("Urgent", consultation, probability=0.8)
-    # Importante! Para contabilizar as saídas e o WIP
-    moderate_treatment.add_route("No_Consult", discharge, probability=0.2)
+    moderate_treatment.add_route("Urgent", consultation,
+                                probability=0.8)
+    minor_treatment.add_route("Semi_Urgent", consultation,
+                                probability=0.9)
 
-    minor_treatment.add_route("Semi_Urgent", consultation, probability=0.9)
-    # Importante! Para contabilizar as saídas e o WIP
-    minor_treatment.add_route("No_Consult", discharge, probability=0.1)
-    
     consultation.connect_to(need_medication)
 
     need_medication.add_route("Needs_Medication", pharmacy_block, probability=0.9)

@@ -249,10 +249,18 @@ class SimulationModel:
                         metrics['max_in_service'] = 0
 
 
+    # @property
+    # def entity_count(self) -> int:
+    #     """Total entities disposed (post warm-up)."""
+    #     return sum(block.entities_disposed for block in self.dispose_blocks)
+
     @property
     def entity_count(self) -> int:
         """Total entities disposed (post warm-up)."""
-        return sum(block.entities_disposed for block in self.dispose_blocks)
+        disposed_sum = sum(block.entities_disposed for block in self.dispose_blocks)
+        if disposed_sum > 0:
+            return disposed_sum
+        return sum(block.entities_created for block in self.create_blocks)
     
     @property
     def overall_throughput(self) -> float:

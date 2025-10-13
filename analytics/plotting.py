@@ -432,7 +432,7 @@ class SimulationPlotter:
             elif util >= 50:
                 print(f"  ✅ BOM: Utilizacao moderada e eficiente")
             elif util >= 25:
-                print(f"  ℹ️ BAIXA: Utilizacao abaixo do ideal")
+                print(f"  ℹ️  BAIXA: Utilizacao abaixo do ideal")
             else:
                 print(f"  ⚪ MUITO BAIXA: Recurso subutilizado")
             print()

@@ -1,16 +1,27 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/python3
+# =====================================================================
+# FILE: ex1.py
+# =====================================================================
+import random
+from stats.factorial import FactorialExperiment
+from stats.replication import ReplicationFramework    
+from analytics.financial import FinancialAnalyzer
+from core.simulation_model import SimulationModel
+from core.entity import EventLogger
+from blocks.create_block import CreateBlock
+from blocks.process_block import ProcessBlock, MultiProcessBlock
+from blocks.decide_block import DecideBlock
+from blocks.dispose_block import DisposeBlock
+from analytics.metrics import MetricsCollector
+from analytics.reporting import SimulationReporter
+from analytics.plotting import SimulationPlotter
+from validation.stability import StabilityAnalyzer
+from validation.warmup import WarmUpAnalyzer
+from config.simulation_config import SimulationConfig
 
-# Disciplina: EPD899: Simulacao de Sistemas Logísticos
-# Prof: Joao Flavio F. Almeida <joao.flavio@dep.ufmg>
-# Problemas de Simulação - Resolução em Simpy (python)
-
-# ##################################################################
-# Implementação computacional dos 10 exemplos das aulas
-# ##################################################################
-
-# ##################################################################
-# Uma empresa opera três máquinas, em um determinado setor de sua 
+# ####################################################################################
+# Projeto: Maquinas operando ininterruptamente 
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Descrição: Uma empresa opera três máquinas, em um determinado setor de sua 
 # planta industrial. As máquinas trabalham em operação contínua, 
 # interrompendo seu funcionamento apenas para manutenção corretiva. 
 # O tempo entre falhas é descrito por uma distribuição exponencial 
@@ -21,284 +32,355 @@
 # a ocupação média da equipe de manutenção. 
 # Para tanto, construir o modelo conceitual do sistema usando 
 # diagramas de ciclo de atividades.
-# ##################################################################
+# ####################################################################################
 
-# simulacao: https://simpy.readthedocs.io/en/latest/index.html
-import simpy              
-# numero aleatorio: https://docs.python.org/3/library/random.html
-import random             
-# biblioteca numérica do python: https://numpy.org/doc/stable/
-import numpy as np        
-# biblioteca numérica do python: https://scipy.org/
-import scipy
-# Impressao de graficos para periodo de Warm-up
-import matplotlib
-import matplotlib.pyplot as plt
+# ####################################################################################
+# TODO: Checklist de ajustes em cada modelo:
+# FILE: ex1.py
+# Função: build_ex1_model;
+# Atividades e termos em def distribution(tipo):
+# Resources: model.add_resource("Equipes", 1);
+# simulation_wrapper: model = build_ex1_model(event_logger);
+# def ex1_factorial_analysis(): def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
+# def ex1_factorial_analysis(): ex1_simulation_wrapper: model = build_ex1_model()
+# factorial.add_factor(factor_name='arrival_rate',
+# factorial.add_factor(factor_name='num_equipes',
+# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
+# def main(): print("Building ex1 model...");     model = build_ex1_model(event_logger)
+# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
+# print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
+# ####################################################################################
 
-from random import expovariate, seed
-from scipy import stats
+def build_ex1_model(final_simulation_time, event_logger=None):
+    """Build a ex1 simulation model with refactored structure."""
+    
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    model = SimulationModel()
 
-
-# Fixando a semente do gerador de numero aleatorio 
-# (p/controle de cenários)
-seed(1)  
-
-NS = []
-NA = []
-NF = []
-TS = []
-TA = []
-TF = []
-USO= []
-
-NS_bar = []
-NF_bar = [] 
-NA_bar = [] 
-TS_bar = [] 
-TF_bar = [] 
-TA_bar = []
-USO_bar= []
-
-T = []  # Tempo dos Eventos Discretos
-
-conta_chegada = 0
-conta_saida = 0 
-
-tempo_utilizacao_Recurso = 0
-
-momento_chegada = {}
-momento_saida = {}
-tempo_sistema = {}
-momento_entrada_fila = {}  
-momento_saida_fila = {}
-tempo_fila = {}
-inicia_atendimento = {}
-finaliza_atendimento = {}
-duracao_atendimento = {}
-utilizacao = {}
-
-CAP_EQUIPE = 1
-
-###################################################################
-# Configura a rodada de simulacao definindo o 
-# numero de replicações e duração da simulação
-###################################################################
-# # Teste
-# n_replicacoes = 1 
-# duracao_da_simulacao = 1000
-# tempo_aquecimento = 0
-# imprime_detalhes = True 
-###################################################################
-# Simulação oficial
-n_replicacoes = 5
-duracao_da_simulacao =   24*365
-tempo_aquecimento = 2000
-imprime_detalhes = False 
-###################################################################
-
-# Unidade básica para todos os tempos: horas
-def distribuicoes(tipo):
-    taxa_chegadas=1         # por hora
-    taxa_operacao=1/(3*24)  # por hora
-    taxa_manutencao=1/24    # por hora
-    return {
-        'chegada': expovariate(taxa_chegadas),
-        'operacao': expovariate(taxa_operacao),
-        'manutencao': expovariate(taxa_manutencao)
-    }.get(tipo,0.0)
+    def distribution(tipo):
+        taxa_chegadas=1         # por minuto        
+        return {
+            'arrival': random.expovariate(1/taxa_chegadas),
+            'operacao': random.expovariate(1/(3*DAYS)),
+            'manutencao': random.expovariate(1/(1*DAYS))
+        }.get(tipo,0.0)  
 
 
-def gera_maquinas(env, entidade):
-    global conta_chegada    
-    yield env.timeout(0)
-    for i in range(1,4):
-        conta_chegada+=1
-        nome = entidade + " " + str(conta_chegada)
-        momento_chegada[nome] = env.now        
-        if imprime_detalhes:
-            print("{0:.2f}: {1:s} Inicia a operação".format(env.now, nome)) 
-        env.process(operacao(env, nome))
+    # Resources
+    equipes = model.add_resource("Equipes", 1)
+    
+    
+     # Create blocks
+    arrivals = CreateBlock(
+        "Arrivals", model.env,        
+        inter_arrival_time=lambda: distribution('arrival'),
+        entity_prefix="Maquina",  
+        max_arrivals=3,
+        first_creation=0.0,
+        event_logger=event_logger
+    )
+    
+    operacao = ProcessBlock(
+        "Operacao", model.env,
+        resource=None,
+        delay_time=lambda: distribution('operacao'),
+        event_logger=event_logger
+    ) 
+    
 
-
-def operacao (env, nome):    
-    # Delay    
-    yield env.timeout(distribuicoes('operacao')) 
-    if imprime_detalhes:
-        print("{0:.2f}: {1:s} quebrou! Vai para manutenção".format(env.now, nome)) 
-    env.process(manutencao(env, nome, equipes))
-
-
-def manutencao(env, nome, equipes):
-    momento_entrada_fila[nome] = env.now        
-    # Requer uso de um slot do Recurso
-    request=equipes.request()
-    # Seize, Delay, Release
-    yield request   
-    momento_saida_fila[nome] = env.now
-    tempo_fila[nome] = momento_saida_fila[nome] - momento_entrada_fila[nome] 
-    if imprime_detalhes:
-        print("{0:.2f}: Equipe inicia o atendimento da {1:s}. Número de entidades em atendimento: {2:d}".format(env.now, nome, equipes.count))
+    manutencao = ProcessBlock(
+        "Manutencao", model.env,
+        resource=equipes,
+        delay_time=lambda: distribution('manutencao'),
+        resource_units=1,                 
+        event_logger=event_logger
+    )
+    manutencao.set_resource_name('Equipes')
    
-    inicia_atendimento[nome] = env.now
-    inicia_utilizacao_Recurso = env.now
-    yield env.timeout(distribuicoes('manutencao'))    
-    if imprime_detalhes:
-        print("{0:.2f}: Equipe termina o atendimento da {1:s}. Número de entidades em fila: {2:d}".format(env.now, nome, len(equipes.queue))) 
-    finaliza_atendimento[nome] = env.now        
-    duracao_atendimento[nome] = finaliza_atendimento[nome] - inicia_atendimento[nome]        
-    yield equipes.release(request)
-
-    global tempo_utilizacao_Recurso
-    tempo_utilizacao_Recurso += env.now - inicia_utilizacao_Recurso
-    utilizacao['Equipe'] = tempo_utilizacao_Recurso/(CAP_EQUIPE*env.now)    
-
-    coleta_dados_indicadores(env, nome, equipes)
-    env.process(operacao (env, nome))
-
-
-def coleta_dados_indicadores(env, nome, equipes):    
-    global conta_saida
-    conta_saida = 0
-
-    # Coleta dados para estatísticas        
-    numero_sistema = conta_chegada - conta_saida 
-
-    if env.now > tempo_aquecimento:
-        NS.append(numero_sistema)
-        NA.append(equipes.count)
-        NF.append(len(equipes.queue))
     
+    decision = DecideBlock(
+        "DischargeDecision", model.env,
+        decision_type="condition",
+        event_logger=event_logger
+    )
 
-    momento_saida[nome] = env.now            
-    tempo_sistema[nome] = momento_saida[nome] - momento_chegada[nome]
-    # print(f'momento_chegada[{nome}]: ', momento_chegada[nome])
-    # print(f'momento_saida[{nome}]: ', momento_saida[nome])
-    # print(f'tempo_sistema[{nome}]: ', tempo_sistema[nome])
-    if env.now > tempo_aquecimento:
-        TS.append(tempo_sistema[nome])
-        TA.append(duracao_atendimento[nome])
-        TF.append(tempo_fila[nome])
+    discharge = DisposeBlock("Discharge", model.env, event_logger=event_logger)
+
+    
+    # Add blocks to model
+    for block in [arrivals, operacao, manutencao, discharge]:
+        model.add_block(block)
+
+    # Connect flow
+    arrivals.connect_to(operacao)
+    operacao.connect_to(manutencao)    
+    manutencao.connect_to(decision)
+
+    # Decision block: check if simulation time >= final_simulation_time - 30    
+    # def should_discharge(env, entity):
+    #     """Return True if current time >= final_simulation_time - 30."""
+    #     return entity.priority <= 1 and env.now >= (model.config.duration - 30*DAYS)                 
+    
+    def should_discharge(env):
+        """Return True if priority <= 1 and current time >= final_simulation_time - 30 days."""
+        time_threshold = final_simulation_time - 30 * DAYS
+        return env.now >= time_threshold
         
-    # Coleta dados para estatísticas        
-    numero_sistema = conta_chegada - conta_saida
 
-    if env.now > tempo_aquecimento:
-        NS.append(numero_sistema)
-        NA.append(equipes.count)
-        NF.append(len(equipes.queue))
-
-
-    momento_saida[nome] = env.now            
-    tempo_sistema[nome] = momento_saida[nome] - momento_chegada[nome]
-    # print(f'momento_chegada[{nome}]: ', momento_chegada[nome])
-    # print(f'momento_saida[{nome}]: ', momento_saida[nome])
-    # print(f'tempo_sistema[{nome}]: ', tempo_sistema[nome])
-    if env.now > tempo_aquecimento:
-        TS.append(tempo_sistema[nome])
-        TA.append(duracao_atendimento[nome])
-        TF.append(tempo_fila[nome])
-        USO.append(utilizacao['Equipe'])
-        T.append(env.now)
-
-
-def computa_estatisticas(replicacao):  
-    print()
-    comprimento_linha = 100
-    print("="*comprimento_linha)   
-    print("Indicadores de Desempenho da Replicacao {0:d}".format(replicacao), end="\n")
-    print("="*comprimento_linha)   
-    # print('NS: ', NS)
-    # print('NF: ', NF)
-    # print('NA: ', NA)
-    # print('TS: ', TS)
-    # print('TF: ', TF)
-    # print('TA: ', TA)
-    NS_i = np.mean(NS)
-    NF_i = np.mean(NF)
-    NA_i = np.mean(NA)
-    TS_i = np.mean(TS)
-    TF_i = np.mean(TF)
-    TA_i = np.mean(TA)
-    USO_i= np.mean(USO)    
-    print('Chegadas: {0:d} máquinas'.format(conta_chegada))
-    print('Saidas:   {0:d} máquinas'.format(conta_saida))
-    print('WIP:      {0:d} máquinas'.format(conta_chegada-conta_saida))
-    print('NS: {0:.2f} máquinas'.format(NS_i))
-    print('NF: {0:.2f} máquinas'.format(NF_i))
-    print('NA: {0:.2f} máquinas'.format(NA_i))
-    print('TS: {0:.2f} horas'.format(TS_i))
-    print('TF: {0:.2f} horas'.format(TF_i))
-    print('TA: {0:.2f} horas'.format(TA_i))
-    print('USO:{0:.2f}%'.format(USO_i*100))    
-    print("="*comprimento_linha, end="\n")   
-    NS_bar.append(NS_i)
-    NF_bar.append(NF_i)
-    NA_bar.append(NA_i)
-    TS_bar.append(TS_i)
-    TF_bar.append(TF_i)
-    TA_bar.append(TA_i)
-    USO_bar.append(USO_i)
-
-
-def calc_ic(lista):
-    confidence = 0.95
-    n = len(lista)
-    # mean_se: Erro Padrão da Média
-    mean_se = stats.sem(lista)
-    h = mean_se * stats.t.ppf((1 + confidence) / 2., n-1)
-    # Intervalo de confiança: mean, +_h
-    return h
-
-
-def publica_estatisticas():  
-    print()
-    comprimento_linha = 100
-    print("="*comprimento_linha)   
-    print("Indicadores de Desempenho do Sistema", end="\n")
-    print("="*comprimento_linha)   
+    decision.add_route("DischargeDecision", discharge,
+                                condition=should_discharge)
     
-    print('NS: {0:.2f} \u00B1 {1:.2f} máquinas (IC 95%)'.format(np.mean(NS_bar), calc_ic(NS)))
-    print('NF: {0:.2f} \u00B1 {1:.2f} máquinas (IC 95%)'.format(np.mean(NF_bar), calc_ic(NF)))
-    print('NA: {0:.2f} \u00B1 {1:.2f} máquinas (IC 95%)'.format(np.mean(NA_bar), calc_ic(NA)))
-    print('TS: {0:.2f} \u00B1 {1:.2f} horas (IC 95%)'.format(np.mean(TS_bar), calc_ic(TS)))
-    print('TF: {0:.2f} \u00B1 {1:.2f} horas (IC 95%)'.format(np.mean(TF_bar), calc_ic(TF)))
-    print('TA: {0:.2f} \u00B1 {1:.2f} horas (IC 95%)'.format(np.mean(TA_bar), calc_ic(TA)))
-    print('USO:{0:.2f}% \u00B1 {1:.2f}%  (IC 95%)'.format(np.mean(USO_bar)*100, calc_ic(USO)*100))
-    print("="*comprimento_linha, end="\n") 
+    decision.connect_to(operacao)
+    decision.connect_to(discharge)
 
-    ###################################################################
-    # Gera gráfico de Warm-up
-    ###################################################################
-    if n_replicacoes == 1:
-        matplotlib.rcParams['figure.figsize'] = (8.0, 6.0)
-        matplotlib.style.use('ggplot')
-        # cria os dados
-        xi = T     
-        y = USO        
-        # usa a função plot
-        plt.title('Indicador de Desempenho: \n\n' + "Utilização média da equipe de manutenção")
-        plt.plot(xi, y, marker='o', linestyle='-', color='r', label='Dados')
-        plt.ylim(0.0,1.0)
-        plt.xlim(0.0,duracao_da_simulacao)
-        plt.xlabel('Tempo (horas)')
-        plt.ylabel('Valor') 
-        plt.show()
-    ###################################################################
-  
+    # ================================================================
+    # CONFIGURE FINANCIAL ATTRIBUTES
+    # ================================================================    
+    # Assign costs to each activity
+    operacao.assign_attributes(
+        cost=lambda: random.uniform(20, 30)  # Operacao costs $20-30
+    )
+    
+    manutencao.assign_attributes(
+        cost=lambda: random.uniform(100, 200)  # Manutencao costs $100-200
+    )    
+    
+    # Assign revenue at discharge (based on patient complexity)
+    def calculate_revenue():
+        """Revenue varies"""
+        return random.uniform(200, 300)
+    
+    operacao.assign_attributes(revenue=calculate_revenue)    
+    # ================================================================    
+    return model
 
-###################################################################
 
-for i in range (1,n_replicacoes+1):
-    # Re-inicializacao das estatísticas entre replicações
-    conta_chegada = 0    
-    conta_saida = 0
-    tempo_utilizacao_Recurso = 0
+def simulation_wrapper(seed=None, until=None, warm_up_period=None):
+    """Wrapper function for replication framework."""
+    
+    from core.entity import EventLogger
+    
+    event_logger = EventLogger()
+    model = build_ex1_model(event_logger)
 
-    env = simpy.Environment()
-    equipes = simpy.Resource(env, capacity=CAP_EQUIPE)
-    env.process(gera_maquinas(env, "maquina"))
-    env.run(duracao_da_simulacao)
-    computa_estatisticas(i)    
+    # Validate once on first run
+    if seed == 12345:
+        model.validate_resources()
 
-publica_estatisticas()
-###################################################################
+    model.run_simulation(
+        validate_resources=False,
+        until=until,
+        seed=seed,
+        warm_up_period=warm_up_period
+    )    
+    return model
+
+# ================================================================
+# For full simulation
+# ================================================================
+# Run replications
+def run_replications():
+    replication_framework = ReplicationFramework(
+        simulation_function=simulation_wrapper,
+        n_replications=30
+    )
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    replication_framework.run_replications(
+        base_seed=12345,
+        until=365*DAYS,
+        warm_up_period=30*DAYS
+    )
+
+    # Access results
+    df = replication_framework.get_results_dataframe()
+    print(df.describe())
+# ================================================================
+
+
+# ================================================================
+# Factorial Analysis
+# ================================================================
+def ex1_factorial_analysis():
+    """Example of factorial analysis with simulation."""
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Define simulation function wrapper
+    def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
+                                seed=None, until=None, warm_up_period=0, **kwargs):
+        """Wrapper that adapts parameters for factorial analysis."""
+
+        # ############################################################
+        # # O modelo de simulação é importado aqui
+        # ############################################################
+        model = build_ex1_model()
+        model.run_simulation(until=until, seed=seed, warm_up_period=warm_up_period)
+        return model
+    
+    # Create factorial analysis
+    factorial = FactorialExperiment(
+        simulation_function=ex1_simulation_wrapper,
+        base_seed=12345
+    )
+    
+    # Add factors
+    factorial.add_factor(
+        factor_name='arrival_rate',
+        parameter_path='CreateBlock.inter_arrival_time',
+        levels=[1, 2, 3],  # Minutes between arrivals
+        description='Taxa de chegada de maquinas (min)'
+    )
+    
+    factorial.add_factor(
+        factor_name='num_equipes',
+        parameter_path='Resource.equipes.capacity',
+        levels=[1, 2, 3],
+        description='Número de equipes de manutenção'
+    )
+    
+    
+    # Run experiment
+    factorial.run_factorial_experiment(
+        n_replications=5,
+        simulation_time=30*DAYS,  # 40 hours
+        warm_up_period=3*DAYS,    # 7 hours
+        verbose=True
+    )
+    
+    # Analyze results
+    factorial.print_summary()
+    factorial.plot_correlation_matrix()
+    factorial.plot_main_effects('system_time_avg')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
+    
+    # Export
+    factorial.export_results()
+
+    print("\n\nFactorial analysis examples completed!")
+    print("Check the generated CSV files and plots for detailed results.")
+    
+    return factorial
+# ================================================================
+
+
+
+def main():
+    """Main example demonstrating refactored usage."""
+    
+    HOURS = 60  # Time conversion factor (base time: Minutos)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex1 model...")    
+    
+    # Create configuration
+    config = SimulationConfig(
+        # warm_up_period=0
+        # until=20
+        # duration=24*HOURS,
+        # warm_up_period=2*HOURS,
+        duration=365*DAYS,
+        warm_up_period=30*DAYS,        
+        seed=123,
+        check_stability=True
+    )
+    config.validate()
+
+    model = build_ex1_model(config.duration, event_logger)
+    
+    # Check stability BEFORE running (optional)
+    print("\nChecking system stability...")
+    stability_analyzer = StabilityAnalyzer(model)
+    stability = stability_analyzer.check_system_stability()
+    model.stability_result = stability
+    
+    # Run simulation
+    print("\nRunning simulation (replication)...")
+    model.run_simulation(
+        validate_resources=True,  # Default True
+        until=config.duration,
+        seed=config.seed,
+        warm_up_period=config.warm_up_period
+    )    
+    
+    # === ANALYSIS PHASE (using separate modules) ===
+    
+    # 1. Basic results
+    print("\n" + "="*60)
+    print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    print("="*60)
+    
+    # 2. Detailed reporting
+    reporter = SimulationReporter(model)
+    reporter.print_results()
+    
+    # 3. Warm-up analysis
+    print("\nAnalyzing warm-up period...")
+    warmup_analyzer = WarmUpAnalyzer(model)
+    warmup_analyzer.analyze_warm_up_period()
+    
+    # 4. Plotting
+    print("\nPlotting resourse use over time...")
+    plotter = SimulationPlotter(model)
+    
+    # Plot resource utilization over time
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Equipes', moving_average_window=50)    
+    plotter.plot_wip_over_time()
+    plotter.plot_system_time_distribution()
+
+    # Plot activity metrics
+    print("\nPlotting activity metrics...")
+    reporter._print_activity_metrics()
+    plotter.plot_activity_metrics()
+
+        
+    # Plot resource utilization summary
+    print("\nPlotting resourse summary...")
+    plotter.plot_resources_utilization()
+    reporter._print_resource_metrics()
+    reporter._print_entity_counts()
+    reporter._print_block_statistics()
+
+    
+    # Financial analysis
+    print("\nPlotting financial analysys...")
+    financial_analyzer = FinancialAnalyzer(model)
+    financial_analyzer.print_financial_summary()
+    financial_analyzer.plot_financial_breakdown()
+
+    # 5. Export event log
+    print("\nExporting event log...")
+    df = event_logger.export_to_csv("ex1_event_log.csv")
+    print(f"\nFirst 10 events:")
+    print(df.head(10))
+    
+    # 6. Direct metrics access (if needed)
+    metrics = MetricsCollector(model)
+    entity_metrics = metrics.get_entity_metrics_summary()
+    resource_metrics = metrics.get_resource_metrics_summary()
+    
+    print(f"\nAverage system time: {entity_metrics['tempo_medio_sistema']:.2f} min")
+    # print(f"Nurses utilization: "
+    #       f"{resource_metrics['nurses']['taxa_utilizacao']:.1%}")
+    print(f"Random seed for this run: {config.seed}")
+    
+    return model, event_logger
+
+
+if __name__ == "__main__":
+    model, logger = main()
+    # run_replications()
+    # factorial = ex1_factorial_analysis()
