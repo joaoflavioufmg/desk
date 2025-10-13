@@ -442,7 +442,7 @@ class ReplicationFramework:
             return
         
         # Create figure
-        fig, ax = plt.subplots(figsize=(10, 6))
+        _fig, ax = plt.subplots(figsize=(10, 6))
         
         y_pos = np.arange(len(available_metrics))
         means = []

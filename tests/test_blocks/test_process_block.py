@@ -1,8 +1,8 @@
 # tests/test_blocks/test_process_block.py
 import pytest
 import simpy
-from simulation_framework.blocks.process_block import ProcessBlock
-from simulation_framework.core.entity import Entity, EventLogger
+from blocks.process_block import ProcessBlock
+from core.entity import Entity, EventLogger
 
 
 class TestProcessBlock:

@@ -93,7 +93,8 @@ class StabilityAnalyzer:
                 resource_capacity = resource.capacity * slowest_rate
                 resource_type = ("Priority" if isinstance(resource, 
                                 simpy.PriorityResource) else 
-                                "Preemptive" if isinstance(self.resource, simpy.PreemptiveResource) 
+                                "Preemptive" if isinstance(resource, 
+                                simpy.PreemptiveResource) 
                                 else "Regular")
                 
                 print(f"  📋 {resource_name} ({resource_type}): "
