@@ -90,7 +90,6 @@ def build_ex1_model(final_simulation_time, event_logger=None):
         event_logger=event_logger
     ) 
     
-
     manutencao = ProcessBlock(
         "Manutencao", model.env,
         resource=equipes,
