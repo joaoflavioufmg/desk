@@ -68,43 +68,6 @@ class WIPTracker:
             'wip_timeline': wip_timeline
         }
     
-    def _build_wip_timeline(self) -> List[Tuple[float, int]]:
-        """
-        Build WIP timeline from entity creation and disposal events.
-        
-        Returns:
-            List of (time, wip_count) tuples
-        """
-        events = []
-        
-        # Add creation events (+1 to WIP)
-        for create_block in self.model.create_blocks:
-            # Entities are created at specific times based on inter-arrival
-            # We need to reconstruct this from disposed entities
-            pass
-        
-        # Add disposal events (-1 from WIP)
-        for dispose_block in self.model.dispose_blocks:
-            for entity in dispose_block.disposed_entities:
-                creation_time = entity.creation_time
-                disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
-                
-                events.append((creation_time, +1))  # Entity enters system
-                events.append((disposal_time, -1))  # Entity exits system
-        
-        # Sort events by time
-        events.sort(key=lambda x: x[0])
-        
-        # Build timeline
-        timeline = []
-        current_wip = 0
-        
-        for time, change in events:
-            current_wip += change
-            timeline.append((time, current_wip))
-        
-        return timeline
-
     # def _build_wip_timeline(self) -> List[Tuple[float, int]]:
     #     """
     #     Build WIP timeline from entity creation and disposal events.
@@ -112,62 +75,99 @@ class WIPTracker:
     #     Returns:
     #         List of (time, wip_count) tuples
     #     """
-    #     # Get event_logger
-    #     event_logger = None
-    #     for block in self.model.blocks.values():
-    #         if hasattr(block, 'event_logger') and block.event_logger is not None:
-    #             event_logger = block.event_logger
-    #             break
-
     #     events = []
-    #     if event_logger is None:
-    #         # Fall back to disposed entities
-    #         total_disposed = sum(b.entities_disposed for b in self.model.dispose_blocks)
-    #         if total_disposed == 0:
-    #             total_created = sum(c.entities_created for c in self.model.create_blocks)
-    #             timeline = [(0.0, 0)]
-    #             if total_created > 0:
-    #                 timeline.append((self.model.env.now, total_created))
-    #             return timeline
-    #         else:
-    #             for dispose_block in self.model.dispose_blocks:
-    #                 for entity in dispose_block.disposed_entities:
-    #                     creation_time = entity.creation_time
-    #                     disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
-    #                     events.append((creation_time, +1))
-    #                     events.append((disposal_time, -1))
-    #     else:
-    #         # Use event log
-    #         df = event_logger.get_dataframe()
-    #         grouped = df[df['activity'].isin(['Arrival', 'Discharge'])].groupby('case_id')
-    #         for case_id, case_df in grouped:
-    #             arrival_row = case_df[case_df['activity'] == 'Arrival']
-    #             discharge_row = case_df[case_df['activity'] == 'Discharge']
-    #             if not arrival_row.empty:
-    #                 arrival_time = arrival_row['timestamp'].values[0]
-    #                 events.append((arrival_time, +1))
-    #                 if not discharge_row.empty:
-    #                     discharge_time = discharge_row['timestamp'].values[0]
-    #                     events.append((discharge_time, -1))
-
-    #     # Sort events
-    #     events.sort(key=lambda x: (x[0], x[1]))
-
+        
+    #     # Add creation events (+1 to WIP)
+    #     for create_block in self.model.create_blocks:
+    #         # Entities are created at specific times based on inter-arrival
+    #         # We need to reconstruct this from disposed entities
+    #         pass
+        
+    #     # Add disposal events (-1 from WIP)
+    #     for dispose_block in self.model.dispose_blocks:
+    #         for entity in dispose_block.disposed_entities:
+    #             creation_time = entity.creation_time
+    #             disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
+                
+    #             events.append((creation_time, +1))  # Entity enters system
+    #             events.append((disposal_time, -1))  # Entity exits system
+        
+    #     # Sort events by time
+    #     events.sort(key=lambda x: x[0])
+        
     #     # Build timeline
     #     timeline = []
     #     current_wip = 0
+        
     #     for time, change in events:
     #         current_wip += change
     #         timeline.append((time, current_wip))
-
-    #     # Add final point if needed
-    #     now = self.model.env.now
-    #     if timeline and timeline[-1][0] < now:
-    #         timeline.append((now, current_wip))
-    #     elif not timeline:
-    #         timeline = [(0.0, 0), (now, 0)]
-
+        
     #     return timeline
+
+    def _build_wip_timeline(self) -> List[Tuple[float, int]]:
+        """
+        Build WIP timeline from entity creation and disposal events.
+        
+        Returns:
+            List of (time, wip_count) tuples
+        """
+        # Get event_logger
+        event_logger = None
+        for block in self.model.blocks.values():
+            if hasattr(block, 'event_logger') and block.event_logger is not None:
+                event_logger = block.event_logger
+                break
+
+        events = []
+        if event_logger is None:
+            # Fall back to disposed entities
+            total_disposed = sum(b.entities_disposed for b in self.model.dispose_blocks)
+            if total_disposed == 0:
+                total_created = sum(c.entities_created for c in self.model.create_blocks)
+                timeline = [(0.0, 0)]
+                if total_created > 0:
+                    timeline.append((self.model.env.now, total_created))
+                return timeline
+            else:
+                for dispose_block in self.model.dispose_blocks:
+                    for entity in dispose_block.disposed_entities:
+                        creation_time = entity.creation_time
+                        disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
+                        events.append((creation_time, +1))
+                        events.append((disposal_time, -1))
+        else:
+            # Use event log
+            df = event_logger.get_dataframe()
+            grouped = df[df['activity'].isin(['Arrival', 'Discharge'])].groupby('case_id')
+            for case_id, case_df in grouped:
+                arrival_row = case_df[case_df['activity'] == 'Arrival']
+                discharge_row = case_df[case_df['activity'] == 'Discharge']
+                if not arrival_row.empty:
+                    arrival_time = arrival_row['timestamp'].values[0]
+                    events.append((arrival_time, +1))
+                    if not discharge_row.empty:
+                        discharge_time = discharge_row['timestamp'].values[0]
+                        events.append((discharge_time, -1))
+
+        # Sort events
+        events.sort(key=lambda x: (x[0], x[1]))
+
+        # Build timeline
+        timeline = []
+        current_wip = 0
+        for time, change in events:
+            current_wip += change
+            timeline.append((time, current_wip))
+
+        # Add final point if needed
+        now = self.model.env.now
+        if timeline and timeline[-1][0] < now:
+            timeline.append((now, current_wip))
+        elif not timeline:
+            timeline = [(0.0, 0), (now, 0)]
+
+        return timeline
     
     def _calculate_time_weighted_wip(self, timeline: List[Tuple[float, int]]) -> float:
         """

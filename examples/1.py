@@ -70,7 +70,7 @@ def build_ex1_model(final_simulation_time, event_logger=None):
 
 
     # Resources
-    equipes = model.add_resource("Equipes", 1)
+    equipes = model.add_resource("Equipes", 1, "regular")
     
     
      # Create blocks
@@ -85,7 +85,7 @@ def build_ex1_model(final_simulation_time, event_logger=None):
     
     operacao = ProcessBlock(
         "Operacao", model.env,
-        resource=None,
+        resource=None, # Apenas DELAY (sem recurso)
         delay_time=lambda: distribution('operacao'),
         event_logger=event_logger
     ) 
@@ -100,41 +100,50 @@ def build_ex1_model(final_simulation_time, event_logger=None):
     manutencao.set_resource_name('Equipes')
    
     
-    decision = DecideBlock(
-        "DischargeDecision", model.env,
-        decision_type="condition",
+    decision_time = DecideBlock(
+        "DisposeDecision", model.env,
+        decision_type="time_condition",
         event_logger=event_logger
     )
 
-    discharge = DisposeBlock("Discharge", model.env, event_logger=event_logger)
+    def should_dispose(env):
+        """Return True if current time >= final_simulation_time - 30 days."""
+        time_threshold = final_simulation_time - 30 * DAYS
+        return env.now >= time_threshold
 
+    def should_not_dispose(env):
+        """Return True if current time < final_simulation_time - 30 days."""
+        time_threshold = final_simulation_time - 30 * DAYS
+        return env.now < time_threshold
+
+    decision_time.add_route(
+        "Dispose_Yes", 
+        next_block=None,  # Will be connected later
+        # time_condition=should_dispose)
+        time_condition=lambda t: t >= (final_simulation_time - 3*DAYS))
+
+    decision_time.add_route(
+        "Dispose_No", 
+        next_block=None,  # Will be connected later
+        # time_condition=should_not_dispose)
+        time_condition=lambda t: t < (final_simulation_time - 3*DAYS))
+
+    dispose = DisposeBlock(
+        "Dispose", 
+        model.env, 
+        event_logger=event_logger)
     
     # Add blocks to model
-    for block in [arrivals, operacao, manutencao, discharge]:
+    for block in [arrivals, operacao, manutencao, dispose]:
         model.add_block(block)
 
     # Connect flow
     arrivals.connect_to(operacao)
     operacao.connect_to(manutencao)    
-    manutencao.connect_to(decision)
-
-    # Decision block: check if simulation time >= final_simulation_time - 30    
-    # def should_discharge(env, entity):
-    #     """Return True if current time >= final_simulation_time - 30."""
-    #     return entity.priority <= 1 and env.now >= (model.config.duration - 30*DAYS)                 
+    manutencao.connect_to(decision_time)
+    decision_time.routes["Dispose_No"]["block"] = operacao
+    decision_time.routes["Dispose_Yes"]["block"] = dispose
     
-    def should_discharge(env):
-        """Return True if priority <= 1 and current time >= final_simulation_time - 30 days."""
-        time_threshold = final_simulation_time - 30 * DAYS
-        return env.now >= time_threshold
-        
-
-    decision.add_route("DischargeDecision", discharge,
-                                condition=should_discharge)
-    
-    decision.connect_to(operacao)
-    decision.connect_to(discharge)
-
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
@@ -161,9 +170,21 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
     
     from core.entity import EventLogger
-    
     event_logger = EventLogger()
-    model = build_ex1_model(event_logger)
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=365*DAYS,
+        warm_up_period=30*DAYS,        
+        seed=123,
+        check_stability=True
+    )
+
+    model = build_ex1_model(config.duration, event_logger)
 
     # Validate once on first run
     if seed == 12345:
@@ -212,6 +233,14 @@ def ex1_factorial_analysis():
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=365*DAYS,
+        warm_up_period=30*DAYS,        
+        seed=123,
+        check_stability=True
+    )
     
     # Define simulation function wrapper
     def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
@@ -221,7 +250,7 @@ def ex1_factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        model = build_ex1_model()
+        model = build_ex1_model(config.duration)
         model.run_simulation(until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
