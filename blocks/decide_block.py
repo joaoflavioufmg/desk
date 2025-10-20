@@ -95,7 +95,9 @@ class DecideBlock(BaseBlock):
                     decision_time=self.env.now  # NEW: Include time in log
                 )
 
-            yield from next_block.process_entity(entity)
+            # yield from next_block.process_entity(entity)
+            self.env.process(next_block.process_entity(entity))
+            yield self.env.timeout(0)
         else:
             # No valid route found - entity exits
             yield self.env.timeout(0)

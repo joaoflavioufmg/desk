@@ -40,10 +40,8 @@ class ProcessBlock(BaseBlock):
         self.total_queue_time = 0.0
         self.resource_data = []  # (time, in_service, queue_length)
         self.max_queue_length = 0
-        self.max_in_service = 0
-
-        # Store resource name for logging
-        self.resource_name = None
+        self.max_in_service = 0        
+        self.resource_name = None # Store resource name for logging
     
     def set_resource_name(self, name: str):
         """Set the resource name for event logging."""
@@ -52,9 +50,11 @@ class ProcessBlock(BaseBlock):
     def process_entity(self, entity: Entity):
         """
         Process an entity through delay operation with optional resource usage.
-        
-        If resource is None: performs pure delay
-        If resource exists: seizes resource, delays, releases resource
+            If resource is None: performs pure delay
+            If resource exists: seizes resource, delays, releases resource
+
+        Process an entity with activity-based priority and attribute modification.        
+        NEW: Uses activity_priority if set, otherwise uses entity priority.
         """
         entity.route_history.append(self.name)
         
@@ -92,7 +92,9 @@ class ProcessBlock(BaseBlock):
         self.log_complete(entity, resource_name=None)
         
         # Continue to next block
-        yield from self.send_to_next(entity)
+        # yield from self.send_to_next(entity)
+        self.env.process(self.send_to_next(entity))
+        yield self.env.timeout(0)
     
     def _process_with_resource(self, entity: Entity):
         """Process entity with resource seizure (traditional queue behavior)."""
@@ -102,15 +104,20 @@ class ProcessBlock(BaseBlock):
         while True:
             queue_start = self.env.now
 
+            # Determine priority for this activity
+            request_priority = (self.activity_priority 
+                              if self.activity_priority is not None 
+                              else entity.priority)
+
             # Create list of requests according to resource_units
             requests = []
             for _ in range(self.resource_units):
                 if isinstance(self.resource, simpy.PreemptiveResource):
                     # ⚠️ Use preempt=False during request
                     # Preemption will still occur during service timeout
-                    req = self.resource.request(priority=entity.priority, preempt=False)
+                    req = self.resource.request(priority=request_priority, preempt=False)
                 elif isinstance(self.resource, simpy.PriorityResource):
-                    req = self.resource.request(priority=entity.priority)
+                    req = self.resource.request(priority=request_priority)
                 else:
                     req = self.resource.request()
                 requests.append(req)
@@ -143,6 +150,7 @@ class ProcessBlock(BaseBlock):
                 entity.add_attribute(f"{self.name}_service_time", delay)
                 
                 self._apply_attributes(entity)
+                self._modify_attributes(entity)  # NEW: Apply dynamic modifications
                 self.log_complete(entity, self.resource_name)
                 
                 break  # Exit retry loop - we're done!
@@ -159,9 +167,9 @@ class ProcessBlock(BaseBlock):
                         timestamp=self.env.now,
                         lifecycle=lifecycle,
                         resource=self.resource_name,
-                        priority=entity.priority
-                    )
-                
+                        priority=entity.priority,
+                        activity_priority=self.activity_priority
+                    )                
                 # Resources will be released in finally block
                 # Loop continues to retry from the beginning
                 continue
@@ -176,8 +184,11 @@ class ProcessBlock(BaseBlock):
                 self._monitor_resource()
 
         self._monitor_resource()
+
         # Continue to next block
-        yield from self.send_to_next(entity)
+        # yield from self.send_to_next(entity)
+        self.env.process(self.send_to_next(entity))
+        yield self.env.timeout(0)
 
     def _monitor_resource(self):
         """Monitor resource state for statistics (only if resource exists)."""
@@ -196,7 +207,7 @@ class ProcessBlock(BaseBlock):
 
 
 class MultiProcessBlock(BaseBlock):
-    """PROCESS block that can seize multiple resources simultaneously."""
+    """PROCESS block that can seize multiple resources simultaneously with activity priority."""
     
     def __init__(self, name: str, env: simpy.Environment,
                  resource_requirements: Dict[simpy.Resource, int],
@@ -240,14 +251,20 @@ class MultiProcessBlock(BaseBlock):
         
         
         while True:  # Loop for retry on preemption
+
+            # Determine priority for this activity
+            request_priority = (self.activity_priority 
+                              if self.activity_priority is not None 
+                              else entity.priority)
+
             # Create all resource requests with their resources
             requests = []
             for resource, units in self.resource_requirements.items():
                 for _ in range(units):
                     if isinstance(resource, simpy.PreemptiveResource):
-                        req = resource.request(preempt=True) # Enable preemption
+                        req = resource.request(priority=request_priority, preempt=True) # Enable preemption
                     elif isinstance(resource, simpy.PriorityResource):
-                        req = resource.request(priority=entity.priority)
+                        req = resource.request(priority=request_priority)
                     else:
                         req = resource.request()
                     requests.append((resource, req))
@@ -331,7 +348,8 @@ class MultiProcessBlock(BaseBlock):
                             timestamp=self.env.now,
                             lifecycle='interrupt',
                             resource=resources_str,
-                            priority=entity.priority
+                            priority=entity.priority,
+                            activity_priority=self.activity_priority
                         )
                     continue  # Retry seizure from the top
                 
@@ -340,11 +358,10 @@ class MultiProcessBlock(BaseBlock):
                 self.total_delay_time += delay
                 entity.add_attribute(f"{self.name}_service_time", delay)
 
-                # NEW: Apply configured attributes (e.g., cost, revenue)
-                self._apply_attributes(entity)
-
-                # Log activity complete
-                self.log_complete(entity, resources_str) 
+                
+                self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)
+                self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
+                self.log_complete(entity, resources_str) # Log activity complete
 
                 break  # Success, exit retry loop
 
@@ -357,7 +374,9 @@ class MultiProcessBlock(BaseBlock):
                 self._monitor_all_resources()
         
         # Send to next block
-        yield from self.send_to_next(entity)
+        # yield from self.send_to_next(entity)
+        self.env.process(self.send_to_next(entity))
+        yield self.env.timeout(0)
     
 
     def _monitor_all_resources(self):

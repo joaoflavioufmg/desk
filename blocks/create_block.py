@@ -52,6 +52,9 @@ class CreateBlock(BaseBlock):
             
             self.entities_created += 1
             entity.route_history.append(self.name)
+
+            # ✅ ADD THIS LINE: Apply configured attributes to the entity
+            self._apply_attributes(entity)
             
             # Log creation as an event
             if self.event_logger:

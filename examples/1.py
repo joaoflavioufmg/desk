@@ -106,15 +106,15 @@ def build_ex1_model(final_simulation_time, event_logger=None):
         event_logger=event_logger
     )
 
-    def should_dispose(env):
-        """Return True if current time >= final_simulation_time - 30 days."""
-        time_threshold = final_simulation_time - 30 * DAYS
-        return env.now >= time_threshold
+    # def should_dispose(env):
+    #     """Return True if current time >= final_simulation_time - 30 days."""
+    #     time_threshold = final_simulation_time - 30 * DAYS
+    #     return env.now >= time_threshold
 
-    def should_not_dispose(env):
-        """Return True if current time < final_simulation_time - 30 days."""
-        time_threshold = final_simulation_time - 30 * DAYS
-        return env.now < time_threshold
+    # def should_not_dispose(env):
+    #     """Return True if current time < final_simulation_time - 30 days."""
+    #     time_threshold = final_simulation_time - 30 * DAYS
+    #     return env.now < time_threshold
 
     decision_time.add_route(
         "Dispose_Yes", 
@@ -134,7 +134,7 @@ def build_ex1_model(final_simulation_time, event_logger=None):
         event_logger=event_logger)
     
     # Add blocks to model
-    for block in [arrivals, operacao, manutencao, dispose]:
+    for block in [arrivals, operacao, manutencao, decision_time, dispose]:
         model.add_block(block)
 
     # Connect flow
@@ -186,9 +186,9 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
 
     model = build_ex1_model(config.duration, event_logger)
 
-    # Validate once on first run
-    if seed == 12345:
-        model.validate_resources()
+    # # Validate once on first run
+    # if seed == 12345:
+    #     model.validate_resources()
 
     model.run_simulation(
         validate_resources=False,
@@ -251,7 +251,7 @@ def ex1_factorial_analysis():
         # # O modelo de simulação é importado aqui
         # ############################################################
         model = build_ex1_model(config.duration)
-        model.run_simulation(until=until, seed=seed, warm_up_period=warm_up_period)
+        model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
     # Create factorial analysis
@@ -410,5 +410,5 @@ def main():
 
 if __name__ == "__main__":
     model, logger = main()
-    # run_replications()
-    # factorial = ex1_factorial_analysis()
+    run_replications()
+    factorial = ex1_factorial_analysis()

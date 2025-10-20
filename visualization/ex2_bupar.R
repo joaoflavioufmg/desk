@@ -5,11 +5,11 @@ library(ggplot2)
 
 # Define the exact color mapping
 priority_colors <- c(
-  "Critical" = "#d73027",
-  "Emergency" = "#fc8d59",
-  "Urgent" = "#66c2a5",
-  "Semi-Urgent" = "#abdda4",
-  "Non-Urgent" = "#fee08b"
+  "Clientes" = "#d73027"
+  # "Emergency" = "#fc8d59",
+  # "Urgent" = "#66c2a5",
+  # "Semi-Urgent" = "#abdda4",
+  # "Non-Urgent" = "#fee08b"
 )
 
 # Create a verification plot
@@ -33,16 +33,15 @@ verification_plot <- ggplot(color_verification, aes(x = reorder(priority, order)
 print(verification_plot)
 
 # Now create the animation with verified colors
-# NOTE: Replace "hospital_event_log_bupar.csv" with the actual path if running outside a script's directory
-# event_log <- read.csv("C:/Users/user/Desktop/sls/arena/hospital_event_log_bupar.csv")
-event_log <- read.csv("C:/Users/user/Desktop/sls/simulation_framework/hospital_event_log.csv")
+# NOTE: Replace "ex1_event_log_bupar.csv" with the actual path if running outside a script's directory
+event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/ex2_event_log.csv")
 
 
 # Map priorities
 if ("priority" %in% names(event_log)) {
   # Ensuring priority is treated as a factor/character for mapping
   event_log$priority_char <- as.character(event_log$priority)
-  priority_mapping <- c("0" = "Critical", "1" = "Emergency", "2" = "Urgent",
+  priority_mapping <- c("0" = "Clientes", "1" = "Emergency", "2" = "Urgent",
                         "3" = "Semi-Urgent", "4" = "Non-Urgent")
   event_log$priority_label <- priority_mapping[event_log$priority_char]
   # Fill NAs for priorities that are not 0-4 (if any)
@@ -60,7 +59,7 @@ event_log$activity_instance_id <- paste(event_log$case_id, event_log$activity,
 reference_date <- as.POSIXct("2024-01-01 00:00:00")
 event_log$timestamp <- reference_date + as.difftime(event_log$timestamp, units = "mins")
 
-hospital_log <- eventlog(
+ex2_log <- eventlog(
   event_log,
   case_id = "case_id",
   activity_id = "activity",
@@ -72,15 +71,15 @@ hospital_log <- eventlog(
 
 # **IMPROVEMENT: Explicitly set start_time and end_time**
 # Extract the time range from the created event log object
-time_range <- attr(hospital_log, "time_range")
+time_range <- attr(ex2_log, "time_range")
 start_time <- time_range[1]
 end_time <- time_range[2]
 
 # Final animation
 final_animation <- animate_process(
-  hospital_log,
+  ex2_log,
   mode = "relative",
-  duration = 30, # Animation speed in seconds
+  duration = 240, # Animation speed in seconds
   start_time = start_time, # Explicitly set start time
   end_time = end_time, # Explicitly set end time (should be ~40 hours later)
   mapping = token_aes(
@@ -93,7 +92,7 @@ final_animation <- animate_process(
 )
 
 print(final_animation)
-htmlwidgets::saveWidget(final_animation, "hospital_final_priority.html", selfcontained = TRUE)
+htmlwidgets::saveWidget(final_animation, "ex2_visualization.html", selfcontained = TRUE)
 
 cat("Animation created with colors in this order:\n")
 print(priority_colors)

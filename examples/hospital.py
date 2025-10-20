@@ -236,9 +236,9 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     event_logger = EventLogger()
     model = build_hospital_model(event_logger)
 
-    # Validate once on first run
-    if seed == 12345:
-        model.validate_resources()
+    # # Validate once on first run
+    # if seed == 12345:
+    #     model.validate_resources()
     
     # model.run_simulation(
     #     until=until or 24*60,
@@ -304,7 +304,7 @@ def hospital_factorial_analysis():
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
         model = build_hospital_model()
-        model.run_simulation(until=until, seed=seed, warm_up_period=warm_up_period)
+        model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
     # Create factorial analysis

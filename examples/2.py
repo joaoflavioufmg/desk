@@ -39,7 +39,7 @@ from config.simulation_config import SimulationConfig
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex2_model(event_logger=None):
+def build_ex2_model(final_simulation_time, event_logger=None):
     """Build a hospital simulation model with refactored structure."""
     
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -50,7 +50,7 @@ def build_ex2_model(event_logger=None):
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas=10         # por minuto        
+        taxa_chegadas = 10         # por minuto        
         return {
             'chegada': random.expovariate(1/taxa_chegadas),
             'servir': random.gauss(6, 1),
@@ -60,42 +60,47 @@ def build_ex2_model(event_logger=None):
 
     
     # Resources - all priority-based
-    garcons = model.add_resource("Garcons", 1, "priority") 
-    copos = model.add_resource("Copos", 70, "priority")
+    garcons = model.add_resource("Garcons", 2, "regular") 
+    copos = model.add_resource("Copos", 70, "regular")  
     
-    # Entity priority
-    def prio(entidade):
-        return {
-            "Cliente": 0
-        }.get(entidade,0.0)
     
     # Create blocks
     chegadas_clientes = CreateBlock(
-        "Chegadas", model.env,
+        "ChegadasClientes", model.env,
         inter_arrival_time=lambda: distribution('chegada'),
         entity_prefix="Cliente",
         max_arrivals=None, # Infinito
         first_creation=0.0,
-        priority_generator=prio("Cliente"),
+        # priority_generator=prio("Cliente"),
         event_logger=event_logger
-    )
-    # ================================================================
-    # CONFIGURE ENTITY ATTRIBUTES
-    # ================================================================    
-    # Assign thursty to each patient
+    )    
+    # CONFIGURE ENTITY ATTRIBUTES # Assign "sede" to each patient
     chegadas_clientes.assign_attributes(
-        sede=lambda: random.randint(1, 4)  # Sede entre 1 e 4
+        sede=lambda: random.randint(1, 4)  # Sede entre 1 e 4        
+        # sedeOriginal=0
     )
-    
-    # Create blocks
-    chegada_garcom = CreateBlock(
-        "Chegada_Garcom", model.env,
+
+    chegadas_garcons = CreateBlock(
+        "ChegadasGarcons", model.env,
         inter_arrival_time=lambda: distribution('chegada'),
-        entity_prefix="Garcom",   
-        max_arrivals=1, # Apenas 1 garcom
-        first_creation=0.0,        
+        entity_prefix="Garcom",
+        max_arrivals=1, 
+        first_creation=0.0,
+        # priority_generator=prio("Cliente"),
         event_logger=event_logger
-    )
+    ) 
+
+    decide_ent_origem = DecideBlock(
+        "Decide1", model.env,
+        decision_type="condition",
+        event_logger=event_logger
+    )   
+
+    # Define activity priorities
+    PRIO_ATIVIDADE = {
+        "servir": 0,  # Highest priority
+        "lavar": 1    # Lower priority
+    }    
     
     servir = MultiProcessBlock(
         "Servir", model.env,
@@ -107,9 +112,10 @@ def build_ex2_model(event_logger=None):
         event_logger=event_logger
     )
     servir.set_resource_names({
-        garcons: 'garcom',
-        copos: 'copo'
+        garcons: 'Garcons',
+        copos: 'Copos'
     })
+    servir.set_activity_priority(PRIO_ATIVIDADE["servir"])  # Set activity priority
     
     beber = ProcessBlock(
         "Beber", model.env,
@@ -119,8 +125,16 @@ def build_ex2_model(event_logger=None):
         resource_units=1,         # 1 CHECK! 
         event_logger=event_logger
     )
-    beber.set_resource_name('Copo')
+    beber.set_resource_name('Copos')
+    # NEW: Configure dynamic attribute modification
+    beber.modify_attributes(
+        # sedeOriginal=lambda sede: sede,        
+        # sede=lambda current: current - 1  # Decrement sede by 1
+        sede=lambda current: max(0, current - 1)
+    )
 
+
+    # Lavar activity with lower priority
     lavar = MultiProcessBlock(
         "Lavar", model.env,
         resource_requirements={
@@ -131,12 +145,13 @@ def build_ex2_model(event_logger=None):
         event_logger=event_logger
     )
     lavar.set_resource_names({
-        garcons: 'garcom',
-        copos: 'copo'
+        garcons: 'Garcons',
+        copos: 'Copos'
     })
+    lavar.set_activity_priority(PRIO_ATIVIDADE["lavar"])  # Set activity priority
 
     decide_satisfeito = DecideBlock(
-        "DecideSair", model.env,
+        "Decide2", model.env,
         decision_type="condition",
         event_logger=event_logger
     )    
@@ -145,62 +160,75 @@ def build_ex2_model(event_logger=None):
         "Dispose", 
         model.env, 
         event_logger=event_logger)
-    
+
+    decision_time = DecideBlock(
+        "DisposeDecision", model.env,
+        decision_type="time_condition",
+        event_logger=event_logger
+    )
+
     # Add blocks to model
-    for block in [chegadas_clientes, chegada_garcom, 
-                servir, decide_satisfeito,
-                beber, lavar, dispose]:
+    for block in [chegadas_clientes, chegadas_garcons, servir, 
+                beber, decide_satisfeito, decide_ent_origem, 
+                decision_time, lavar, dispose]:
         model.add_block(block)
     
     # Connect flow
-    chegadas_clientes.connect_to(beber)
+    chegadas_clientes.connect_to(servir)    
+    servir.connect_to(decide_ent_origem)    
     beber.connect_to(decide_satisfeito)
-    chegada_garcom.connect_to(servir)
-    servir.connect_to(lavar)
-    lavar.connect_to(servir)
+
+    # chegadas_garcons.connect_to(servir)
+    # lavar.connect_to(decision_time)
+    chegadas_garcons.connect_to(lavar)
+    lavar.connect_to(decision_time)
+    # chegadas_clientes.connect_to(servir)    
+    # servir.connect_to(beber)    
+    # beber.connect_to(decide_satisfeito)
+    # chegadas_garcons.connect_to(lavar)
+    # lavar.connect_to(lavar)
 
     # Decision routing functions
+    def ori_cliente(entity):
+        return "cliente" in entity.id.lower()
+
+    def ori_garcom(entity):
+        return "garcom" in entity.id.lower()
+
     def satisfeito(entity):
-        return entity.sede < 1
+        return entity.get_attribute("sede", 0) < 1
+        # sede_value = entity.get_attribute("sede", 0)
+        # print(f"[DEBUG SATISFEITO] {entity.id}: sede={sede_value}, satisfeito={sede_value < 1}")
+        # return sede_value < 1
     
     def nao_satisfeito(entity):
-        return entity.sede >= 1 
+        return entity.get_attribute("sede", 0) >= 1
+        # sede_value = entity.get_attribute("sede", 0)
+        # print(f"[DEBUG NAO_SATISFEITO] {entity.id}: sede={sede_value}, nao_satisfeito={sede_value >= 1}")
+        # return sede_value >= 1
     
     # Add decision routes
-    decide_satisfeito.add_route(
-        "Satisfeito",
-        next_block=None,  # Will be connected later,
-        condition=satisfeito)
-    
-    decide_satisfeito.add_route(
-        "NaoSatisfeito",
-        next_block=None,  # Will be connected later,
-        condition=nao_satisfeito)
+    decide_ent_origem.add_route("Cliente", beber, condition=ori_cliente)
+    decide_ent_origem.add_route("Garcom", lavar, condition=ori_garcom)
 
-    decide_satisfeito.routes["Satisfeito"]["block"] = dispose
-    decide_satisfeito.routes["NaoSatisfeito"]["block"] = beber
+    decide_satisfeito.add_route("Satisfeito", dispose, condition=satisfeito)    
+    decide_satisfeito.add_route("Beber_mais", servir, condition=nao_satisfeito)
 
+    decision_time.add_route("Dispose_Yes", dispose,
+        time_condition=lambda t: t >= (final_simulation_time - 10))
+    decision_time.add_route("Dispose_No", lavar,
+        time_condition=lambda t: t < (final_simulation_time - 10))
     
+   
 
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
     # Assign costs to each activity
-    servir.assign_attributes(
-        cost=lambda: random.uniform(20, 30)  # Triage costs $20-30
-    )
-    
-    lavar.assign_attributes(
-        cost=lambda: random.uniform(1, 2)  # Consultation costs $100-200
-    )
-    
-    
-    # Assign revenue at discharge (based on patient complexity)
-    def calculate_revenue():
-        """Revenue varies by patient complexity"""
-        return random.uniform(50, 200)
-    
-    dispose.assign_attributes(revenue=calculate_revenue)    
+    servir.assign_attributes(cost=lambda: random.uniform(20, 30))    
+    lavar.assign_attributes(cost=lambda: random.uniform(10, 20))
+    dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
+    # dispose.assign_attributes(revenue=lambda sedeOriginal: sedeOriginal * 20)    
     # ================================================================
     
     return model
@@ -209,20 +237,29 @@ def build_ex2_model(event_logger=None):
 def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
     
-    from core.entity import EventLogger
-    
+    from core.entity import EventLogger    
     event_logger = EventLogger()
-    model = build_ex2_model(event_logger)
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True
+    )
+
+    model = build_ex2_model(config.duration, event_logger)
+    # model = build_ex2_model(event_logger)
 
     # Validate once on first run
-    if seed == 12345:
-        model.validate_resources()
+    # if seed == 12345:
+    #     model.validate_resources()
     
-    # model.run_simulation(
-    #     until=until or 24*60,
-    #     seed=seed,
-    #     warm_up_period=warm_up_period or 2*60
-    # )
+    
     model.run_simulation(
         validate_resources=False,
         until=until,
@@ -258,7 +295,6 @@ def run_replications():
 # ================================================================
     
 
-
 # ================================================================
 # Factorial Analysis
 # ================================================================
@@ -268,9 +304,17 @@ def ex2_factorial_analysis():
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True        
+    )
     
     # Define simulation function wrapper
-    def ex2_simulation_wrapper(arrival_rate=4, num_garcons=1, num_copos=70,
+    def ex2_simulation_wrapper(arrival_rate=10, num_garcons=1, num_copos=70,
                                     seed=None, until=None, warm_up_period=0, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
@@ -281,8 +325,8 @@ def ex2_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex2_model()
-        model.run_simulation(until=until, seed=seed, warm_up_period=warm_up_period)
+        model = build_ex2_model(config.duration)
+        model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
     # Create factorial analysis
@@ -295,21 +339,21 @@ def ex2_factorial_analysis():
     factorial.add_factor(
         factor_name='arrival_rate',
         parameter_path='CreateBlock.inter_arrival_time',
-        levels=[3, 4, 5],  # Minutes between arrivals
+        levels=[10, 15, 20],  # Minutes between arrivals
         description='Taxa de chegada de clientes (min)'
     )
     
     factorial.add_factor(
         factor_name='num_garcons',
         parameter_path='Resource.garcons.capacity',
-        levels=[1, 3, 5],
+        levels=[1, 2, 3],
         description='Número de garçons'
     )
     
     factorial.add_factor(
         factor_name='num_copos',
         parameter_path='Resource.copos.capacity',
-        levels=[50, 70, 90],
+        levels=[70, 80, 90],
         description='Número de copos'
     )
     
@@ -319,13 +363,14 @@ def ex2_factorial_analysis():
         simulation_time=40*60,  # 40 hours
         warm_up_period=7*60,    # 7 hours
         verbose=True
+        # verbose=False
     )
     
     # Analyze results
     factorial.print_summary()
     factorial.plot_correlation_matrix()
     factorial.plot_main_effects('system_time_avg')
-    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_doctors')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_garcons')
     
     # Export
     factorial.export_results()
@@ -349,21 +394,22 @@ def main():
     event_logger = EventLogger()
     
     # Build model
-    print("Building hospital model...")
-    model = build_ex2_model(event_logger)
+    print("Building ex2 model...")    
     
     # Create configuration
     config = SimulationConfig(
         # warm_up_period=0
         # until=20
-        duration=24*HOURS,
-        warm_up_period=2*HOURS,
+        duration=8*HOURS,
+        warm_up_period=0.5*HOURS,
         # duration=21*DAYS,
         # warm_up_period=5*DAYS,        
         seed=123,
         check_stability=True
     )
     config.validate()
+
+    model = build_ex2_model(config.duration, event_logger)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -402,10 +448,8 @@ def main():
     plotter = SimulationPlotter(model)
     
     # Plot resource utilization over time
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='nursesT', moving_average_window=50)
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='nurses', moving_average_window=50)
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='doctors', moving_average_window=50)
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='pharmacy', moving_average_window=50)
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Garcons', moving_average_window=50)
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Copos', moving_average_window=50)    
     plotter.plot_wip_over_time()
     plotter.plot_system_time_distribution()
 
@@ -431,7 +475,7 @@ def main():
 
     # 5. Export event log
     print("\nExporting event log...")
-    df = event_logger.export_to_csv("hospital_event_log.csv")
+    df = event_logger.export_to_csv("ex2_event_log.csv")
     print(f"\nFirst 10 events:")
     print(df.head(10))
     
@@ -451,4 +495,4 @@ def main():
 if __name__ == "__main__":
     model, logger = main()
     # run_replications()
-    # factorial = hospital_factorial_analysis()
+    # factorial = ex2_factorial_analysis()

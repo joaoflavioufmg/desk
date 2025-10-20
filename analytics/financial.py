@@ -48,15 +48,20 @@ class FinancialAnalyzer:
         costs_by_activity = {}
         
         for entity in post_warmup_entities:
+            # print(f"[DEBUG ACTIVITY_NAME] {entity.data.items()}")
             for key, value in entity.data.items():
                 if 'revenue' in key.lower() and isinstance(value, (int, float)):
                     total_revenue += value
                 
-                if 'cost' in key.lower() and isinstance(value, (int, float)):
-                    activity_name = key.replace('_cost', '')
+                if '_cost' in key.lower() and isinstance(value, (int, float)):                    
+                    # activity_name = key.replace('_cost', '')
+                    # extract activity name from "BlockName_cost"
+                    activity_name = key.replace('_cost', '').split('_')[0] if '_' in key else key
+                    # print(f"[DEBUG ACTIVITY_NAME] {activity_name}")                    
                     if activity_name not in costs_by_activity:
                         costs_by_activity[activity_name] = 0
                     costs_by_activity[activity_name] += value
+        
         
         total_costs = sum(costs_by_activity.values())
         net_profit = total_revenue - total_costs

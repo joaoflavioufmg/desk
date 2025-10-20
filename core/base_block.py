@@ -19,6 +19,8 @@ class BaseBlock(ABC):
         self.statistics = {}
         self.event_logger = event_logger
         self.attributes_to_assign = {}  # NEW: Generic attribute assignment
+        self.attributes_to_modify = {}  # NEW: Dynamic attribute modifications
+        self.activity_priority = None  # NEW: Activity-specific priority
 
     def assign_attributes(self, **attributes):
         """
@@ -37,6 +39,43 @@ class BaseBlock(ABC):
             )
         """
         self.attributes_to_assign = attributes
+
+    def modify_attributes(self, **modifications):
+        """
+        Configure dynamic attribute modifications for entities.
+        
+        Args:
+            **modifications: Key-value pairs where:
+                - Key: attribute name to modify
+                - Value: function that takes current value and returns new value
+        
+        Example:
+            # Decrement sede by 1
+            beber.modify_attributes(sede=lambda current: current - 1)
+            
+            # Increase cost by 10%
+            activity.modify_attributes(cost=lambda current: current * 1.1)
+            
+            # Conditional modification
+            activity.modify_attributes(
+                priority=lambda current: max(0, current - 1)
+            )
+        """
+        self.attributes_to_modify = modifications
+    
+    def set_activity_priority(self, priority: int):
+        """
+        Set the priority level for this activity.
+        
+        Args:
+            priority: Integer priority (lower = higher priority, 0 = highest)
+        
+        Example:
+            servir.set_activity_priority(0)  # Highest priority
+            lavar.set_activity_priority(1)   # Lower priority
+        """
+        self.activity_priority = priority 
+
     
     def _apply_attributes(self, entity: Entity):
         """Apply configured attributes to entity."""
@@ -46,7 +85,34 @@ class BaseBlock(ABC):
             else:
                 value = attr_value
             
-            entity.add_attribute(f"{self.name}_{attr_name}", value)
+            entity.add_attribute(attr_name, value)
+            # print(f"[DEBUG ATTRIBUTE 1]: {attr_name}: {value}")
+            entity.add_attribute(f"{self.name}_{attr_name}", value)            
+            # print(f"[DEBUG ATTRIBUTE 2]: {self.name}_{attr_name}: {value}")
+            
+
+            # ✅ Debug print
+            # print(f"[DEBUG] {attr_name}: {value}")
+
+    def _modify_attributes(self, entity: Entity):
+        """
+        Apply dynamic attribute modifications to entity.
+        
+        NEW: Modifies existing attributes based on configured functions.
+        """
+        for attr_name, modification_func in self.attributes_to_modify.items():
+            # Get current value (with default of 0)
+            current_value = entity.get_attribute(attr_name, 0)
+            
+            # Apply modification function
+            new_value = modification_func(current_value)
+
+            # ✅ Debug print
+            # print(f"[DEBUG] {attr_name}: old={current_value} -> new={new_value}")
+            
+            # Update attribute
+            entity.add_attribute(attr_name, new_value)
+
         
     def connect_to(self, next_block: 'BaseBlock'):
         """Connect this block to the next block in the flow."""
@@ -66,7 +132,8 @@ class BaseBlock(ABC):
                 timestamp=self.env.now,
                 lifecycle='start',
                 resource=resource_name,
-                priority=entity.priority
+                priority=entity.priority,
+                activity_priority=self.activity_priority  # NEW: Log activity priority
             )
     
     def log_complete(self, entity: Entity, resource_name: str = None):
@@ -78,7 +145,8 @@ class BaseBlock(ABC):
                 timestamp=self.env.now,
                 lifecycle='complete',
                 resource=resource_name,
-                priority=entity.priority
+                priority=entity.priority,
+                activity_priority=self.activity_priority  # NEW: Log activity priority
             )
         
     def send_to_next(self, entity: Entity):
