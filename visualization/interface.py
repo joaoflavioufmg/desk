@@ -527,10 +527,34 @@ class SimulationVisualizer:
             y1 = y - block_height / 2
             x2 = x + block_width / 2
             y2 = y + block_height / 2
-            rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
-            text = self.canvas.create_text(x, y, text=name, width=block_width - 10, justify=tk.CENTER)
-            self.block_widgets[name] = (rect, text)
-            self.block_centers[name] = (x, y)
+
+            # rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
+            # text = self.canvas.create_text(x, y, text=name, width=block_width - 10, justify=tk.CENTER)
+            # self.block_widgets[name] = (rect, text)
+            # self.block_centers[name] = (x, y)
+
+            # Draw diamond for DECIDE blocks
+            if info['is_decision']:
+                diamond_points = [
+                    x, y - 35,     # top
+                    x + 60, y,     # right
+                    x, y + 35,     # bottom
+                    x - 60, y      # left
+                ]
+                shape = self.canvas.create_polygon(
+                    diamond_points, fill=color, outline="black", width=2
+                )
+                text = self.canvas.create_text(x, y, text=name, font=("Arial", 9, "bold"))
+                self.block_widgets[name] = (shape, text)
+                self.block_centers[name] = (x, y)
+
+            # Default rectangle for others
+            else:
+                rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
+                text = self.canvas.create_text(x, y, text=name, width=block_width - 10, justify=tk.CENTER)
+                self.block_widgets[name] = (rect, text)
+                self.block_centers[name] = (x, y)
+
             if info['is_process']:
                 # Queue area above
                 q_y1 = y1 - block_height
@@ -572,7 +596,8 @@ class SimulationVisualizer:
         items = [
             ("CREATE (Source)", "lightgreen"),
             ("DISPOSE (Sink)", "lightpink"),
-            ("DECIDE (Decision)", "lightyellow"),
+            # ("DECIDE (Decision)", "lightyellow"),
+            ("DECIDE (Decision) ◆", "lightyellow"),
             ("PROCESS (Activity)", "lightblue")
         ]
         dy = 25
