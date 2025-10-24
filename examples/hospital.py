@@ -18,6 +18,8 @@ from analytics.plotting import SimulationPlotter
 from validation.stability import StabilityAnalyzer
 from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
+from visualization.interface import run_visualization
+
 
 # ####################################################################################
 # TODO: Checklist de ajustes em cada modelo:
@@ -280,7 +282,6 @@ def run_replications():
 # ================================================================
     
 
-
 # ================================================================
 # Factorial Analysis
 # ================================================================
@@ -470,7 +471,10 @@ def main():
     return model, event_logger
 
 
+
+
 if __name__ == "__main__":
-    model, logger = main()
+    # model, logger = main()
     # run_replications()
-    # factorial = hospital_factorial_analysis()
+    # factorial = hospital_factorial_analysis()    
+    run_visualization(build_hospital_model, simulation_time=500)

@@ -17,6 +17,7 @@ from analytics.plotting import SimulationPlotter
 from validation.stability import StabilityAnalyzer
 from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
+from visualization.interface import run_visualization
 
 # ####################################################################################
 # Projeto: Maquinas operando ininterruptamente 
@@ -51,12 +52,15 @@ from config.simulation_config import SimulationConfig
 # print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
 # ####################################################################################
 
-def build_ex1_model(final_simulation_time, event_logger=None):
+def build_ex1_model(final_simulation_time=None, event_logger=None):
     """Build a ex1 simulation model with refactored structure."""
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
+
+    if final_simulation_time is None:
+        final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
     model = SimulationModel()
 
@@ -409,6 +413,7 @@ def main():
 
 
 if __name__ == "__main__":
-    model, logger = main()
-    run_replications()
-    factorial = ex1_factorial_analysis()
+    # model, logger = main()
+    # run_replications()
+    # factorial = ex1_factorial_analysis()
+    run_visualization(build_ex1_model, simulation_time=365*1440)

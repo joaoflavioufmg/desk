@@ -18,6 +18,7 @@ from analytics.plotting import SimulationPlotter
 from validation.stability import StabilityAnalyzer
 from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
+from visualization.interface import run_visualization
 
 # ####################################################################################
 # TODO: Checklist de ajustes em cada modelo:
@@ -39,12 +40,15 @@ from config.simulation_config import SimulationConfig
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex2_model(final_simulation_time, event_logger=None):
+def build_ex2_model(final_simulation_time=None, event_logger=None):
     """Build a hospital simulation model with refactored structure."""
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
+
+    if final_simulation_time is None:
+        final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
     model = SimulationModel()
 
@@ -493,6 +497,7 @@ def main():
 
 
 if __name__ == "__main__":
-    model, logger = main()
+    # model, logger = main()
     # run_replications()
     # factorial = ex2_factorial_analysis()
+    run_visualization(build_ex2_model, simulation_time=8*60)
