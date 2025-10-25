@@ -190,11 +190,11 @@ def build_hospital_model(event_logger=None):
     
     moderate_treatment.add_route("Urgent", consultation, probability=0.8)
     # Importante! Para contabilizar as saídas e o WIP
-    moderate_treatment.add_route("No_Consult", discharge, probability=0.2)
+    moderate_treatment.add_route("No_Consult", pharmacy_block, probability=0.2)
 
     minor_treatment.add_route("Semi_Urgent", consultation, probability=0.9)
     # Importante! Para contabilizar as saídas e o WIP
-    minor_treatment.add_route("No_Consult", discharge, probability=0.1)
+    minor_treatment.add_route("No_Consult", pharmacy_block, probability=0.1)
     
     consultation.connect_to(need_medication)
 
@@ -281,7 +281,6 @@ def run_replications():
     print(df.describe())
 # ================================================================
     
-
 # ================================================================
 # Factorial Analysis
 # ================================================================
@@ -358,7 +357,6 @@ def hospital_factorial_analysis():
     
     return factorial
 # ================================================================
-
 
 
 def main():
@@ -469,8 +467,6 @@ def main():
     print(f"Random seed for this run: {config.seed}")
     
     return model, event_logger
-
-
 
 
 if __name__ == "__main__":

@@ -343,7 +343,8 @@ class SimulationVisualizer:
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Canvas
-        self.canvas = tk.Canvas(
+        # self.canvas = ZoomableCanvas(
+        self.canvas = tk.Canvas(        
             main_frame, 
             width=self.canvas_width, 
             height=self.canvas_height,
@@ -351,8 +352,9 @@ class SimulationVisualizer:
         )
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
+        
         # Stats panel        
-        stats_frame = ttk.Frame(main_frame, width=220)
+        stats_frame = ttk.Frame(main_frame, width=240)
         stats_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=5, pady=5)
         stats_frame.pack_propagate(False)
         
@@ -496,18 +498,38 @@ class SimulationVisualizer:
         ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
         ttk.Label(parent, text="Resources", font=("Arial", 10, "bold")).pack(anchor=tk.W)
 
+        # for res_name in sorted(self.structure['resources'].keys()):
+        #     res_frame = ttk.Frame(parent)
+        #     res_frame.pack(fill=tk.X, pady=2)
+        #     ttk.Label(res_frame, text=f"{res_name}:", width=10).pack(side=tk.LEFT)
+        #     ttk.Label(res_frame, text="Util:").pack(side=tk.LEFT, padx=2)
+        #     util_key = f"{res_name}_util"
+        #     self.stats_labels[util_key] = ttk.Label(res_frame, text="0.00%", width=8)
+        #     self.stats_labels[util_key].pack(side=tk.LEFT)
+        #     ttk.Label(res_frame, text="Queue:").pack(side=tk.LEFT, padx=2)
+        #     queue_key = f"{res_name}_queue"
+        #     self.stats_labels[queue_key] = ttk.Label(res_frame, text="0", width=5)
+        #     self.stats_labels[queue_key].pack(side=tk.LEFT)
         for res_name in sorted(self.structure['resources'].keys()):
+            resource = self.model.resources[res_name]
+            capacity = resource.capacity  # <-- directly from simpy.Resource
+
             res_frame = ttk.Frame(parent)
             res_frame.pack(fill=tk.X, pady=2)
-            ttk.Label(res_frame, text=f"{res_name}:", width=10).pack(side=tk.LEFT)
+
+            # Shows "4 doctors:" or "2 nurses:"
+            ttk.Label(res_frame, text=f"{capacity} {res_name}:", width=14).pack(side=tk.LEFT)
+
             ttk.Label(res_frame, text="Util:").pack(side=tk.LEFT, padx=2)
             util_key = f"{res_name}_util"
             self.stats_labels[util_key] = ttk.Label(res_frame, text="0.00%", width=8)
             self.stats_labels[util_key].pack(side=tk.LEFT)
+
             ttk.Label(res_frame, text="Queue:").pack(side=tk.LEFT, padx=2)
             queue_key = f"{res_name}_queue"
             self.stats_labels[queue_key] = ttk.Label(res_frame, text="0", width=5)
             self.stats_labels[queue_key].pack(side=tk.LEFT)
+
 
     def _draw_blocks(self):
         """Draw all blocks on canvas."""
@@ -1400,6 +1422,45 @@ class VisualizationInstrument:
             data=stats_data
         ))
 
+
+
+# =============================================================================
+# Enables Zooming Canvas
+# =============================================================================
+class ZoomableCanvas(tk.Canvas):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        # Bind mouse wheel to zoom
+        self.bind("<MouseWheel>", self._zoom)          # Windows
+        self.bind("<Button-4>", self._zoom)            # Linux scroll up
+        self.bind("<Button-5>", self._zoom)            # Linux scroll down
+
+        # Optional: Middle mouse button for dragging (panning)
+        self.bind("<ButtonPress-2>", self._start_pan)
+        self.bind("<B2-Motion>", self._do_pan)
+
+        self.pan_start = None
+
+    def _zoom(self, event):
+        # Determine zoom factor: scroll up = zoom in, scroll down = zoom out
+        if event.delta > 0 or event.num == 4:
+            factor = 1.1
+        else:
+            factor = 0.9
+
+        # Zoom everything on the canvas
+        self.scale("all", event.x, event.y, factor, factor)
+        self.configure(scrollregion=self.bbox("all"))
+
+    def _start_pan(self, event):
+        self.pan_start = (event.x, event.y)
+
+    def _do_pan(self, event):
+        dx = event.x - self.pan_start[0]
+        dy = event.y - self.pan_start[1]
+        self.pan_start = (event.x, event.y)
+        self.move("all", dx, dy)
 
 # =============================================================================
 # Example Usage
