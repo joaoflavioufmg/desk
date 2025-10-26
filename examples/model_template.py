@@ -1,0 +1,484 @@
+# ####################################################################################
+# TODO: Checklist de ajustes em cada modelo:
+# FILE: model_template.py
+# Função: build_ex1_model;
+# Atividades e termos em def distribution(tipo):
+# Resources: model.add_resource("Equipes", 1);
+# simulation_wrapper: model = build_ex1_model(event_logger);
+# def ex1_factorial_analysis(): def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
+# def ex1_factorial_analysis(): ex1_simulation_wrapper: model = build_ex1_model()
+# factorial.add_factor(factor_name='arrival_rate',
+# factorial.add_factor(factor_name='num_equipes',
+# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
+# def main(): print("Building ex1 model...");     model = build_ex1_model(event_logger)
+# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
+# print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
+# ####################################################################################
+
+# =====================================================================
+# FILE: model_template.py
+# =====================================================================
+import random
+from stats.factorial import FactorialExperiment
+from stats.replication import ReplicationFramework    
+from analytics.financial import FinancialAnalyzer
+from validation.resource_validator import ResourceValidator
+from core.simulation_model import SimulationModel
+from core.entity import EventLogger
+from blocks.create_block import CreateBlock
+from blocks.process_block import ProcessBlock, MultiProcessBlock
+from blocks.decide_block import DecideBlock
+from blocks.dispose_block import DisposeBlock
+from analytics.metrics import MetricsCollector
+from analytics.reporting import SimulationReporter
+from analytics.plotting import SimulationPlotter
+from validation.stability import StabilityAnalyzer
+from validation.warmup import WarmUpAnalyzer
+from config.simulation_config import SimulationConfig
+from visualization.interface import run_visualization
+
+
+# ================================================================
+# Each ACD model is implemented here
+# ================================================================
+def build_ex_model(final_simulation_time=None, event_logger=None):
+    """Build a hospital simulation model with refactored structure."""
+    
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    if final_simulation_time is None:
+        final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
+    
+    model = SimulationModel()
+
+    # Unidade básica para todos os tempos: minutos
+    def distribution(tipo):
+        taxa_chegadas = 10         # por minuto        
+        return {
+            'chegada': random.expovariate(1/taxa_chegadas),
+            'servir': random.gauss(6, 1),
+            'lavar': 0.5,
+            'beber': random.uniform(5, 8)
+        }.get(tipo,0.0)
+
+    
+    # Resources - regular, priority, preempt
+    rec1 = model.add_resource("Rec1", 2, "regular") 
+    rec2 = model.add_resource("Rec2", 70, "regular")  
+    
+    
+    # Create blocks
+    chegadas_ent_A = CreateBlock(
+        "ChegadasEnt_A", model.env,
+        inter_arrival_time=lambda: distribution('chegada'),
+        entity_prefix="Ent_A",
+        max_arrivals=None, # Infinito
+        first_creation=0.0,
+        # priority_generator=prio("Cliente"),
+        event_logger=event_logger
+    )    
+    # CONFIGURE ENTITY ATTRIBUTES # Assign "atrib1" to each entity
+    chegadas_ent_A.assign_attributes(
+        atrib1=lambda: random.randint(1, 4)  # Entre 1 e 4 
+    )
+
+    chegadas_ent_B = CreateBlock(
+        "ChegadasEnt_B", model.env,
+        inter_arrival_time=lambda: distribution('chegada'),
+        entity_prefix="Ent_B",
+        max_arrivals=1, 
+        first_creation=0.0,
+        # priority_generator=prio("Cliente"),
+        event_logger=event_logger
+    ) 
+
+    decide_condition = DecideBlock(
+        "Decide1", model.env,
+        decision_type="condition",
+        event_logger=event_logger
+    )   
+
+    # Define activity priorities
+    PRIO_ATIVIDADE = {
+        "ativ1": 0,  # Highest priority
+        "ativ2": 1    # Lower priority
+    }    
+    
+    ativ1 = MultiProcessBlock(
+        "Ativ_1", model.env,
+        resource_requirements={
+            rec1: 1,
+            rec2: 1
+        },
+        delay_time=lambda: distribution('ativ1'),
+        event_logger=event_logger
+    )
+    ativ1.set_resource_names({
+        rec1: 'Rec_1',
+        rec2: 'Rec_2'
+    })
+    ativ1.set_activity_priority(PRIO_ATIVIDADE["ativ1"])  # Set activity priority
+    
+    ativ2 = ProcessBlock(
+        "Ativ_2", model.env,
+        # resource=None,    # None, se apenas Delay (sem recursos)
+        resource=rec2,
+        delay_time=lambda: distribution('ativ2'),
+        resource_units=1,         # 1 CHECK! 
+        event_logger=event_logger
+    )
+    ativ2.set_resource_name('Rec_2')
+    # NEW: Configure dynamic attribute modification
+    rec2.modify_attributes(        
+        atrib1=lambda current: max(0, current - 1)
+    )
+
+
+    # Lavar activity with lower priority
+    ativ3 = MultiProcessBlock(
+        "Ativ3", model.env,
+        resource_requirements={
+            rec1: 1,
+            rec2: 1
+        },
+        delay_time=lambda: distribution('ativ3'),
+        event_logger=event_logger
+    )
+    ativ3.set_resource_names({
+        rec1: 'Rec1',
+        rec2: 'Rec2'
+    })
+    ativ3.set_activity_priority(PRIO_ATIVIDADE["ativ3"])  # Set activity priority
+
+    decide_time = DecideBlock(
+        "DisposeDecision", model.env,
+        decision_type="time_condition",
+        event_logger=event_logger
+    )   
+    
+    dispose = DisposeBlock(
+        "Dispose", 
+        model.env, 
+        event_logger=event_logger)
+
+    
+
+    # Add blocks to model
+    for block in [chegadas_ent_A, chegadas_ent_B, ativ1,
+                ativ2, ativ3, decide_condition, 
+                decide_time, dispose]:
+        model.add_block(block)
+    
+    # Connect flow
+    chegadas_ent_A.connect_to(ativ1)    
+    ativ1.connect_to(decide_condition)    
+    decide_condition.connect_to(decide_time)
+    decide_time.connect_to(dispose)
+    
+    chegadas_ent_B.connect_to(ativ2)
+    ativ2.connect_to(ativ3)
+    ativ3.connect_to(dispose)
+    
+
+    # Decision routing functions
+    def entity_type_A(entity):
+        return "Ent_A" in entity.id.lower()
+
+    def entity_type_B(entity):
+        return "Ent_B" in entity.id.lower()
+
+    def evaluate_attribute_1(entity):
+        return entity.get_attribute("atrib1", 0) < 1
+        # sede_value = entity.get_attribute("sede", 0)
+        # print(f"[DEBUG SATISFEITO] {entity.id}: sede={sede_value}, satisfeito={sede_value < 1}")
+        # return sede_value < 1
+    
+    def evaluate_attribute_2(entity):
+        return entity.get_attribute("atrib1", 0) >= 1
+        
+    
+    # Add decision routes
+    decide_condition.add_route("Ent_1", ativ1, condition=entity_type_A)
+    decide_time.add_route("Dispose_Yes", dispose,
+        time_condition=lambda t: t >= (final_simulation_time - 10))
+    decide_time.add_route("Dispose_No", ativ3,
+        time_condition=lambda t: t < (final_simulation_time - 10))
+    
+   
+
+    # ================================================================
+    # CONFIGURE FINANCIAL ATTRIBUTES
+    # ================================================================    
+    # Assign costs to each activity
+    ativ1.assign_attributes(cost=lambda: random.uniform(20, 30))    
+    ativ2.assign_attributes(cost=lambda: random.uniform(10, 20))
+    dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
+    # ================================================================
+    
+    return model
+
+
+def simulation_wrapper(seed=None, until=None, warm_up_period=None):
+    """Wrapper function for replication framework."""
+    
+    from core.entity import EventLogger    
+    event_logger = EventLogger()
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True
+    )
+
+    model = build_ex_model(config.duration, event_logger)
+    # model = build_ex2_model(event_logger)
+
+    # Validate once on first run
+    # if seed == 12345:
+    #     model.validate_resources()
+    
+    
+    model.run_simulation(
+        validate_resources=False,
+        until=until,
+        seed=seed,
+        warm_up_period=warm_up_period
+    )
+    
+    return model
+
+# ================================================================
+# For full simulation
+# ================================================================
+# Run replications
+def run_replications():
+    replication_framework = ReplicationFramework(
+        simulation_function=simulation_wrapper,
+        n_replications=30
+    )
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    replication_framework.run_replications(
+        base_seed=12345,
+        until=24*60,
+        warm_up_period=2*60
+    )
+
+    # Access results
+    df = replication_framework.get_results_dataframe()
+    print(df.describe())
+# ================================================================
+    
+
+# ================================================================
+# Factorial Analysis
+# ================================================================
+def ex_factorial_analysis():
+    """Example of factorial analysis with hospital simulation."""
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True        
+    )
+    
+    # Define simulation function wrapper
+    def ex_simulation_wrapper(arrival_rate=10, num_res1=1, num_res2=70,
+                                    seed=None, until=None, warm_up_period=0, **kwargs):
+        """Wrapper that adapts parameters for factorial analysis."""
+
+        # ############################################################
+        # # O modelo de simulação é importado aqui
+        # ############################################################
+        
+        # This would need to be modified in your actual model to accept these parameters
+        # For now, this is a template showing how to structure it
+        model = build_ex_model(config.duration)
+        model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
+        return model
+    
+    # Create factorial analysis
+    factorial = FactorialExperiment(
+        simulation_function=ex_simulation_wrapper,
+        base_seed=12345
+    )
+    
+    # Add factors
+    factorial.add_factor(
+        factor_name='arrival_rate',
+        parameter_path='CreateBlock.inter_arrival_time',
+        levels=[10, 15, 20],  # Minutes between arrivals
+        description='Taxa de chegada de entidades (min)'
+    )
+    
+    factorial.add_factor(
+        factor_name='num_rec_1',
+        parameter_path='Resource.rec1.capacity',
+        levels=[1, 2, 3],
+        description='Número de Rec #1'
+    )
+    
+    factorial.add_factor(
+        factor_name='num_rec_2',
+        parameter_path='Resource.rec2.capacity',
+        levels=[70, 80, 90],
+        description='Número de Rec #2'
+    )
+    
+    # Run experiment
+    factorial.run_factorial_experiment(
+        n_replications=5,
+        simulation_time=40*60,  # 40 hours
+        warm_up_period=7*60,    # 7 hours
+        verbose=True
+        # verbose=False
+    )
+    
+    # Analyze results
+    factorial.print_summary()
+    factorial.plot_correlation_matrix()
+    factorial.plot_main_effects('system_time_avg')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_rec1')
+    
+    # Export
+    factorial.export_results()
+
+    print("\n\nFactorial analysis examples completed!")
+    print("Check the generated CSV files and plots for detailed results.")
+    
+    return factorial
+# ================================================================
+
+
+
+def main():
+    """Main example demonstrating refactored usage."""
+    
+    HOURS = 60  # Time conversion factor (base time: Minutos)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex2 model...")    
+    
+    # Create configuration
+    config = SimulationConfig(
+        # warm_up_period=0
+        # until=20
+        duration=8*HOURS,
+        warm_up_period=0.5*HOURS,
+        # duration=21*DAYS,
+        # warm_up_period=5*DAYS,        
+        seed=123,
+        check_stability=True
+    )
+    config.validate()
+
+    model = build_ex_model(config.duration, event_logger)
+    
+    # Check stability BEFORE running (optional)
+    print("\nChecking system stability...")
+    stability_analyzer = StabilityAnalyzer(model)
+    stability = stability_analyzer.check_system_stability()
+    model.stability_result = stability
+    
+    # Run simulation
+    print("\nRunning simulation (replication)...")
+    model.run_simulation(
+        validate_resources=True,  # Default True
+        until=config.duration,
+        seed=config.seed,
+        warm_up_period=config.warm_up_period
+    )
+    
+    
+    # === ANALYSIS PHASE (using separate modules) ===
+    
+    # 1. Basic results
+    print("\n" + "="*60)
+    print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    print("="*60)
+    
+    # 2. Detailed reporting
+    reporter = SimulationReporter(model)
+    reporter.print_results()
+    
+    # 3. Warm-up analysis
+    print("\nAnalyzing warm-up period...")
+    warmup_analyzer = WarmUpAnalyzer(model)
+    warmup_analyzer.analyze_warm_up_period()
+    
+    # 4. Plotting
+    print("\nPlotting resourse use over time...")
+    plotter = SimulationPlotter(model)
+    
+    # Plot resource utilization over time
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Garcons', moving_average_window=50)
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Copos', moving_average_window=50)    
+    plotter.plot_wip_over_time()
+    plotter.plot_system_time_distribution()
+
+    # Plot activity metrics
+    print("\nPlotting activity metrics...")
+    reporter._print_activity_metrics()
+    plotter.plot_activity_metrics()
+
+        
+    # Plot resource utilization summary
+    print("\nPlotting resourse summary...")
+    plotter.plot_resources_utilization()
+    reporter._print_resource_metrics()
+    reporter._print_entity_counts()
+    reporter._print_block_statistics()
+
+    
+    # Financial analysis
+    print("\nPlotting financial analysys...")
+    financial_analyzer = FinancialAnalyzer(model)
+    financial_analyzer.print_financial_summary()
+    financial_analyzer.plot_financial_breakdown()
+
+    # 5. Export event log
+    print("\nExporting event log...")
+    df = event_logger.export_to_csv("ex2_event_log.csv")
+    print(f"\nFirst 10 events:")
+    print(df.head(10))
+    
+    # 6. Direct metrics access (if needed)
+    metrics = MetricsCollector(model)
+    entity_metrics = metrics.get_entity_metrics_summary()
+    resource_metrics = metrics.get_resource_metrics_summary()
+    
+    print(f"\nAverage system time: {entity_metrics['tempo_medio_sistema']:.2f} min")
+    # print(f"Nurses utilization: "
+    #       f"{resource_metrics['nurses']['taxa_utilizacao']:.1%}")
+    print(f"Random seed for this run: {config.seed}")
+    
+    return model, event_logger
+
+
+if __name__ == "__main__":
+    # model, logger = main()
+    # run_replications()
+    # factorial = ex_factorial_analysis()
+    run_visualization(build_ex_model, simulation_time=8*60)
