@@ -472,7 +472,7 @@ def main():
 
 
 if __name__ == "__main__":
-    model, logger = main()
+    # model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    # run_visualization(build_ex3_model, simulation_time=60)
+    run_visualization(build_ex3_model, simulation_time=60)
