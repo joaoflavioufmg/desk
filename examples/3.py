@@ -24,6 +24,7 @@ from stats.replication import ReplicationFramework
 from analytics.financial import FinancialAnalyzer
 from validation.resource_validator import ResourceValidator
 from core.simulation_model import SimulationModel
+from core.simulation_observer import SimulationObserver
 from core.model_variables import ModelVariableTracker
 from core.entity import EventLogger
 from blocks.create_block import CreateBlock
@@ -65,29 +66,38 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
 
     
     # Resources - regular, priority, preempt
-    troncos = model.add_resource("Troncos", 30, "regular") 
+    troncos = model.add_resource("Troncos", 7, "regular") 
     
     # Create tracker
-    tracker = ModelVariableTracker(model)
-    
+    variable_tracker = ModelVariableTracker(model)    
 
-    tracker.add_variable(
+    variable_tracker.add_variable(
         'num_chamadas_perdidas',
         initial_value=0,
         description='Número total de chamadas perdidas',
         unit='unidades'
     )
 
-    tracker.add_variable(
+    variable_tracker.add_variable(
         'percentual_chamdas_perdidas',
         initial_value=0,
         description='Percentual de chamadas perdidas',
         unit='%',
-        calculate_cp=lambda m: (
-            tracker.get_current('num_chamadas_perdidas') / m.entity_count * 100
+        calculate_fn=lambda m: (
+            variable_tracker.get_current('num_chamadas_perdidas') / m.entity_count * 100
             if m.entity_count > 0 else 0
         )
     )
+
+    # Add model variables
+    model.add_model_variable('num_chamadas_perdidas', 0, 
+                            'Número de chamadas perdidas', 'unidades')
+    model.add_model_variable('percentual_chamadas_perdidas', 0,
+                            'Percentual de chamadas perdidas', '%',
+                            calculate_fn=lambda m: (
+                                m.variable_tracker.get_current('num_chamadas_perdidas') /
+                                max(1, m.entity_count) * 100
+                            ))
     
     # Create blocks
     chegadas_chamadas = CreateBlock(
@@ -117,19 +127,25 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
     atendimento.set_resource_name('Troncos')    
  
     
-    dispose = DisposeBlock(
-        "Dispose", 
+    dispose_atendida = DisposeBlock(
+        "DisposeAtendida", 
+        model.env, 
+        event_logger=event_logger)
+
+    dispose_perdida = DisposeBlock(
+        "DisposePerdida", 
         model.env, 
         event_logger=event_logger)
 
 
     # Add blocks to model
-    for block in [chegadas_chamadas, atendimento, decide_fila_tronco, dispose]:
+    for block in [chegadas_chamadas, atendimento, decide_fila_tronco, 
+        dispose_atendida, dispose_perdida]:
         model.add_block(block)
     
     # Connect flow
     chegadas_chamadas.connect_to(decide_fila_tronco)        
-    atendimento.connect_to(dispose)    
+    atendimento.connect_to(dispose_atendida)    
     
     # Add decision routes
     decide_fila_tronco.add_route(
@@ -139,21 +155,38 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
             )
         )
     decide_fila_tronco.add_route(
-        "Dispose", dispose, 
+        "Perdida", dispose_perdida, 
         condition_generic=lambda e, ctx: (
             ctx['resources']['Troncos'].count >= ctx['resources']['Troncos'].capacity
             )
         )   
-
+    # ================================================================
+    # ✅ CREATE OBSERVER (separate from blocks)
+    # ================================================================    
+    observer = SimulationObserver(model)
     
-   
+    # ✅ DEFINE CALLBACK: What to do when call is lost
+    def count_lost_call(entity, block_name, time):        
+        """Called when entity disposed to DisposePerdida."""
+        tracker = model.variable_tracker
+        current = tracker.get_current('num_chamadas_perdidas')
+        tracker.update('num_chamadas_perdidas', time, current + 1)
+        tracker.update('percentual_chamadas_perdidas')  # Auto-calculate
+        print(f"[{time:.2f}] Chamada {entity.id} PERDIDA - Total: {current + 1}")
+    
+    # ✅ ATTACH OBSERVER: Monitor specific dispose block
+    observer.on_entity_disposed(
+        block_name='DisposePerdida',
+        callback=count_lost_call
+    )
 
+       
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
     # Assign costs to each activity
     atendimento.assign_attributes(cost=lambda: random.uniform(20, 30))    
-    dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
+    dispose_atendida.assign_attributes(revenue=lambda: random.uniform(50, 100))    
     # ================================================================
     
     return model
@@ -384,6 +417,16 @@ def main():
     reporter._print_entity_counts()
     reporter._print_block_statistics()
 
+    # Print variable results
+    # ================================================================
+    tracker = model.variable_tracker
+    print(f"\n{'='*60}")
+    print(f"RESULTADOS:")
+    print(f"Total de chamadas: {model.entity_count}")
+    print(f"Chamadas perdidas: {tracker.get_final('num_chamadas_perdidas')}")
+    print(f"Percentual perdido: {tracker.get_final('percentual_chamadas_perdidas'):.2f}%")
+    print(f"{'='*60}")
+    # ================================================================
     
     # Financial analysis
     print("\nPlotting financial analysys...")
@@ -414,4 +457,4 @@ if __name__ == "__main__":
     model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    # run_visualization(build_ex3_model, simulation_time=60)
+    run_visualization(build_ex3_model, simulation_time=60)
