@@ -78,7 +78,8 @@ end_time <- time_range[2]
 # Final animation
 final_animation <- animate_process(
   ex2_log,
-  mode = "relative",
+  # mode = "relative", 
+  mode = "absolute", 
   duration = 240, # Animation speed in seconds
   start_time = start_time, # Explicitly set start time
   end_time = end_time, # Explicitly set end time (should be ~40 hours later)

@@ -35,7 +35,7 @@ print(verification_plot)
 # Now create the animation with verified colors
 # NOTE: Replace "hospital_event_log_bupar.csv" with the actual path if running outside a script's directory
 # event_log <- read.csv("C:/Users/user/Desktop/sls/arena/hospital_event_log_bupar.csv")
-event_log <- read.csv("C:/Users/user/Desktop/sls/simulation_framework/hospital_event_log.csv")
+event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/hospital_event_log.csv")
 
 
 # Map priorities
@@ -79,8 +79,9 @@ end_time <- time_range[2]
 # Final animation
 final_animation <- animate_process(
   hospital_log,
-  mode = "relative",
-  duration = 30, # Animation speed in seconds
+  # mode = "relative",
+  mode = "absolute",
+  duration = 120, # Animation speed in seconds
   start_time = start_time, # Explicitly set start time
   end_time = end_time, # Explicitly set end time (should be ~40 hours later)
   mapping = token_aes(

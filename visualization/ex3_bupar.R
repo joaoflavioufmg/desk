@@ -5,7 +5,7 @@ library(ggplot2)
 
 # Define the exact color mapping
 priority_colors <- c(
-  "Clientes" = "#d73027"
+  "Chamadas" = "#d73027"
   # "Emergency" = "#fc8d59",
   # "Urgent" = "#66c2a5",
   # "Semi-Urgent" = "#abdda4",
@@ -41,7 +41,7 @@ event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/ex3_event_log.cs
 if ("priority" %in% names(event_log)) {
   # Ensuring priority is treated as a factor/character for mapping
   event_log$priority_char <- as.character(event_log$priority)
-  priority_mapping <- c("0" = "Clientes", "1" = "Emergency", "2" = "Urgent",
+  priority_mapping <- c("0" = "Chamadas", "1" = "Emergency", "2" = "Urgent",
                         "3" = "Semi-Urgent", "4" = "Non-Urgent")
   event_log$priority_label <- priority_mapping[event_log$priority_char]
   # Fill NAs for priorities that are not 0-4 (if any)
@@ -78,7 +78,7 @@ end_time <- time_range[2]
 # Final animation
 final_animation <- animate_process(
   ex2_log,
-  mode = "relative",
+  mode = "absolute",
   duration = 240, # Animation speed in seconds
   start_time = start_time, # Explicitly set start time
   end_time = end_time, # Explicitly set end time (should be ~40 hours later)
@@ -92,7 +92,7 @@ final_animation <- animate_process(
 )
 
 print(final_animation)
-htmlwidgets::saveWidget(final_animation, "ex2_visualization.html", selfcontained = TRUE)
+htmlwidgets::saveWidget(final_animation, "ex3_visualization.html", selfcontained = TRUE)
 
 cat("Animation created with colors in this order:\n")
 print(priority_colors)

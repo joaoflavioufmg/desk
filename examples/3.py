@@ -66,7 +66,7 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
 
     
     # Resources - regular, priority, preempt
-    troncos = model.add_resource("Troncos", 7, "regular") 
+    troncos = model.add_resource("Troncos", 30, "regular") 
     
     # Create tracker
     variable_tracker = ModelVariableTracker(model)    
