@@ -1,0 +1,478 @@
+# ####################################################################################
+# TODO: Checklist de ajustes em cada modelo:
+# FILE: 3.py
+# Função: build_ex3_model;
+# Atividades e termos em def distribution(tipo):
+# Resources: model.add_resource("Equipes", 1);
+# simulation_wrapper: model = build_ex3_model(event_logger);
+# def ex3_factorial_analysis(): def ex3_simulation_wrapper(arrival_rate=1, num_equipes=1,
+# def ex3_factorial_analysis(): ex3_simulation_wrapper: model = build_ex3_model()
+# factorial.add_factor(factor_name='arrival_rate',
+# factorial.add_factor(factor_name='num_equipes',
+# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
+# def main(): print("Building ex3 model...");     model = build_ex3_model(event_logger)
+# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
+# print("\nExporting event log...")    df = event_logger.export_to_csv("ex3_event_log.csv");
+# ####################################################################################
+
+# =====================================================================
+# FILE: 3.py
+# =====================================================================
+import random
+from stats.factorial import FactorialExperiment
+from stats.replication import ReplicationFramework    
+from analytics.financial import FinancialAnalyzer
+from validation.resource_validator import ResourceValidator
+from core.simulation_model import SimulationModel
+from core.simulation_observer import SimulationObserver
+from core.model_variables import ModelVariableTracker
+from core.entity import EventLogger
+from blocks.create_block import CreateBlock
+from blocks.process_block import ProcessBlock, MultiProcessBlock
+from blocks.decide_block import DecideBlock
+from blocks.dispose_block import DisposeBlock
+from analytics.metrics import MetricsCollector
+from analytics.reporting import SimulationReporter
+from analytics.plotting import SimulationPlotter
+from validation.stability import StabilityAnalyzer
+from validation.warmup import WarmUpAnalyzer
+from config.simulation_config import SimulationConfig
+from visualization.interface import run_visualization
+
+
+
+# ================================================================
+# Each ACD model is implemented here
+# ================================================================
+def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True):
+    """Build a hospital simulation model with refactored structure."""
+    
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    if final_simulation_time is None:
+        final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
+    
+    model = SimulationModel()
+
+    # Unidade básica para todos os tempos: minutos
+    def distribution(tipo):
+        taxa_chegadas = 4/60         # por minuto        
+        return {
+            'chegada': random.expovariate(1/taxa_chegadas),
+            'atendimento': random.expovariate(1/2), # Média 2 minutos
+            'atendimento_aux': random.expovariate(1/2), # Média 2 minutos
+        }.get(tipo,0.0)
+
+    
+    # Resources - regular, priority, preempt
+    troncos = model.add_resource("Troncos", 30, "regular") 
+    troncos_aux = model.add_resource("TroncosAux", 10, "regular")     
+    
+
+    # Add model variables
+    model.add_model_variable('num_chamadas_perdidas', 0, 
+                            'Número de chamadas perdidas', 'unidades')
+
+    model.add_model_variable('percentual_chamadas_perdidas', 0,
+                            'Percentual de chamadas perdidas', '%',
+                            calculate_fn=lambda m: (
+                                m.variable_tracker.get_current('num_chamadas_perdidas') /
+                                max(1, m.entity_count) * 100))
+    
+    # Create blocks
+    chegadas_chamadas = CreateBlock(
+        "ChegadasChamadas", model.env,
+        inter_arrival_time=lambda: distribution('chegada'),
+        entity_prefix="Chamadas",
+        max_arrivals=None, # Infinito
+        first_creation=0.0,
+        # priority_generator=prio("Cliente"),
+        event_logger=event_logger
+    )      
+
+    decide_fila_tronco = DecideBlock(
+        "DecideTronco", model.env,
+        decision_type="condition_generic",
+        event_logger=event_logger
+    ) 
+
+    decide_fila_tronco_aux = DecideBlock(
+        "DecideTroncoAux", model.env,
+        decision_type="condition_generic",
+        event_logger=event_logger
+    ) 
+    
+    atendimento = ProcessBlock(
+        "Atendimento", model.env,
+        # resource=None,    # None, se apenas Delay (sem recursos)
+        resource=troncos,
+        delay_time=lambda: distribution('atendimento'),
+        resource_units=1,         # 1 CHECK! 
+        event_logger=event_logger
+    )
+    atendimento.set_resource_name('Troncos')    
+
+    atendimento_aux = ProcessBlock(
+        "AtendimentoAux", model.env,
+        # resource=None,    # None, se apenas Delay (sem recursos)
+        resource=troncos_aux,
+        delay_time=lambda: distribution('atendimento_aux'),
+        resource_units=1,         # 1 CHECK! 
+        event_logger=event_logger
+    )
+    atendimento.set_resource_name('TroncosAux') 
+    
+    dispose_atendida = DisposeBlock(
+        "DisposeAtendida", 
+        model.env, 
+        event_logger=event_logger)
+
+    dispose_perdida = DisposeBlock(
+        "DisposePerdida", 
+        model.env, 
+        event_logger=event_logger)
+
+
+    # Add blocks to model
+    for block in [chegadas_chamadas, atendimento, atendimento_aux, 
+        decide_fila_tronco, decide_fila_tronco_aux,
+        dispose_atendida, dispose_perdida]:
+        model.add_block(block)
+    
+    # Connect flow
+    chegadas_chamadas.connect_to(decide_fila_tronco)    
+    atendimento.connect_to(dispose_atendida)
+    atendimento_aux.connect_to(dispose_atendida)    
+    
+    # Add decision routes
+    decide_fila_tronco.add_route(
+        "Atender", atendimento, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Troncos'].count < ctx['resources']['Troncos'].capacity
+            )
+        )
+    decide_fila_tronco.add_route(
+        "Aguarda", decide_fila_tronco_aux, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Troncos'].count >= ctx['resources']['Troncos'].capacity
+            )
+        )  
+
+    decide_fila_tronco_aux.add_route(
+        "NovaTentativa", atendimento_aux, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['TroncosAux'].count < ctx['resources']['TroncosAux'].capacity
+            )
+        ) 
+    decide_fila_tronco_aux.add_route(
+        "Perdida", dispose_perdida, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['TroncosAux'].count >= ctx['resources']['TroncosAux'].capacity
+            )
+        )
+    
+    
+    # ================================================================
+    # ✅ CREATE OBSERVER (separate from blocks)
+    # ================================================================    
+    observer = SimulationObserver(model)
+    
+    # ✅ DEFINE CALLBACK: What to do when call is lost
+    # def count_lost_call(entity, block_name, time, verbose=True):        
+    def count_lost_call(entity, block_name, time, verbose=verbose):        
+        """Called when entity disposed to DisposePerdida."""
+        tracker = model.variable_tracker
+        current = tracker.get_current('num_chamadas_perdidas')
+        tracker.update('num_chamadas_perdidas', time, current + 1)
+        tracker.update('percentual_chamadas_perdidas')  # Auto-calculate
+        if verbose:
+            print(f"[{time:.2f}] Chamada {entity.id} PERDIDA - Total: {current + 1}")
+    
+    # ✅ ATTACH OBSERVER: Monitor specific dispose block
+    observer.on_entity_disposed(
+        block_name='DisposePerdida',
+        callback=count_lost_call
+    )
+
+       
+    # ================================================================
+    # CONFIGURE FINANCIAL ATTRIBUTES
+    # ================================================================    
+    # Assign costs to each activity
+    atendimento.assign_attributes(cost=lambda: random.uniform(20, 30))    
+    dispose_atendida.assign_attributes(revenue=lambda: random.uniform(50, 100))    
+    # ================================================================
+    
+    return model
+
+
+def simulation_wrapper(seed=None, until=None, warm_up_period=None):
+    """Wrapper function for replication framework."""
+    
+    from core.entity import EventLogger    
+    event_logger = EventLogger()
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=20,
+        warm_up_period=2,        
+        seed=123,
+        check_stability=True
+    )
+
+    model = build_ex3_model(config.duration, event_logger, verbose=False)
+    # model = build_ex3_model(event_logger)
+
+    # Validate once on first run
+    # if seed == 12345:
+    #     model.validate_resources()
+    
+    
+    model.run_simulation(
+        validate_resources=False,
+        until=until,
+        seed=seed,
+        warm_up_period=warm_up_period
+    )
+    
+    return model
+
+# ================================================================
+# For full simulation
+# ================================================================
+# Run replications
+def run_replications():
+    replication_framework = ReplicationFramework(
+        simulation_function=simulation_wrapper,
+        n_replications=30
+    )
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    replication_framework.run_replications(
+        base_seed=12345,
+        until=20,
+        warm_up_period=2
+    )
+
+    # Access results
+    df = replication_framework.get_results_dataframe()
+    print(df.describe())
+# ================================================================
+    
+
+# ================================================================
+# Factorial Analysis
+# ================================================================
+def ex3_factorial_analysis():
+    """Example of factorial analysis with hospital simulation."""
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True        
+    )
+    
+    # Define simulation function wrapper
+    def ex3_simulation_wrapper(arrival_rate=15, num_troncos=30,
+                                    seed=None, until=None, warm_up_period=0, **kwargs):
+        """Wrapper that adapts parameters for factorial analysis."""
+
+        # ############################################################
+        # # O modelo de simulação é importado aqui
+        # ############################################################
+        # from hospital import build_ex3_model()
+        
+        # This would need to be modified in your actual model to accept these parameters
+        # For now, this is a template showing how to structure it
+        model = build_ex3_model(config.duration, verbose=False)
+        model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
+        return model
+    
+    # Create factorial analysis
+    factorial = FactorialExperiment(
+        simulation_function=ex3_simulation_wrapper,
+        base_seed=12345
+    )
+    
+    # Add factors
+    factorial.add_factor(
+        factor_name='arrival_rate',
+        parameter_path='CreateBlock.inter_arrival_time',
+        levels=[4/60, 8/60, 16/60],  # Minutes between arrivals
+        description='Taxa de chegada de clientes (min)'
+    )
+    
+    factorial.add_factor(
+        factor_name='num_troncos',
+        parameter_path='Resource.troncos.capacity',
+        levels=[30, 31, 32],
+        description='Número de troncos'
+    )
+    
+    
+    # Run experiment
+    factorial.run_factorial_experiment(
+        n_replications=5,
+        simulation_time=40,  # 40 min
+        warm_up_period=7,    # 7 min
+        verbose=True
+        # verbose=False
+    )
+    
+    # Analyze results
+    factorial.print_summary()
+    factorial.plot_correlation_matrix()
+    factorial.plot_main_effects('system_time_avg')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_troncos')
+    
+    # Export
+    factorial.export_results()
+
+    print("\n\nFactorial analysis examples completed!")
+    print("Check the generated CSV files and plots for detailed results.")
+    
+    return factorial
+# ================================================================
+
+
+
+def main():
+    """Main example demonstrating refactored usage."""
+    
+    HOURS = 60  # Time conversion factor (base time: Minutos)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex3 model...")    
+    
+    # Create configuration
+    config = SimulationConfig(
+        warm_up_period=5,
+        duration=25,
+        # duration=8*HOURS,
+        # warm_up_period=0.5*HOURS,
+        # duration=21*DAYS,
+        # warm_up_period=5*DAYS,        
+        seed=123,
+        check_stability=True
+    )
+    config.validate()
+
+    model = build_ex3_model(config.duration, event_logger)
+    
+    # Check stability BEFORE running (optional)
+    print("\nChecking system stability...")
+    stability_analyzer = StabilityAnalyzer(model)
+    stability = stability_analyzer.check_system_stability()
+    model.stability_result = stability
+    
+    # Run simulation
+    print("\nRunning simulation (replication)...")
+    model.run_simulation(
+        validate_resources=True,  # Default True
+        until=config.duration,
+        seed=config.seed,
+        warm_up_period=config.warm_up_period
+    )
+    
+    
+    # === ANALYSIS PHASE (using separate modules) ===
+    
+    # 1. Basic results
+    print("\n" + "="*60)
+    print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    print("="*60)
+    
+    # 2. Detailed reporting
+    reporter = SimulationReporter(model)
+    reporter.print_results()
+    
+    # 3. Warm-up analysis
+    print("\nAnalyzing warm-up period...")
+    warmup_analyzer = WarmUpAnalyzer(model)
+    warmup_analyzer.analyze_warm_up_period()
+    
+    # 4. Plotting
+    print("\nPlotting resourse use over time...")
+    plotter = SimulationPlotter(model)
+    
+    # Plot resource utilization over time
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Troncos', moving_average_window=50)
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='TroncosAux', moving_average_window=50)
+    plotter.plot_wip_over_time()
+    plotter.plot_system_time_distribution()
+    
+
+    # Plot activity metrics
+    print("\nPlotting activity metrics...")
+    reporter._print_activity_metrics()
+    plotter.plot_activity_metrics()
+
+        
+    # Plot resource utilization summary
+    print("\nPlotting resourse summary...")
+    plotter.plot_resources_utilization()
+    reporter._print_resource_metrics()
+    reporter._print_entity_counts()
+    reporter._print_block_statistics()
+
+    # Print variable results
+    # ================================================================
+    tracker = model.variable_tracker
+    print(f"\n{'='*60}")
+    print(f"RESULTADOS:")
+    print(f"Total de chamadas: {model.entity_count}")
+    print(f"Chamadas perdidas: {tracker.get_final('num_chamadas_perdidas')}")
+    print(f"Percentual perdido: {tracker.get_final('percentual_chamadas_perdidas'):.2f}%")
+    print(f"{'='*60}")
+    # ================================================================
+    
+    # Financial analysis
+    print("\nPlotting financial analysys...")
+    financial_analyzer = FinancialAnalyzer(model)
+    financial_analyzer.print_financial_summary()
+    financial_analyzer.plot_financial_breakdown()
+
+    # 5. Export event log
+    print("\nExporting event log...")
+    df = event_logger.export_to_csv("ex3b_event_log.csv")
+    print(f"\nFirst 10 events:")
+    print(df.head(10))
+    
+    # 6. Direct metrics access (if needed)
+    metrics = MetricsCollector(model)
+    entity_metrics = metrics.get_entity_metrics_summary()
+    resource_metrics = metrics.get_resource_metrics_summary()
+    
+    print(f"\nAverage system time: {entity_metrics['tempo_medio_sistema']:.2f} min")
+    # print(f"Nurses utilization: "
+    #       f"{resource_metrics['nurses']['taxa_utilizacao']:.1%}")
+    print(f"Random seed for this run: {config.seed}")
+    
+    return model, event_logger
+
+
+if __name__ == "__main__":
+    model, logger = main()
+    # run_replications()
+    # factorial = ex3_factorial_analysis()
+    # run_visualization(build_ex3_model, simulation_time=60)
