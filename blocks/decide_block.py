@@ -1,9 +1,9 @@
 # =====================================================================
-# FILE: blocks/decide_block.py
+# FILE: blocks/decide_block.py (GENERIC CONDITIONS VERSION)
 # =====================================================================
 from core.base_block import BaseBlock
 from core.entity import Entity, EventLogger
-from typing import  Optional, Callable
+from typing import Optional, Callable, Dict, Any
 import simpy
 import random
 
@@ -14,24 +14,35 @@ class DecideBlock(BaseBlock):
     """
     DECIDE block - route entities based on conditions, probabilities, or time.
     
-    Supports three decision types:
+    Supports multiple decision types:
     1. "probability" - Route based on probability distribution
     2. "condition" - Route based on entity attributes
-    3. "time_condition" - Route based on simulation time (NEW)
+    3. "condition_generic" - Route based on generic expressions (entity, model, resources)
+    4. "time_condition" - Route based on simulation time
+    
+    NEW: Generic condition evaluation with access to:
+    - Entity attributes
+    - Model state
+    - Resource states (queue length, utilization, etc.)
+    - Simulation time
+    - Custom model variables
     """
     
     def __init__(self, name: str, env: simpy.Environment, 
                  decision_type: str = "probability",
+                 track_decisions: bool = True,
                  event_logger: EventLogger = None):
         super().__init__(name, env, event_logger)
-        self.decision_type = decision_type  # "probability", "condition", or "time_condition"
-        self.routes = {}  # Will store route options
+        self.decision_type = decision_type
+        self.routes = {}
         self.decision_counts = {}
+        self.track_decisions = track_decisions
         
     def add_route(self, route_name: str, 
                   next_block: 'BaseBlock',
                   probability: Optional[float] = None,
                   condition: Optional[Callable[[Entity], bool]] = None,
+                  condition_generic: Optional[Callable[[Entity, Any], bool]] = None,
                   time_condition: Optional[Callable[[float], bool]] = None):
         """
         Add a routing option.
@@ -40,26 +51,47 @@ class DecideBlock(BaseBlock):
             route_name: Name of the route
             next_block: Target block for this route
             probability: Probability for this route (for "probability" type)
-            condition: Function that takes Entity and returns bool (for "condition" type)
-            time_condition: Function that takes current_time (float) and returns bool (for "time_condition" type)
+            condition: Function(entity) -> bool (for "condition" type)
+            condition_generic: Function(entity, context) -> bool (for "condition_generic" type)
+            time_condition: Function(time) -> bool (for "time_condition" type)
         
         Examples:
-            # Probability-based routing
+            # 1. Probability-based routing
             decide.add_route("high_priority", block1, probability=0.3)
             
-            # Entity condition-based routing
-            decide.add_route("vip", block2, condition=lambda e: e.priority == 0)
+            # 2. Entity-only condition
+            decide.add_route("vip", block2, 
+                           condition=lambda e: e.priority == 0)
             
-            # Time-based routing (NEW)
-            decide.add_route("day_shift", block3, 
-                           time_condition=lambda t: (t % 1440) < 720)  # First 12 hours of day
-            decide.add_route("night_shift", block4,
-                           time_condition=lambda t: (t % 1440) >= 720)  # Last 12 hours of day
+            # 3. Generic condition with entity attributes
+            decide.add_route("thirsty", block3,
+                           condition_generic=lambda e, ctx: e.get_attribute('sede', 0) > 2)
+            
+            # 4. Generic condition with resource state
+            decide.add_route("short_queue", block4,
+                           condition_generic=lambda e, ctx: len(ctx['resources']['nurses'].queue) < 5)
+            
+            # 5. Generic condition with model variables
+            decide.add_route("low_failure_rate", block5,
+                           condition_generic=lambda e, ctx: ctx['model'].variable_tracker.get_current('percentual_falhas') < 10)
+            
+            # 6. Complex generic condition
+            decide.add_route("priority_and_available", block6,
+                           condition_generic=lambda e, ctx: (
+                               e.priority == 0 and 
+                               ctx['resources']['doctors'].count < ctx['resources']['doctors'].capacity and
+                               ctx['time'] < 480  # Before 8 hours
+                           ))
+            
+            # 7. Time-based routing
+            decide.add_route("day_shift", block7, 
+                           time_condition=lambda t: (t % 1440) < 720)
         """
         self.routes[route_name] = {
             'block': next_block,
             'probability': probability,
             'condition': condition,
+            'condition_generic': condition_generic,
             'time_condition': time_condition
         }
         self.decision_counts[route_name] = 0
@@ -74,6 +106,8 @@ class DecideBlock(BaseBlock):
             chosen_route = self._choose_by_probability()
         elif self.decision_type == "condition":
             chosen_route = self._choose_by_condition(entity)
+        elif self.decision_type == "condition_generic":
+            chosen_route = self._choose_by_condition_generic(entity)
         elif self.decision_type == "time_condition":
             chosen_route = self._choose_by_time_condition()
         else:
@@ -92,10 +126,13 @@ class DecideBlock(BaseBlock):
                     timestamp=self.env.now,
                     lifecycle='complete',
                     decision=chosen_route,
-                    decision_time=self.env.now  # NEW: Include time in log
+                    decision_time=self.env.now
                 )
+            
+            # Update model variables if tracking enabled
+            if self.track_decisions and hasattr(self.env, 'model'):
+                self._update_decision_variables(route_name=chosen_route, entity=entity)
 
-            # yield from next_block.process_entity(entity)
             self.env.process(next_block.process_entity(entity))
             yield self.env.timeout(0)
         else:
@@ -116,7 +153,12 @@ class DecideBlock(BaseBlock):
         return None
         
     def _choose_by_condition(self, entity: Entity) -> Optional[str]:
-        """Choose route based on entity conditions."""
+        """
+        Choose route based on entity-only conditions.
+        
+        Routes are evaluated in the order they were added.
+        Returns the first route whose condition evaluates to True.
+        """
         for route_name, route_info in self.routes.items():
             condition = route_info.get('condition')
             if condition and condition(entity):
@@ -124,9 +166,84 @@ class DecideBlock(BaseBlock):
                 
         return None
     
+    def _choose_by_condition_generic(self, entity: Entity) -> Optional[str]:
+        """
+        Choose route based on generic conditions with full context.
+        
+        Provides access to:
+        - entity: The entity being routed
+        - model: The simulation model
+        - resources: Dictionary of all resources
+        - time: Current simulation time
+        - variables: Model variable tracker (if available)
+        
+        Routes are evaluated in the order they were added.
+        Returns the first route whose condition evaluates to True.
+        """
+        # Build context dictionary with all available information
+        context = self._build_decision_context(entity)
+        
+        for route_name, route_info in self.routes.items():
+            condition_generic = route_info.get('condition_generic')
+            if condition_generic:
+                try:
+                    if condition_generic(entity, context):
+                        return route_name
+                except Exception as e:
+                    print(f"WARNING: Error evaluating condition for route '{route_name}': {e}")
+                    continue
+                
+        return None
+    
+    def _build_decision_context(self, entity: Entity) -> Dict[str, Any]:
+        """
+        Build context dictionary for generic condition evaluation.
+        
+        Returns:
+            Dictionary with:
+            - 'model': Reference to simulation model
+            - 'resources': Dictionary of all resources
+            - 'time': Current simulation time
+            - 'variables': Variable tracker (if available)
+            - 'entity': The entity being evaluated
+        """
+        context = {
+            'time': self.env.now,
+            'entity': entity
+        }
+        
+        # Add model reference if available
+        if hasattr(self.env, 'model'):
+            model = self.env.model
+            context['model'] = model
+            
+            # Add resources dictionary
+            context['resources'] = model.resources
+            
+            # Add variable tracker if available
+            if hasattr(model, 'variable_tracker'):
+                context['variables'] = model.variable_tracker
+            
+            # Add useful derived information
+            context['entity_count'] = model.entity_count
+            context['warm_up_period'] = model.warm_up_period
+            
+            # Add resource utilization info
+            context['resource_utilization'] = {}
+            for res_name, resource in model.resources.items():
+                context['resource_utilization'][res_name] = {
+                    'queue_length': len(resource.queue),
+                    'in_use': resource.count,
+                    'capacity': resource.capacity,
+                    'available': resource.capacity - resource.count,
+                    'utilization': resource.count / resource.capacity if resource.capacity > 0 else 0
+                }
+        
+        return context
+    
     def _choose_by_time_condition(self) -> Optional[str]:
         """
-        Choose route based on simulation time conditions (NEW).
+        Choose route based on simulation time conditions.
         
         Routes are evaluated in order until one matches.
         Returns the first route whose time_condition evaluates to True.
@@ -139,4 +256,320 @@ class DecideBlock(BaseBlock):
                 return route_name
                 
         return None
+    
+    def _update_decision_variables(self, route_name: str, entity: Entity):
+        """
+        Update model variables based on decision route taken.
+        
+        Automatically tracks decision counts in model variables if they exist.
+        """
+        if not hasattr(self.env, 'model'):
+            return
+        
+        model = self.env.model
+        
+        if hasattr(model, 'variable_tracker'):
+            tracker = model.variable_tracker
+            
+            # Try to update route-specific counter
+            var_name = f'{self.name}_{route_name}_count'
+            if var_name in tracker.variables:
+                current = tracker.get_current(var_name)
+                tracker.update(var_name, self.env.now, current + 1)
 
+
+# # =====================================================================
+# # EXAMPLES: Generic Condition Usage
+# # =====================================================================
+# def example_generic_conditions():
+#     """
+#     Examples demonstrating the power of generic conditions.
+#     """
+    
+#     # Example 1: Route based on resource queue length
+#     decide_queue = DecideBlock(
+#         "DecideByQueue", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_queue.add_route(
+#         "nurse_short_queue", nurse_block,
+#         condition_generic=lambda e, ctx: len(ctx['resources']['nurses'].queue) < 3
+#     )
+    
+#     decide_queue.add_route(
+#         "doctor_short_queue", doctor_block,
+#         condition_generic=lambda e, ctx: len(ctx['resources']['doctors'].queue) < 3
+#     )
+    
+#     decide_queue.add_route(
+#         "any_available", default_block,
+#         condition_generic=lambda e, ctx: True  # Fallback
+#     )
+    
+    
+#     # Example 2: Route based on resource utilization
+#     decide_utilization = DecideBlock(
+#         "DecideByUtilization", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_utilization.add_route(
+#         "low_utilization_route", fast_track_block,
+#         condition_generic=lambda e, ctx: (
+#             ctx['resource_utilization']['nurses']['utilization'] < 0.7
+#         )
+#     )
+    
+#     decide_utilization.add_route(
+#         "high_utilization_route", slow_track_block,
+#         condition_generic=lambda e, ctx: (
+#             ctx['resource_utilization']['nurses']['utilization'] >= 0.7
+#         )
+#     )
+    
+    
+#     # Example 3: Route based on model variables
+#     decide_quality = DecideBlock(
+#         "DecideByQuality", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_quality.add_route(
+#         "extra_inspection", inspection_block,
+#         condition_generic=lambda e, ctx: (
+#             ctx['variables'].get_current('percentual_falhas') > 5.0
+#         )
+#     )
+    
+#     decide_quality.add_route(
+#         "normal_flow", normal_block,
+#         condition_generic=lambda e, ctx: (
+#             ctx['variables'].get_current('percentual_falhas') <= 5.0
+#         )
+#     )
+    
+    
+#     # Example 4: Complex multi-criteria decision
+#     decide_complex = DecideBlock(
+#         "ComplexDecision", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_complex.add_route(
+#         "vip_express", vip_block,
+#         condition_generic=lambda e, ctx: (
+#             e.priority == 0 and  # High priority entity
+#             ctx['time'] < 480 and  # Before 8 hours
+#             ctx['resource_utilization']['vip_staff']['available'] > 0  # Staff available
+#         )
+#     )
+    
+#     decide_complex.add_route(
+#         "regular_available", regular_block,
+#         condition_generic=lambda e, ctx: (
+#             ctx['resource_utilization']['regular_staff']['utilization'] < 0.8 and
+#             len(ctx['resources']['regular_staff'].queue) < 5
+#         )
+#     )
+    
+#     decide_complex.add_route(
+#         "overflow", overflow_block,
+#         condition_generic=lambda e, ctx: True  # Catch-all
+#     )
+    
+    
+#     # Example 5: Route based on entity attribute AND resource state
+#     decide_hybrid = DecideBlock(
+#         "HybridDecision", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_hybrid.add_route(
+#         "thirsty_and_available", beverage_block,
+#         condition_generic=lambda e, ctx: (
+#             e.get_attribute('sede', 0) > 2 and  # Entity is thirsty
+#             len(ctx['resources']['copos'].queue) < 10  # Not too crowded
+#         )
+#     )
+    
+#     decide_hybrid.add_route(
+#         "not_thirsty", skip_beverage_block,
+#         condition_generic=lambda e, ctx: e.get_attribute('sede', 0) <= 2
+#     )
+    
+#     decide_hybrid.add_route(
+#         "wait_later", wait_block,
+#         condition_generic=lambda e, ctx: True  # If crowded, wait
+#     )
+    
+    
+#     # Example 6: Dynamic routing based on time of day AND system load
+#     decide_shift = DecideBlock(
+#         "ShiftBasedRouting", env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     decide_shift.add_route(
+#         "day_shift_express", day_express_block,
+#         condition_generic=lambda e, ctx: (
+#             (ctx['time'] % 1440) < 720 and  # Day shift (0-12 hours)
+#             ctx['resource_utilization']['day_staff']['utilization'] < 0.6
+#         )
+#     )
+    
+#     decide_shift.add_route(
+#         "night_shift_regular", night_regular_block,
+#         condition_generic=lambda e, ctx: (
+#             (ctx['time'] % 1440) >= 720 and  # Night shift (12-24 hours)
+#             ctx['resource_utilization']['night_staff']['available'] > 0
+#         )
+#     )
+    
+#     decide_shift.add_route(
+#         "overflow_routing", overflow_block,
+#         condition_generic=lambda e, ctx: True
+#     )
+
+
+# # =====================================================================
+# # COMPLETE EXAMPLE: Restaurant with Smart Routing
+# # =====================================================================
+# def build_restaurant_with_smart_routing():
+#     """
+#     Restaurant model with intelligent routing based on:
+#     - Customer thirst level
+#     - Table availability
+#     - Server queue length
+#     - Time of day
+#     """
+    
+#     model = SimulationModel()
+#     HOURS = 60
+#     event_logger = EventLogger()
+    
+#     # Resources
+#     garcons = model.add_resource("Garcons", 3, "regular")
+#     copos = model.add_resource("Copos", 50, "regular")
+#     mesas = model.add_resource("Mesas", 20, "regular")
+    
+#     # Create arrivals
+#     chegadas = CreateBlock(
+#         "Chegadas", model.env,
+#         inter_arrival_time=lambda: random.expovariate(1/5),
+#         entity_prefix="Cliente",
+#         max_arrivals=500,
+#         event_logger=event_logger
+#     )
+    
+#     # Assign initial thirst level
+#     chegadas.assign_attributes(
+#         sede=lambda: random.randint(0, 5)
+#     )
+    
+#     # SMART DECISION: Should customer get a drink first?
+#     decide_bebida = DecideBlock(
+#         "DecideBebida", model.env,
+#         decision_type="condition_generic",
+#         event_logger=event_logger
+#     )
+    
+#     # Route 1: Very thirsty AND drinks available -> Go directly to drink
+#     decide_bebida.add_route(
+#         "beber_primeiro", beber_block,
+#         condition_generic=lambda e, ctx: (
+#             e.get_attribute('sede', 0) >= 4 and  # Very thirsty
+#             len(ctx['resources']['copos'].queue) < 15 and  # Not too crowded
+#             ctx['resource_utilization']['garcons']['available'] > 0  # Server available
+#         )
+#     )
+    
+#     # Route 2: Not very thirsty OR drinks crowded -> Go to table first
+#     decide_bebida.add_route(
+#         "mesa_primeiro", sentar_block,
+#         condition_generic=lambda e, ctx: (
+#             e.get_attribute('sede', 0) < 4 or  # Not so thirsty
+#             len(ctx['resources']['copos'].queue) >= 15  # Drink station crowded
+#         )
+#     )
+    
+#     # Route 3: Moderate thirst AND short server queue -> Get drink
+#     decide_bebida.add_route(
+#         "beber_se_rapido", beber_block,
+#         condition_generic=lambda e, ctx: (
+#             e.get_attribute('sede', 0) >= 2 and
+#             len(ctx['resources']['garcons'].queue) < 3
+#         )
+#     )
+    
+#     # Route 4: Fallback - go to table
+#     decide_bebida.add_route(
+#         "mesa_fallback", sentar_block,
+#         condition_generic=lambda e, ctx: True
+#     )
+    
+#     # Define blocks (simplified)
+#     beber_block = ProcessBlock("Beber", model.env, resource=copos,
+#                                delay_time=lambda: random.uniform(2, 4),
+#                                event_logger=event_logger)
+#     beber_block.set_resource_name('Copos')
+#     beber_block.modify_attributes(sede=lambda current: max(0, current - 3))
+    
+#     sentar_block = ProcessBlock("Sentar", model.env, resource=mesas,
+#                                 delay_time=lambda: random.gauss(30, 5),
+#                                 event_logger=event_logger)
+#     sentar_block.set_resource_name('Mesas')
+    
+#     servir_block = ProcessBlock("Servir", model.env, resource=garcons,
+#                                 delay_time=lambda: random.uniform(5, 10),
+#                                 event_logger=event_logger)
+#     servir_block.set_resource_name('Garcons')
+    
+#     dispose = DisposeBlock("Dispose", model.env, event_logger=event_logger)
+    
+#     # Add blocks
+#     for block in [chegadas, decide_bebida, beber_block, sentar_block,
+#                   servir_block, dispose]:
+#         model.add_block(block)
+    
+#     # Connect flow
+#     chegadas.connect_to(decide_bebida)
+#     # decide_bebida routes are configured above
+#     beber_block.connect_to(sentar_block)
+#     sentar_block.connect_to(servir_block)
+#     servir_block.connect_to(dispose)
+    
+#     return model, event_logger
+
+
+# # =====================================================================
+# # UTILITY: Add method to print decision statistics
+# # =====================================================================
+# def print_decision_statistics(model):
+#     """Print detailed statistics about all decision blocks."""
+    
+#     from blocks.decide_block import DecideBlock
+    
+#     print("\n" + "="*70)
+#     print("DECISION BLOCK STATISTICS")
+#     print("="*70)
+    
+#     for block_name, block in model.blocks.items():
+#         if isinstance(block, DecideBlock):
+#             print(f"\n{block_name} (type: {block.decision_type}):")
+#             print(f"  Total decisions: {sum(block.decision_counts.values())}")
+#             print(f"  Routes:")
+            
+#             total = sum(block.decision_counts.values())
+#             for route_name, count in sorted(block.decision_counts.items(),
+#                                            key=lambda x: x[1], reverse=True):
+#                 percentage = (count / total * 100) if total > 0 else 0
+#                 print(f"    {route_name}: {count} ({percentage:.1f}%)")
+    
+#     print("="*70)

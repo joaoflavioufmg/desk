@@ -1234,11 +1234,7 @@ class VisualizationInstrument:
             elif isinstance(block, DisposeBlock):
                 block.process_entity = self._wrap_dispose(original_process, block)
             elif isinstance(block, (ProcessBlock, MultiProcessBlock)):
-                # block.process_entity = self._wrap_process(original_process, block)
-                # ✅ NEW: Special handling for ProcessBlocks
-                block.process_entity = self._wrap_process_with_resource_check(
-                    original_process, block
-                )
+                block.process_entity = self._wrap_process(original_process, block)
                 original_log_start = block.log_start
                 block.log_start = self._wrap_log_start(original_log_start, block.name)
             else:
@@ -1246,84 +1242,44 @@ class VisualizationInstrument:
 
             original_log_complete = block.log_complete
             block.log_complete = self._wrap_log_complete(original_log_complete, block.name)
-
-    # ✅ NEW METHOD: Resource-aware process wrapping
-    def _wrap_process_with_resource_check(self, original_func, block):
-        """
-        Wrap ProcessBlock with resource availability checking.
-        
-        Logic:
-        - If resource has available capacity -> go directly to 'service'
-        - If resource is full -> go to 'queue' first, then 'service' when seized
-        """
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
-        
-        def wrapped(entity):
-            entity_id = self._get_entity_id(entity)
-            from_block, old_state = self.entity_locations.get(entity_id, (None, 'service'))
-            
-            # ✅ CHECK: Determine if entity should queue or go directly to service
-            should_queue = False
-            
-            if isinstance(block, ProcessBlock) and block.resource:
-                # Check if resource is at full capacity
-                resource = block.resource
-                units_needed = getattr(block, 'resource_units', 1)
-                available_capacity = resource.capacity - resource.count
-                
-                should_queue = (available_capacity < units_needed)
-                
-            elif isinstance(block, MultiProcessBlock):
-                # Check if ALL required resources are available
-                all_available = True
-                for resource, units_needed in block.resource_requirements.items():
-                    available_capacity = resource.capacity - resource.count
-                    if available_capacity < units_needed:
-                        all_available = False
-                        break
-                
-                should_queue = not all_available
-            
-            # ✅ SET STATE: Based on resource availability
-            new_state = 'queue' if should_queue else 'service'
-            
-            self.entity_locations[entity_id] = (block.name, new_state)
-            
-            # Send movement event
-            self.event_queue.put(VisualizationEvent(
-                event_type='entity_moved',
-                timestamp=self.model.env.now,
-                data={
-                    'entity_id': entity_id,
-                    'from_block': from_block,
-                    'to_block': block.name,
-                    'state': new_state
-                }
-            ))
-            
-            self._send_stats_update()
-            
-            # Small timeout for GUI update
-            yield self.model.env.timeout(0.001)
-            yield from original_func(entity)
-        
-        return wrapped
-
+    
     def _wrap_create_generator(self, original_gen_func, block):
         """Wrap CreateBlock generator to track entity creation."""
+        def wrapped_generator():
+            # (3) MODIFY: Use 'yield from' for proper generator delegation
+            yield from original_gen_func()
+
+            # (3) MODIFY: The original loop logic was flawed.
+            # The event needs to be sent *inside* the generator's loop.
+            # This is hard to patch from outside.
+            # Let's re-wrap the original_gen_func itself.
+            
+        # (3) MODIFY: The wrapping logic was incorrect.
+        # We need to intercept the *creation* of the entity.
+        # The original code's `_generation_process` in `all_blocks.py`
+        # handles the creation and sending. We need to wrap *that*.
+        
+        # Let's try a different approach: wrap the original generator
         def new_wrapped_generator():
             for item in original_gen_func():
+                # The 'item' yielded by the original generator is the
+                # timeout event. The entity has *just* been created
+                # in the original function.
                 if hasattr(block, 'entities_created') and block.entities_created > 0:
                     entity_num = block.entities_created
+                    
+                    # (3) MODIFY: Find the entity ID. This is brittle.
+                    # It relies on the entity_prefix.
                     entity_id = f"{block.entity_prefix}_{entity_num-1}"
                     
+                    # Check if we've already logged this one
                     if entity_id not in self.entity_locations:
                         self.event_queue.put(VisualizationEvent(
                             event_type='entity_created',
                             timestamp=self.model.env.now,
                             data={
                                 'entity_id': entity_id,
-                                'entity_number': entity_num,
+                                'entity_number': entity_num, # (3) MODIFY: Use entity_num
                                 'block_name': block.name
                             }
                         ))
@@ -1332,6 +1288,7 @@ class VisualizationInstrument:
                 
                 yield item
         
+        # (3) MODIFY: Return the new generator function
         return new_wrapped_generator
     
     def _wrap_process(self, original_func, block):
@@ -1368,36 +1325,24 @@ class VisualizationInstrument:
         return wrapped
 
     def _wrap_log_start(self, original_log_start, block_name):
-        """
-        Wrap log_start to move entity from queue to service.
-        
-        ✅ FIXED: This is called when resource is actually SEIZED.
-        If entity was in queue, it now moves to service.
-        """
+        """Wrap log_start to detect when entity moves from queue to service."""
         def wrapped(entity, resource_name=None):
             original_log_start(entity, resource_name)
             
             entity_id = self._get_entity_id(entity)
-            current_block, current_state = self.entity_locations.get(
-                entity_id, (block_name, 'queue')
-            )
-            
-            # ✅ ONLY send event if entity was actually in queue
-            if current_state == 'queue':
-                self.entity_locations[entity_id] = (block_name, 'service')
-                
-                self.event_queue.put(VisualizationEvent(
-                    event_type='entity_moved',
-                    timestamp=self.model.env.now,
-                    data={
-                        'entity_id': entity_id,
-                        'from_block': block_name,
-                        'to_block': block_name,
-                        'state': 'service'
-                    }
-                ))
-                self._send_stats_update()
-        
+            self.entity_locations[entity_id] = (block_name, 'service')
+
+            self.event_queue.put(VisualizationEvent(
+                event_type='entity_moved',
+                timestamp=self.model.env.now,
+                data={
+                    'entity_id': entity_id,
+                    'from_block': block_name,
+                    'to_block': block_name,
+                    'state': 'service'
+                }
+            ))
+            self._send_stats_update()
         return wrapped
 
     def _wrap_log_complete(self, original_log_complete, block_name):

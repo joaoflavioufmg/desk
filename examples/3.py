@@ -24,6 +24,7 @@ from stats.replication import ReplicationFramework
 from analytics.financial import FinancialAnalyzer
 from validation.resource_validator import ResourceValidator
 from core.simulation_model import SimulationModel
+from core.model_variables import ModelVariableTracker
 from core.entity import EventLogger
 from blocks.create_block import CreateBlock
 from blocks.process_block import ProcessBlock, MultiProcessBlock
@@ -36,6 +37,7 @@ from validation.stability import StabilityAnalyzer
 from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
 from visualization.interface import run_visualization
+
 
 
 # ================================================================
@@ -55,17 +57,37 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas = 60/4         # por minuto        
+        taxa_chegadas = 4/60         # por minuto        
         return {
             'chegada': random.expovariate(1/taxa_chegadas),
-            'atendimento': random.expovariate(2)
+            'atendimento': random.expovariate(1/2) # Média 2 minutos
         }.get(tipo,0.0)
 
     
     # Resources - regular, priority, preempt
     troncos = model.add_resource("Troncos", 30, "regular") 
     
+    # Create tracker
+    tracker = ModelVariableTracker(model)
     
+
+    tracker.add_variable(
+        'num_chamadas_perdidas',
+        initial_value=0,
+        description='Número total de chamadas perdidas',
+        unit='unidades'
+    )
+
+    tracker.add_variable(
+        'percentual_chamdas_perdidas',
+        initial_value=0,
+        description='Percentual de chamadas perdidas',
+        unit='%',
+        calculate_cp=lambda m: (
+            tracker.get_current('num_chamadas_perdidas') / m.entity_count * 100
+            if m.entity_count > 0 else 0
+        )
+    )
     
     # Create blocks
     chegadas_chamadas = CreateBlock(
@@ -76,146 +98,53 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
         first_creation=0.0,
         # priority_generator=prio("Cliente"),
         event_logger=event_logger
-    )    
-    # CONFIGURE ENTITY ATTRIBUTES # Assign "sede" to each patient
-    chegadas_chamadas.assign_attributes(
-        sede=lambda: random.randint(1, 4)  # Sede entre 1 e 4        
-        # sedeOriginal=0
-    )
-
-    chegadas_garcons = CreateBlock(
-        "ChegadasGarcons", model.env,
-        inter_arrival_time=lambda: distribution('chegada'),
-        entity_prefix="Garcom",
-        max_arrivals=1, 
-        first_creation=0.0,
-        # priority_generator=prio("Cliente"),
-        event_logger=event_logger
     ) 
 
-    decide_ent_origem = DecideBlock(
-        "Decide1", model.env,
-        decision_type="condition",
+    decide_fila_tronco = DecideBlock(
+        "DecideTronco", model.env,
+        decision_type="condition_generic",
         event_logger=event_logger
-    )   
-
-    # Define activity priorities
-    PRIO_ATIVIDADE = {
-        "servir": 0,  # Highest priority
-        "lavar": 1    # Lower priority
-    }    
+    ) 
     
-    servir = MultiProcessBlock(
-        "Servir", model.env,
-        resource_requirements={
-            garcons: 1,
-            copos: 1
-        },
-        delay_time=lambda: distribution('servir'),
-        event_logger=event_logger
-    )
-    servir.set_resource_names({
-        garcons: 'Garcons',
-        copos: 'Copos'
-    })
-    servir.set_activity_priority(PRIO_ATIVIDADE["servir"])  # Set activity priority
-    
-    beber = ProcessBlock(
-        "Beber", model.env,
+    atendimento = ProcessBlock(
+        "Atendimento", model.env,
         # resource=None,    # None, se apenas Delay (sem recursos)
-        resource=copos,
-        delay_time=lambda: distribution('beber'),
+        resource=troncos,
+        delay_time=lambda: distribution('atendimento'),
         resource_units=1,         # 1 CHECK! 
         event_logger=event_logger
     )
-    beber.set_resource_name('Copos')
-    # NEW: Configure dynamic attribute modification
-    beber.modify_attributes(
-        # sedeOriginal=lambda sede: sede,        
-        # sede=lambda current: current - 1  # Decrement sede by 1
-        sede=lambda current: max(0, current - 1)
-    )
-
-
-    # Lavar activity with lower priority
-    lavar = MultiProcessBlock(
-        "Lavar", model.env,
-        resource_requirements={
-            garcons: 1,
-            copos: 1
-        },
-        delay_time=lambda: distribution('lavar'),
-        event_logger=event_logger
-    )
-    lavar.set_resource_names({
-        garcons: 'Garcons',
-        copos: 'Copos'
-    })
-    lavar.set_activity_priority(PRIO_ATIVIDADE["lavar"])  # Set activity priority
-
-    decide_satisfeito = DecideBlock(
-        "Decide2", model.env,
-        decision_type="condition",
-        event_logger=event_logger
-    )    
+    atendimento.set_resource_name('Troncos')    
+ 
     
     dispose = DisposeBlock(
         "Dispose", 
         model.env, 
         event_logger=event_logger)
 
-    decision_time = DecideBlock(
-        "DisposeDecision", model.env,
-        decision_type="time_condition",
-        event_logger=event_logger
-    )
 
     # Add blocks to model
-    for block in [chegadas_chamadas, chegadas_garcons, servir, 
-                beber, decide_satisfeito, decide_ent_origem, 
-                decision_time, lavar, dispose]:
+    for block in [chegadas_chamadas, atendimento, decide_fila_tronco, dispose]:
         model.add_block(block)
     
     # Connect flow
-    chegadas_chamadas.connect_to(servir)    
-    servir.connect_to(decide_ent_origem)    
-    beber.connect_to(decide_satisfeito)
-
-    
-    chegadas_garcons.connect_to(lavar)
-    lavar.connect_to(decision_time)
-    
-
-    # Decision routing functions
-    def ori_cliente(entity):
-        return "cliente" in entity.id.lower()
-
-    def ori_garcom(entity):
-        return "garcom" in entity.id.lower()
-
-    def satisfeito(entity):
-        return entity.get_attribute("sede", 0) < 1
-        # sede_value = entity.get_attribute("sede", 0)
-        # print(f"[DEBUG SATISFEITO] {entity.id}: sede={sede_value}, satisfeito={sede_value < 1}")
-        # return sede_value < 1
-    
-    def nao_satisfeito(entity):
-        return entity.get_attribute("sede", 0) >= 1
-        # sede_value = entity.get_attribute("sede", 0)
-        # print(f"[DEBUG NAO_SATISFEITO] {entity.id}: sede={sede_value}, nao_satisfeito={sede_value >= 1}")
-        # return sede_value >= 1
+    chegadas_chamadas.connect_to(decide_fila_tronco)        
+    atendimento.connect_to(dispose)    
     
     # Add decision routes
-    decide_ent_origem.add_route("Cliente", beber, condition=ori_cliente)
-    decide_ent_origem.add_route("Garcom", lavar, condition=ori_garcom)
+    decide_fila_tronco.add_route(
+        "Atender", atendimento, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Troncos'].count < ctx['resources']['Troncos'].capacity
+            )
+        )
+    decide_fila_tronco.add_route(
+        "Dispose", dispose, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Troncos'].count >= ctx['resources']['Troncos'].capacity
+            )
+        )   
 
-    decide_satisfeito.add_route("Satisfeito", dispose, condition=satisfeito)    
-    decide_satisfeito.add_route("Beber_mais", servir, condition=nao_satisfeito)
-
-    decision_time.add_route("Dispose_Yes", dispose,
-        time_condition=lambda t: t >= (final_simulation_time - 10))
-    decision_time.add_route("Dispose_No", lavar,
-        time_condition=lambda t: t < (final_simulation_time - 10))
     
    
 
@@ -223,10 +152,8 @@ def build_ex3_model(final_simulation_time=None, event_logger=None):
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
     # Assign costs to each activity
-    servir.assign_attributes(cost=lambda: random.uniform(20, 30))    
-    lavar.assign_attributes(cost=lambda: random.uniform(10, 20))
+    atendimento.assign_attributes(cost=lambda: random.uniform(20, 30))    
     dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
-    # dispose.assign_attributes(revenue=lambda sedeOriginal: sedeOriginal * 20)    
     # ================================================================
     
     return model
@@ -244,8 +171,8 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
 
     # Create configuration
     config = SimulationConfig(
-        duration=24*HOURS,
-        warm_up_period=2*HOURS,        
+        duration=20,
+        warm_up_period=2,        
         seed=123,
         check_stability=True
     )
@@ -283,8 +210,8 @@ def run_replications():
     
     replication_framework.run_replications(
         base_seed=12345,
-        until=24*60,
-        warm_up_period=2*60
+        until=20,
+        warm_up_period=2
     )
 
     # Access results
@@ -312,7 +239,7 @@ def ex3_factorial_analysis():
     )
     
     # Define simulation function wrapper
-    def ex3_simulation_wrapper(arrival_rate=10, num_garcons=1, num_copos=70,
+    def ex3_simulation_wrapper(arrival_rate=15, num_troncos=30,
                                     seed=None, until=None, warm_up_period=0, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
@@ -337,29 +264,23 @@ def ex3_factorial_analysis():
     factorial.add_factor(
         factor_name='arrival_rate',
         parameter_path='CreateBlock.inter_arrival_time',
-        levels=[10, 15, 20],  # Minutes between arrivals
+        levels=[4/60, 8/60, 16/60],  # Minutes between arrivals
         description='Taxa de chegada de clientes (min)'
     )
     
     factorial.add_factor(
-        factor_name='num_garcons',
-        parameter_path='Resource.garcons.capacity',
-        levels=[1, 2, 3],
-        description='Número de garçons'
+        factor_name='num_troncos',
+        parameter_path='Resource.troncos.capacity',
+        levels=[30, 31, 32],
+        description='Número de troncos'
     )
     
-    factorial.add_factor(
-        factor_name='num_copos',
-        parameter_path='Resource.copos.capacity',
-        levels=[70, 80, 90],
-        description='Número de copos'
-    )
     
     # Run experiment
     factorial.run_factorial_experiment(
         n_replications=5,
-        simulation_time=40*60,  # 40 hours
-        warm_up_period=7*60,    # 7 hours
+        simulation_time=40,  # 40 min
+        warm_up_period=7,    # 7 min
         verbose=True
         # verbose=False
     )
@@ -368,7 +289,7 @@ def ex3_factorial_analysis():
     factorial.print_summary()
     factorial.plot_correlation_matrix()
     factorial.plot_main_effects('system_time_avg')
-    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_garcons')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_troncos')
     
     # Export
     factorial.export_results()
@@ -396,10 +317,10 @@ def main():
     
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
-        duration=8*HOURS,
-        warm_up_period=0.5*HOURS,
+        warm_up_period=0,
+        duration=20,
+        # duration=8*HOURS,
+        # warm_up_period=0.5*HOURS,
         # duration=21*DAYS,
         # warm_up_period=5*DAYS,        
         seed=123,
@@ -446,8 +367,7 @@ def main():
     plotter = SimulationPlotter(model)
     
     # Plot resource utilization over time
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Garcons', moving_average_window=50)
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Copos', moving_average_window=50)    
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Troncos', moving_average_window=50)
     plotter.plot_wip_over_time()
     plotter.plot_system_time_distribution()
 
@@ -491,7 +411,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    run_visualization(build_ex3_model, simulation_time=8*60)
+    # run_visualization(build_ex3_model, simulation_time=60)

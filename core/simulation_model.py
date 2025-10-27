@@ -7,6 +7,7 @@ import sys
 from .base_block import BaseBlock
 from blocks.create_block import CreateBlock
 from blocks.dispose_block import DisposeBlock
+from .model_variables import ModelVariableTracker
 
 
 # =====================================================================
@@ -43,6 +44,7 @@ class SimulationModel:
         self.stability_result: Optional[float] = None
         self.warm_up_period: float = 0.0
         self.is_warm_up_complete: bool = False
+        self.variable_tracker = ModelVariableTracker(self)
 
 
     def validate_resources(self, raise_on_error: bool = True) -> bool:
@@ -248,6 +250,17 @@ class SimulationModel:
                         metrics['max_queue_length'] = 0
                         metrics['max_in_service'] = 0
 
+    def add_model_variable(self, name: str, initial_value: Any = 0,
+                          description: str = "", unit: str = "",
+                          calculate_fn: Optional[Callable] = None):
+        """Add a custom model variable to track."""
+        self.variable_tracker.add_variable(
+            name, initial_value, description, unit, calculate_fn
+        )
+
+    def update_model_variable(self, name: str, value: Any = None):
+        """Update a model variable."""
+        self.variable_tracker.update(name, value=value)
 
     # @property
     # def entity_count(self) -> int:
