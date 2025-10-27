@@ -47,7 +47,6 @@ from visualization.interface import run_visualization
 def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True):
     """Build a hospital simulation model with refactored structure."""
     
-    
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
@@ -62,22 +61,22 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
         taxa_chegadas = 4/60         # por minuto        
         return {
             'chegada': random.expovariate(1/taxa_chegadas),
-            'atendimento': random.expovariate(1/2) # Média 2 minutos
+            'atendimento': random.expovariate(1/2), # Média 2 minutos
+            'espera': 10/60 # 10 segundos
         }.get(tipo,0.0)
 
     
     # Resources - regular, priority, preempt
     troncos = model.add_resource("Troncos", 30, "regular") 
     
-    # Create tracker
+    # # Create tracker
     # variable_tracker = ModelVariableTracker(model)    
 
     # variable_tracker.add_variable(
     #     'num_chamadas_perdidas',
     #     initial_value=0,
     #     description='Número total de chamadas perdidas',
-    #     unit='unidades'
-    # )
+    #     unit='unidades')
 
     # variable_tracker.add_variable(
     #     'percentual_chamdas_perdidas',
@@ -87,19 +86,16 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
     #     calculate_fn=lambda m: (
     #         variable_tracker.get_current('num_chamadas_perdidas') / m.entity_count * 100
     #         if m.entity_count > 0 else 0
-    #     )
-    # )
+    #     ))
 
     # Add model variables
     model.add_model_variable('num_chamadas_perdidas', 0, 
                             'Número de chamadas perdidas', 'unidades')
-
     model.add_model_variable('percentual_chamadas_perdidas', 0,
                             'Percentual de chamadas perdidas', '%',
                             calculate_fn=lambda m: (
                                 m.variable_tracker.get_current('num_chamadas_perdidas') /
-                                max(1, m.entity_count) * 100
-                            ))
+                                max(1, m.entity_count) * 100))
     
     # Create blocks
     chegadas_chamadas = CreateBlock(
@@ -110,13 +106,19 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
         first_creation=0.0,
         # priority_generator=prio("Cliente"),
         event_logger=event_logger
-    ) 
+    )      
 
     decide_fila_tronco = DecideBlock(
         "DecideTronco", model.env,
         decision_type="condition_generic",
         event_logger=event_logger
     ) 
+
+    decide_fila_tronco30 = DecideBlock(
+        "DecideTronco30", model.env,
+        decision_type="probability",
+        event_logger=event_logger
+    )
     
     atendimento = ProcessBlock(
         "Atendimento", model.env,
@@ -127,7 +129,13 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
         event_logger=event_logger
     )
     atendimento.set_resource_name('Troncos')    
- 
+
+    espera = ProcessBlock(
+        "Espera", model.env,
+        resource=None,    # None, se apenas Delay (sem recursos)        
+        delay_time=lambda: distribution('espera'),        
+        event_logger=event_logger
+    ) 
     
     dispose_atendida = DisposeBlock(
         "DisposeAtendida", 
@@ -141,13 +149,15 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
 
 
     # Add blocks to model
-    for block in [chegadas_chamadas, atendimento, decide_fila_tronco, 
+    for block in [chegadas_chamadas, espera, atendimento, 
+        decide_fila_tronco, decide_fila_tronco30,
         dispose_atendida, dispose_perdida]:
         model.add_block(block)
     
     # Connect flow
-    chegadas_chamadas.connect_to(decide_fila_tronco)        
-    atendimento.connect_to(dispose_atendida)    
+    chegadas_chamadas.connect_to(decide_fila_tronco)    
+    atendimento.connect_to(dispose_atendida)
+    espera.connect_to(decide_fila_tronco)        
     
     # Add decision routes
     decide_fila_tronco.add_route(
@@ -157,11 +167,15 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
             )
         )
     decide_fila_tronco.add_route(
-        "Perdida", dispose_perdida, 
+        "Aguarda", decide_fila_tronco30, 
         condition_generic=lambda e, ctx: (
             ctx['resources']['Troncos'].count >= ctx['resources']['Troncos'].capacity
             )
-        )   
+        )  
+
+    decide_fila_tronco30.add_route("Perdida", dispose_perdida, probability=0.3)
+    # Importante! Para contabilizar as saídas e o WIP
+    decide_fila_tronco30.add_route("NovaTentativa", espera, probability=0.7) 
     # ================================================================
     # ✅ CREATE OBSERVER (separate from blocks)
     # ================================================================    
@@ -460,5 +474,5 @@ def main():
 if __name__ == "__main__":
     # model, logger = main()
     # run_replications()
-    factorial = ex3_factorial_analysis()
-    # run_visualization(build_ex3_model, simulation_time=60)
+    # factorial = ex3_factorial_analysis()
+    run_visualization(build_ex3_model, simulation_time=60)
