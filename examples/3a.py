@@ -454,7 +454,7 @@ def main():
 
     # 5. Export event log
     print("\nExporting event log...")
-    df = event_logger.export_to_csv("ex3_event_log.csv")
+    df = event_logger.export_to_csv("ex3a_event_log.csv")
     print(f"\nFirst 10 events:")
     print(df.head(10))
     
@@ -472,7 +472,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    run_visualization(build_ex3_model, simulation_time=60)
+    # run_visualization(build_ex3_model, simulation_time=60)
