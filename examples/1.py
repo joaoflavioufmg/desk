@@ -67,7 +67,7 @@ def build_ex1_model(final_simulation_time=None, event_logger=None):
     def distribution(tipo):
         taxa_chegadas=1         # por minuto        
         return {
-            'arrival': random.expovariate(1/taxa_chegadas),
+            'arrival': random.expovariate(taxa_chegadas),
             'operacao': random.expovariate(1/(3*DAYS)),
             'manutencao': random.expovariate(1/(1*DAYS))
         }.get(tipo,0.0)  

@@ -58,9 +58,9 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas = 4/60         # por minuto        
+        taxa_chegadas = 15         # por minuto        
         return {
-            'chegada': random.expovariate(1/taxa_chegadas),
+            'chegada': random.expovariate(taxa_chegadas),
             'atendimento': random.expovariate(1/2), # Média 2 minutos
             'atendimento_aux': random.expovariate(1/2), # Média 2 minutos
         }.get(tipo,0.0)

@@ -52,9 +52,9 @@ def build_hospital_model(event_logger=None):
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas=4         # por minuto        
+        taxa_chegadas=0.25         # por minuto        
         return {
-            'arrival': random.expovariate(1/taxa_chegadas),
+            'arrival': random.expovariate(taxa_chegadas),
             'triage': random.uniform(2, 3),
             'consultation': random.uniform(5, 15),
             'pharmacy': random.expovariate(1/5)
