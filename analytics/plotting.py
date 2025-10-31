@@ -147,7 +147,19 @@ class SimulationPlotter:
                alpha=0.7, color='lightblue', linewidth=1.5, 
                label='Utilizacao')
         
-        # Plot moving average
+        # ✅ NEW: Plot cumulative average (dark green)
+        if len(utilizations) >= 2:
+            times_array = np.array(times)
+            utils_array = np.array(utilizations)
+            
+            # Calculate cumulative average
+            cumulative_avg = np.cumsum(utils_array) / np.arange(1, len(utils_array) + 1)
+            
+            ax.plot(times_array, cumulative_avg, color='darkgreen', 
+                linewidth=2.5, label='Média Cumulativa (Warm-up)',
+                alpha=0.9, linestyle='-')
+        
+        # Plot moving average (dark blue - existing)
         if len(utilizations) >= moving_avg_window:
             times_array = np.array(times)
             utils_array = np.array(utilizations)
@@ -174,7 +186,7 @@ class SimulationPlotter:
         ax.set_ylim(0, 105)
         ax.set_xlim(0, max_time)
         ax.grid(True, alpha=0.3)
-        ax.legend(loc='upper right')
+        ax.legend(loc='upper right', fontsize=9)  # Smaller font for more labels
         
         # Add utilization bands
         ax.axhline(y=85, color='orange', linestyle=':', alpha=0.7, 

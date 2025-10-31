@@ -21,6 +21,13 @@ class BaseBlock(ABC):
         self.attributes_to_assign = {}  # NEW: Generic attribute assignment
         self.attributes_to_modify = {}  # NEW: Dynamic attribute modifications
         self.activity_priority = None  # NEW: Activity-specific priority
+        self.tracer = getattr(env.model, 'event_tracer', None)  # NEW: Get tracer from model
+
+    def _trace(self, event_type: str, entity: Entity, resource_name: Optional[str] = None, 
+               details: str = ""):
+        """Helper method to trace events if verbose mode is enabled."""
+        if self.tracer:
+            self.tracer.trace(event_type, entity.id, resource_name, details)
 
     def assign_attributes(self, **attributes):
         """

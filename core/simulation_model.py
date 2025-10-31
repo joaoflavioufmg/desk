@@ -1,10 +1,11 @@
 # =====================================================================
 # FILE: core/simulation_model.py
 # =====================================================================
-from typing import Dict, Any, List, Optional, Union, Callable
+from typing import Dict, Any, List, Optional, Union, Callable, Set
 import simpy
 import sys
 from .base_block import BaseBlock
+from .event_tracer import EventTracer
 from blocks.create_block import CreateBlock
 from blocks.dispose_block import DisposeBlock
 from .model_variables import ModelVariableTracker
@@ -30,7 +31,21 @@ class SimulationModel:
     - Warm-up analysis (see validation.warmup)
     """
     
-    def __init__(self):
+    def __init__(self, verbose: bool = False,
+                 entity_filter: Optional[Set[str]] = None,
+                 resource_filter: Optional[Set[str]] = None,
+                 event_type_filter: Optional[Set[str]] = None,
+                 time_range: Optional[tuple] = None):
+        """
+        Initialize simulation model.
+        
+        Args:
+            verbose: Enable event tracing
+            entity_filter: Set of entity IDs to trace
+            resource_filter: Set of resource names to trace
+            event_type_filter: Set of event types to trace
+            time_range: Tuple of (start_time, end_time) for tracing
+        """
         self.env = simpy.Environment()
         self.env.model = self  # For safe_delay_time access
         self.blocks: Dict[str, 'BaseBlock'] = {}
@@ -45,6 +60,17 @@ class SimulationModel:
         self.warm_up_period: float = 0.0
         self.is_warm_up_complete: bool = False
         self.variable_tracker = ModelVariableTracker(self)
+        self.verbose = verbose  # NEW
+        if verbose:
+            self.event_tracer = EventTracer(
+                self.env,
+                entity_filter=entity_filter,
+                resource_filter=resource_filter,
+                event_type_filter=event_type_filter,
+                time_range=time_range
+            )
+        else:
+            self.event_tracer = None
 
 
     def validate_resources(self, raise_on_error: bool = True) -> bool:
@@ -177,6 +203,10 @@ class SimulationModel:
                 print("✅ Sistema estavel detectado, executando simulacao completa...")
             else:
                 print("🚨 Sistema instavel detectado! Executando mesmo assim...")
+
+        # NEW: Print trace header
+        if self.verbose and self.event_tracer:
+            self.event_tracer.print_header()
         
         # Start all CREATE blocks
         for create_block in self.create_blocks:
@@ -184,6 +214,10 @@ class SimulationModel:
         
         # Run simulation
         self.env.run(until=until)
+
+        # NEW: Print trace footer
+        if self.verbose and self.event_tracer:
+            self.event_tracer.print_footer()
     
     def _validate_stopping_condition(self, until: Optional[float]):
         """Validate that simulation has a stopping condition."""
@@ -262,10 +296,6 @@ class SimulationModel:
         """Update a model variable."""
         self.variable_tracker.update(name, value=value)
 
-    # @property
-    # def entity_count(self) -> int:
-    #     """Total entities disposed (post warm-up)."""
-    #     return sum(block.entities_disposed for block in self.dispose_blocks)
 
     @property
     def entity_count(self) -> int:
@@ -315,3 +345,82 @@ class SimulationModel:
                 results['blocks'][block_name]['decision_counts'] = block.decision_counts
         
         return results  
+    
+    def trace_entity(self, entity_id: str):
+        """
+        Print complete journey of a specific entity.
+        
+        Args:
+            entity_id: Entity ID to trace (e.g., 'Patient_5')
+        """
+        if self.event_tracer:
+            self.event_tracer.print_entity_journey(entity_id)
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def trace_entities(self, entity_ids: List[str]):
+        """
+        Print journeys of multiple entities.
+        
+        Args:
+            entity_ids: List of entity IDs to trace
+        """
+        if self.event_tracer:
+            for entity_id in entity_ids:
+                self.event_tracer.print_entity_journey(entity_id)
+                print()  # Blank line between journeys
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def replay_trace(self, entity_filter: Optional[Set[str]] = None,
+                    resource_filter: Optional[Set[str]] = None,
+                    event_type_filter: Optional[Set[str]] = None,
+                    time_range: Optional[tuple] = None,
+                    entity_pattern: Optional[str] = None):
+        """
+        Replay simulation trace with filters.
+        
+        Args:
+            entity_filter: Set of specific entity IDs (e.g., {'Patient_0', 'Patient_5'})
+            resource_filter: Set of resources (e.g., {'doctors', 'nurses'})
+            event_type_filter: Set of event types (e.g., {'queue', 'service_start'})
+            time_range: Time window (e.g., (10, 50))
+            entity_pattern: Regex pattern for entities (e.g., r'Patient_[0-5]')
+        
+        Examples:
+            # Trace specific patient
+            model.replay_trace(entity_filter={'Patient_1'})
+            
+            # Trace first 5 patients
+            model.replay_trace(entity_pattern=r'Patient_[0-4]')
+            
+            # Trace only doctor interactions
+            model.replay_trace(resource_filter={'doctors'})
+            
+            # Trace queue and service events
+            model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+            
+            # Trace specific time window
+            model.replay_trace(time_range=(10, 50))
+            
+            # Combine filters
+            model.replay_trace(entity_filter={'Patient_1'}, 
+                             event_type_filter={'queue', 'service_start'})
+        """
+        if self.event_tracer:
+            self.event_tracer.replay_trace(
+                entity_filter=entity_filter,
+                resource_filter=resource_filter,
+                event_type_filter=event_type_filter,
+                time_range=time_range,
+                entity_pattern=entity_pattern
+            )
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def print_trace_statistics(self):
+        """Print summary statistics of event trace."""
+        if self.event_tracer:
+            self.event_tracer.print_statistics()
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")

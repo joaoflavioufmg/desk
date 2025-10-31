@@ -118,6 +118,9 @@ class DecideBlock(BaseBlock):
             next_block = self.routes[chosen_route]['block']
             entity.add_attribute(f"{self.name}_decision", chosen_route)
 
+            # NEW: Trace decision
+            self._trace('decide', entity, details=f"route={chosen_route}")
+
             # Log decision as an event
             if self.event_logger:
                 self.event_logger.log_event(

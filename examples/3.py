@@ -19,6 +19,7 @@
 # FILE: 3.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -39,12 +40,30 @@ from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
 from visualization.interface import run_visualization
 
-
+# ####################################################################################
+# Projeto: Central telefônica
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Descrição: Uma central telefônica recebe chamadas a intervalos aleatórios 
+# segundo uma distribuição exponencial negativa com intervalo médio 
+# entre chamadas de 4 segundos. A duração média da conversação é de 
+# 120 segundos, também seguindo uma distribuição exponencial negativa. 
+# A central tem uma capacidade limitada de atendimento correspondente 
+# ao número de troncos disponíveis que é igual a 30. 
+# Uma chamada, encontrando o sistema congestionado (todos os troncos 
+# ocupados), é perdida. Posto isto, pede-se construir o diagrama de 
+# ciclo de atividades para este sistema, pois deseja-se construir um 
+# programa de simulação para estimar o número médio de troncos 
+# ocupados e o percentual de chamadas perdidas. 
+# Além disso, sabendo-se que o percentual de chamadas perdidas deve 
+# ser limitado a 5%, deseja-se saber qual deveria ser o número de 
+# troncos necessários para atender a este nível de serviço e qual seria, 
+# neste caso, a ocupação média da central.
+# ##################################################################
 
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True):
+def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False):  # NEW: verbose parameter
     """Build a hospital simulation model with refactored structure."""
     
     
@@ -55,7 +74,7 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -214,7 +233,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex3_model(config.duration, event_logger, verbose=False)
+    model = build_ex3_model(config.duration, event_logger)
     # model = build_ex3_model(event_logger)
 
     # Validate once on first run
@@ -287,7 +306,7 @@ def ex3_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex3_model(config.duration, verbose=False)
+        model = build_ex3_model(config.duration)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -337,6 +356,11 @@ def ex3_factorial_analysis():
     return factorial
 # ================================================================
 
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 
 def main():
@@ -365,7 +389,7 @@ def main():
     )
     config.validate()
 
-    model = build_ex3_model(config.duration, event_logger)
+    model = build_ex3_model(config.duration, event_logger, verbose=True)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -458,7 +482,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    run_visualization(build_ex3_model, simulation_time=60)
+    # run_visualization(build_ex3_model, simulation_time=60)

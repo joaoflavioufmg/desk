@@ -1,7 +1,9 @@
 # All_blocks.py
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union, Optional, List, Callable, Tuple
+from typing import Dict, Any, Union, Optional, List, Callable, Tuple, Set
 from dataclasses import dataclass, field
+from datetime import datetime
+import re
 import sys
 import simpy
 import numpy as np
@@ -14,9 +16,6 @@ import math
 import statistics
 import itertools
 import seaborn as sns
-
-from blocks import dispose_block
-
 
 
 # =====================================================================
@@ -88,7 +87,14 @@ class BaseBlock(ABC):
         self.attributes_to_assign = {}  # NEW: Generic attribute assignment
         self.attributes_to_modify = {}  # NEW: Dynamic attribute modifications
         self.activity_priority = None  # NEW: Activity-specific priority
+        self.tracer = getattr(env.model, 'event_tracer', None)  # NEW: Get tracer from model
 
+    def _trace(self, event_type: str, entity: Entity, resource_name: Optional[str] = None, 
+               details: str = ""):
+        """Helper method to trace events if verbose mode is enabled."""
+        if self.tracer:
+            self.tracer.trace(event_type, entity.id, resource_name, details)
+    
     def assign_attributes(self, **attributes):
         """
         Configure attributes to assign to entities passing through this block.
@@ -244,7 +250,7 @@ class CreateBlock(BaseBlock):
         self.entity_prefix = entity_prefix
         self.max_arrivals = max_arrivals
         self.first_creation = first_creation
-        self.entities_created = 0
+        self.entities_created = 1
         self.priority_generator = priority_generator
         
     def start_generation(self):
@@ -273,6 +279,10 @@ class CreateBlock(BaseBlock):
 
             # ✅ ADD THIS LINE: Apply configured attributes to the entity
             self._apply_attributes(entity)
+
+            # NEW: Trace entity generation
+            self._trace('arrival', entity, details=f"entity created, priority={entity.priority}")
+            
             
             # Log creation as an event
             if self.event_logger:
@@ -403,12 +413,17 @@ class ProcessBlock(BaseBlock):
 
             acquired = []
             try:
+                # NEW: Trace queue entry
+                queue_length = len(self.resource.queue)
+                self._trace('queue', entity, self.resource_name, 
+                           f"waiting, queue_length={queue_length}")
+
                 # ⚠️ ACQUISITION - can be preempted here too!
                 yield simpy.AllOf(self.env, requests)
                 acquired = requests
 
                 self._monitor_resource()
-                self.log_start(entity, self.resource_name)
+                # self.log_start(entity, self.resource_name)
 
                 # Record queue time
                 queue_time = self.env.now - queue_start
@@ -421,6 +436,13 @@ class ProcessBlock(BaseBlock):
                 else:
                     delay = max(0.0, self.delay_time())
 
+                # NEW: Trace service start
+                utilization = self.resource.count / self.resource.capacity
+                self._trace('service_start', entity, self.resource_name,
+                           f"service_time={delay:.2f}, queue_time={queue_time:.2f}")
+                
+                self.log_start(entity, self.resource_name)
+
                 yield self.env.timeout(delay)
                 
                 # ✅ SUCCESS - completed without interruption
@@ -430,11 +452,21 @@ class ProcessBlock(BaseBlock):
                 
                 self._apply_attributes(entity)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications
+
+                # NEW: Trace service end
+                utilization = self.resource.count / self.resource.capacity
+                self._trace('service_end', entity, self.resource_name,
+                           f"utilization={utilization:.0%}")
+
                 self.log_complete(entity, self.resource_name)
                 
                 break  # Exit retry loop - we're done!
                 
             except simpy.Interrupt as interrupt:
+                # NEW: Trace preemption
+                self._trace('interrupt', entity, self.resource_name,
+                           f"preempted by higher priority")
+
                 # 🚨 PREEMPTED (during acquisition or service)
                 if self.event_logger:
                     # Determine if interrupted during service or acquisition
@@ -548,53 +580,30 @@ class MultiProcessBlock(BaseBlock):
                     else:
                         req = resource.request()
                     requests.append((resource, req))
-        
-        # =====================================================================
-        # # Acquire all resources sequentially but hold them all
-        # acquired_resources = []
-        # try:
-        #     # IMPORTANT: Unpack the (resource, req) tuple here and yield ONLY the req (which is the SimPy event).
-        #     # If you mistakenly loop with 'for req in requests: yield req', it would yield the tuple instead,
-        #     # causing the "Invalid yield value" error with the (Resource, Request) tuple.
-        #     for resource, req in requests:
-        #         yield req
-        #         acquired_resources.append((resource, req))
-            
-            
-        #     # Log activity start with all resources
-        #     resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
-        #                               for r, _ in acquired_resources])
-        #     self.log_start(entity, resources_str)
-        # =====================================================================
-
-        # ======================= START: CODE CORRECTION =======================
-        # # Store all requests for the finally block to release them.
-        # acquired_resources = requests 
-        
-        # # Create a list of just the request events to wait for.
-        # request_events = [req for _, req in requests]
 
             acquired_resources = []
-            try:
-                # # Atomically wait for ALL resources to be available.
-                # # This is the key change that prevents deadlock.
-                # yield self.env.all_of(request_events)
+
+            try:   
+
+                # ✅ FIX 1: Trace queue entry BEFORE acquiring resources
+                # Build combined resource string
+                resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
+                                          for r, _ in requests])
                 
-                # ...OR..
+                # Calculate total queue length across all required resources
+                total_queue_length = sum(len(r.queue) for r, _ in requests)
+                
+                self._trace('queue', entity, resources_str, 
+                           f"waiting for all resources, total_queue={total_queue_length}")
+
                 # Acquire all resources simultaneously
                 yield simpy.AllOf(self.env, [req for _, req in requests])
                 acquired_resources = requests
-                
-                # The original sequential acquisition loop is removed.
-                # for resource, req in requests:
-                #     yield req
-                #     acquired_resources.append((resource, req))
                 
                 # Log activity start with all resources
                 resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
                                         for r, _ in acquired_resources])
                 self.log_start(entity, resources_str)
-        # ======================== END: CODE CORRECTION ========================
 
 
                 # Record queue time and monitor state after seizing all
@@ -615,11 +624,23 @@ class MultiProcessBlock(BaseBlock):
                     # Fallback: ensure non-negative manually
                     delay = max(0.0, self.delay_time())
 
-                # yield self.env.timeout(delay)
+                # ✅ FIX 2: Trace service start AFTER acquiring all resources
+                # Calculate average utilization across all resources
+                avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
+                
+                self._trace('service_start', entity, resources_str,
+                           f"service_time={delay:.2f}, queue_time={queue_time:.2f}")
+                
+                self.log_start(entity, resources_str)
+
 
                 try:    
                     yield self.env.timeout(delay)
                 except simpy.Interrupt:
+                    # ✅ FIX 3: Trace preemption/interrupt
+                    self._trace('interrupt', entity, resources_str,
+                               f"preempted by higher priority")
+
                     # Preempted: log, release, and retry
                     if self.event_logger:
                         self.event_logger.log_event(
@@ -641,7 +662,15 @@ class MultiProcessBlock(BaseBlock):
                 
                 self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
-                self.log_complete(entity, resources_str) # Log activity complete 
+                
+                # ✅ FIX 4: Trace service end AFTER service completion
+                # Calculate average utilization across all resources
+                avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
+                
+                self._trace('service_end', entity, resources_str,
+                           f"utilization={avg_utilization:.0%}")
+                
+                self.log_complete(entity, resources_str) # Log activity complete
 
                 break  # Success, exit retry loop
 
@@ -654,7 +683,6 @@ class MultiProcessBlock(BaseBlock):
                 self._monitor_all_resources()
         
         # Send to next block
-        # yield from self.send_to_next(entity)
         self.env.process(self.send_to_next(entity))
         yield self.env.timeout(0)
     
@@ -757,6 +785,9 @@ class DecideBlock(BaseBlock):
             next_block = self.routes[chosen_route]['block']
             entity.add_attribute(f"{self.name}_decision", chosen_route)
 
+            # NEW: Trace decision
+            self._trace('decide', entity, details=f"route={chosen_route}")
+
             # Log decision as an event
             if self.event_logger:
                 self.event_logger.log_event(
@@ -844,6 +875,10 @@ class DisposeBlock(BaseBlock):
             self.total_system_time += system_time
             self.entities_disposed += 1
 
+        # NEW: Trace departure
+        self._trace('departure', entity, 
+                   details=f"total_time_in_system={system_time:.2f}")
+
         # Log disposal
         if self.event_logger:
             self.event_logger.log_event(
@@ -884,7 +919,21 @@ class SimulationModel:
     - Warm-up analysis (see validation.warmup)
     """
     
-    def __init__(self):
+    def __init__(self, verbose: bool = False,
+                 entity_filter: Optional[Set[str]] = None,
+                 resource_filter: Optional[Set[str]] = None,
+                 event_type_filter: Optional[Set[str]] = None,
+                 time_range: Optional[tuple] = None):
+        """
+        Initialize simulation model.
+        
+        Args:
+            verbose: Enable event tracing
+            entity_filter: Set of entity IDs to trace
+            resource_filter: Set of resource names to trace
+            event_type_filter: Set of event types to trace
+            time_range: Tuple of (start_time, end_time) for tracing
+        """
         self.env = simpy.Environment()
         self.env.model = self  # For safe_delay_time access
         self.blocks: Dict[str, 'BaseBlock'] = {}
@@ -897,6 +946,17 @@ class SimulationModel:
         self.stability_result: Optional[float] = None
         self.warm_up_period: float = 0.0
         self.is_warm_up_complete: bool = False
+        self.verbose = verbose  # NEW
+        if verbose:
+            self.event_tracer = EventTracer(
+                self.env,
+                entity_filter=entity_filter,
+                resource_filter=resource_filter,
+                event_type_filter=event_type_filter,
+                time_range=time_range
+            )
+        else:
+            self.event_tracer = None
 
     def validate_resources(self, raise_on_error: bool = True) -> bool:
         """
@@ -1027,6 +1087,10 @@ class SimulationModel:
                 print("✅ Sistema estavel detectado, executando simulacao completa...")
             else:
                 print("🚨 Sistema instavel detectado! Executando mesmo assim...")
+
+        # NEW: Print trace header
+        if self.verbose and self.event_tracer:
+            self.event_tracer.print_header()
         
         # Start all CREATE blocks
         for create_block in self.create_blocks:
@@ -1034,6 +1098,10 @@ class SimulationModel:
         
         # Run simulation
         self.env.run(until=until)
+
+        # NEW: Print trace footer
+        if self.verbose and self.event_tracer:
+            self.event_tracer.print_footer()
     
     def _validate_stopping_condition(self, until: Optional[float]):
         """Validate that simulation has a stopping condition."""
@@ -1101,10 +1169,6 @@ class SimulationModel:
                         metrics['max_in_service'] = 0
 
 
-    # @property
-    # def entity_count(self) -> int:
-    #     """Total entities disposed (post warm-up)."""
-    #     return sum(block.entities_disposed for block in self.dispose_blocks)
     @property
     def entity_count(self) -> int:
         """Total entities disposed (post warm-up)."""
@@ -1155,8 +1219,461 @@ class SimulationModel:
         
         return results  
 
+    def trace_entity(self, entity_id: str):
+        """
+        Print complete journey of a specific entity.
+        
+        Args:
+            entity_id: Entity ID to trace (e.g., 'Patient_5')
+        """
+        if self.event_tracer:
+            self.event_tracer.print_entity_journey(entity_id)
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def trace_entities(self, entity_ids: List[str]):
+        """
+        Print journeys of multiple entities.
+        
+        Args:
+            entity_ids: List of entity IDs to trace
+        """
+        if self.event_tracer:
+            for entity_id in entity_ids:
+                self.event_tracer.print_entity_journey(entity_id)
+                print()  # Blank line between journeys
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def replay_trace(self, entity_filter: Optional[Set[str]] = None,
+                    resource_filter: Optional[Set[str]] = None,
+                    event_type_filter: Optional[Set[str]] = None,
+                    time_range: Optional[tuple] = None,
+                    entity_pattern: Optional[str] = None):
+        """
+        Replay simulation trace with filters.
+        
+        Args:
+            entity_filter: Set of specific entity IDs (e.g., {'Patient_0', 'Patient_5'})
+            resource_filter: Set of resources (e.g., {'doctors', 'nurses'})
+            event_type_filter: Set of event types (e.g., {'queue', 'service_start'})
+            time_range: Time window (e.g., (10, 50))
+            entity_pattern: Regex pattern for entities (e.g., r'Patient_[0-5]')
+        
+        Examples:
+            # Trace specific patient
+            model.replay_trace(entity_filter={'Patient_1'})
+            
+            # Trace first 5 patients
+            model.replay_trace(entity_pattern=r'Patient_[0-4]')
+            
+            # Trace only doctor interactions
+            model.replay_trace(resource_filter={'doctors'})
+            
+            # Trace queue and service events
+            model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+            
+            # Trace specific time window
+            model.replay_trace(time_range=(10, 50))
+            
+            # Combine filters
+            model.replay_trace(entity_filter={'Patient_1'}, 
+                             event_type_filter={'queue', 'service_start'})
+        """
+        if self.event_tracer:
+            self.event_tracer.replay_trace(
+                entity_filter=entity_filter,
+                resource_filter=resource_filter,
+                event_type_filter=event_type_filter,
+                time_range=time_range,
+                entity_pattern=entity_pattern
+            )
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
+    
+    def print_trace_statistics(self):
+        """Print summary statistics of event trace."""
+        if self.event_tracer:
+            self.event_tracer.print_statistics()
+        else:
+            print("Verbose mode not enabled. Run simulation with verbose=True")
 
+# =====================================================================
+# FILE: core/event_tracer.py
+# =====================================================================
+class EventTracer:
+    """
+    Traces and prints simulation events in a human-readable format.
+    
+    Provides verbose output for debugging and understanding simulation flow.
+    """
+    
+    # Event icons
+    ICONS = {
+        'arrival': '✨',
+        'arrival': '🧍',
+        'queue': '⏳',
+        'service_start': '✅',
+        'service_end': '🎯',
+        'departure': '🚶',
+        'decide': '🔀',
+        'interrupt': '⚠️',
+        'preempt': '🚨'
+    }
+    
+    def __init__(self, env, 
+                 entity_filter: Optional[Set[str]] = None,
+                 resource_filter: Optional[Set[str]] = None,
+                 event_type_filter: Optional[Set[str]] = None,
+                 time_range: Optional[tuple] = None):
+        """
+        Initialize event tracer with optional filters.
+        
+        Args:
+            env: SimPy environment
+            entity_filter: Set of entity IDs to trace (e.g., {'Patient_0', 'Patient_5'})
+            resource_filter: Set of resource names to trace (e.g., {'doctors', 'nurses'})
+            event_type_filter: Set of event types to trace (e.g., {'queue', 'service_start'})
+            time_range: Tuple of (start_time, end_time) to limit trace output
+        """
+        self.env = env
+        self.event_count = 0
+        self.start_time = datetime.now()
 
+        # Filters
+        self.entity_filter = entity_filter
+        self.resource_filter = resource_filter
+        self.event_type_filter = event_type_filter
+        self.time_range = time_range
+        
+        # Storage for post-simulation filtering
+        self.all_events: List[dict] = []
+        self.store_all = True  # Always store for later filtering
+    
+    def set_filters(self, entity_filter: Optional[Set[str]] = None,
+                   resource_filter: Optional[Set[str]] = None,
+                   event_type_filter: Optional[Set[str]] = None,
+                   time_range: Optional[tuple] = None):
+        """Update filters dynamically."""
+        if entity_filter is not None:
+            self.entity_filter = entity_filter
+        if resource_filter is not None:
+            self.resource_filter = resource_filter
+        if event_type_filter is not None:
+            self.event_type_filter = event_type_filter
+        if time_range is not None:
+            self.time_range = time_range
+    
+    def clear_filters(self):
+        """Remove all filters."""
+        self.entity_filter = None
+        self.resource_filter = None
+        self.event_type_filter = None
+        self.time_range = None
+    
+    def _should_trace(self, event_type: str, entity_id: str, resource_name: Optional[str], 
+                     time: float) -> bool:
+        """Check if event passes all active filters."""
+        # Time range filter
+        if self.time_range:
+            start, end = self.time_range
+            if time < start or time > end:
+                return False
+        
+        # Entity filter
+        if self.entity_filter and entity_id not in self.entity_filter:
+            return False
+        
+        # Resource filter
+        if self.resource_filter:
+            if resource_name is None:
+                return False
+
+            # ✅ FIX: Handle multi-resource activities (comma-separated resources)
+            # Split resource_name by comma and check if ANY match the filter
+            resource_names_in_event = [r.strip() for r in resource_name.split(',')]
+            
+            # Check if any filtered resource is present in this event
+            if not any(filter_resource in resource_names_in_event 
+                    for filter_resource in self.resource_filter):
+                return False
+        
+        # Event type filter
+        if self.event_type_filter and event_type.lower() not in self.event_type_filter:
+            return False
+        
+        return True
+    
+    def print_header(self):
+        """Print trace header."""
+        print("\n" + "=" * 120)
+        print("=== SIMULATION EVENT TRACE ===")
+
+        # Show active filters
+        filters_active = []
+        if self.entity_filter:
+            filters_active.append(f"Entities: {', '.join(sorted(self.entity_filter))}")
+        if self.resource_filter:
+            filters_active.append(f"Resources: {', '.join(sorted(self.resource_filter))}")
+        if self.event_type_filter:
+            filters_active.append(f"Events: {', '.join(sorted(self.event_type_filter))}")
+        if self.time_range:
+            filters_active.append(f"Time: [{self.time_range[0]:.2f}, {self.time_range[1]:.2f}]")
+        
+        if filters_active:
+            print("FILTERS ACTIVE: " + " | ".join(filters_active))
+
+        print("=" * 120)
+        print(f"{'Time':<8} | {'Event':<22}  | {'Entity':<15} | {'Resource':<30} | {'Details':<50}")
+        print("-" * 120)
+    
+    def print_footer(self):
+        """Print trace footer."""
+        end_time = datetime.now()
+        duration = (end_time - self.start_time).total_seconds()
+        print("-" * 120)
+        print(f"End of trace — {end_time.strftime('%H:%M:%S')} | "
+              f"Events shown: {self.event_count} | Total stored: {len(self.all_events)} | "
+              f"Duration: {duration:.2f}s")
+        print("=" * 120)
+    
+    def trace(self, event_type: str, entity_id: str, resource_name: Optional[str] = None, 
+              details: str = "", time_override: Optional[float] = None):
+        """
+        Trace a single event.
+        
+        Args:
+            event_type: Type of event (generate, arrival, queue, service_start, etc.)
+            entity_id: ID of the entity
+            resource_name: Name of resource involved (if any)
+            details: Additional details to display
+            time_override: Override current time (for retroactive logging)
+        """
+        time = time_override if time_override is not None else self.env.now
+
+        # Store all events for later filtering
+        event_data = {
+            'time': time,
+            'event_type': event_type,
+            'entity_id': entity_id,
+            'resource_name': resource_name,
+            'details': details
+        }
+        self.all_events.append(event_data)
+        
+        # Check if should print now (based on filters)
+        if not self._should_trace(event_type, entity_id, resource_name, time):
+            return
+
+        # Print event
+        icon = self.ICONS.get(event_type.lower(), '•')        
+        event_name = f"{icon}  {event_type.upper()}"
+        resource_str = resource_name if resource_name else ""
+        
+        print(f"{time:>7.2f}  | {event_name:<22} | {entity_id:<15} | {resource_str:<30} | {details}")
+        self.event_count += 1
+
+    def replay_trace(self, entity_filter: Optional[Set[str]] = None,
+                    resource_filter: Optional[Set[str]] = None,
+                    event_type_filter: Optional[Set[str]] = None,
+                    time_range: Optional[tuple] = None,
+                    entity_pattern: Optional[str] = None):
+        """
+        Replay stored events with different filters.
+        
+        Args:
+            entity_filter: Set of specific entity IDs to show
+            resource_filter: Set of resource names to show
+            event_type_filter: Set of event types to show
+            time_range: Tuple of (start_time, end_time)
+            entity_pattern: Regex pattern for entity ID matching (e.g., r'Patient_[0-5]')
+        """
+        # Temporarily save old filters
+        old_entity_filter = self.entity_filter
+        old_resource_filter = self.resource_filter
+        old_event_type_filter = self.event_type_filter
+        old_time_range = self.time_range
+        
+        # Apply new filters
+        if entity_pattern:
+            # Convert pattern to entity set
+            pattern = re.compile(entity_pattern)
+            matched_entities = {e['entity_id'] for e in self.all_events 
+                              if pattern.match(e['entity_id'])}
+            self.entity_filter = matched_entities
+        else:
+            self.entity_filter = entity_filter
+        
+        self.resource_filter = resource_filter
+        self.event_type_filter = event_type_filter
+        self.time_range = time_range
+        
+        # Reset counter
+        self.event_count = 0
+        
+        # Print header
+        self.print_header()
+        
+        # Replay events
+        for event in self.all_events:
+            if self._should_trace(event['event_type'], event['entity_id'], 
+                                 event['resource_name'], event['time']):
+                icon = self.ICONS.get(event['event_type'].lower(), '•')
+                event_name = f"{icon} {event['event_type'].upper()}"
+                resource_str = event['resource_name'] if event['resource_name'] else ""
+                
+                print(f"{event['time']:>7.2f}  | {event_name:<18} | "
+                      f"{event['entity_id']:<10} | {resource_str:<12} | {event['details']}")
+                self.event_count += 1
+        
+        # Print footer
+        self.print_footer()
+        
+        # Restore old filters
+        self.entity_filter = old_entity_filter
+        self.resource_filter = old_resource_filter
+        self.event_type_filter = old_event_type_filter
+        self.time_range = old_time_range
+    
+    def get_entity_journey(self, entity_id: str) -> List[dict]:
+        """
+        Get complete journey of a specific entity.
+        
+        Args:
+            entity_id: Entity ID to trace
+            
+        Returns:
+            List of event dictionaries for this entity
+        """
+        return [e for e in self.all_events if e['entity_id'] == entity_id]
+    
+    def print_entity_journey(self, entity_id: str):
+        """
+        Print formatted journey of a specific entity.
+        
+        Args:
+            entity_id: Entity ID to trace
+        """
+        journey = self.get_entity_journey(entity_id)
+        
+        if not journey:
+            print(f"\nNo events found for entity: {entity_id}")
+            return
+        
+        print("\n" + "=" * 80)
+        print(f"=== ENTITY JOURNEY: {entity_id} ===")
+        print("=" * 80)
+        
+        # Calculate statistics
+        start_time = journey[0]['time']
+        end_time = journey[-1]['time']
+        total_time = end_time - start_time
+        
+        # Find queue and service times
+        queue_times = []
+        service_times = []
+        resources_used = set()
+        
+        print(f"{'Time':<8} | {'Event':<18} | {'Resource':<12} | {'Details':<30}")
+        print("-" * 80)
+        
+        for event in journey:
+            icon = self.ICONS.get(event['event_type'].lower(), '•')
+            event_name = f"{icon} {event['event_type'].upper()}"
+            resource_str = event['resource_name'] if event['resource_name'] else ""
+            
+            print(f"{event['time']:>7.2f}  | {event_name:<18} | {resource_str:<12} | {event['details']}")
+            
+            # Extract statistics
+            if event['resource_name']:
+                resources_used.add(event['resource_name'])
+            
+            if 'queue_time=' in event['details']:
+                try:
+                    qt = float(event['details'].split('queue_time=')[1].split(',')[0])
+                    queue_times.append(qt)
+                except:
+                    pass
+            
+            if 'service_time=' in event['details']:
+                try:
+                    st = float(event['details'].split('service_time=')[1].split(',')[0])
+                    service_times.append(st)
+                except:
+                    pass
+        
+        print("-" * 80)
+        print(f"\nJOURNEY SUMMARY:")
+        print(f"  Total time in system: {total_time:.2f} time units")
+        print(f"  Number of events: {len(journey)}")
+        print(f"  Resources used: {', '.join(sorted(resources_used)) if resources_used else 'None'}")
+        
+        if queue_times:
+            print(f"  Total queue time: {sum(queue_times):.2f} ({sum(queue_times)/total_time*100:.1f}%)")
+        
+        if service_times:
+            print(f"  Total service time: {sum(service_times):.2f} ({sum(service_times)/total_time*100:.1f}%)")
+        
+        print("=" * 80)
+    
+    def get_statistics(self) -> dict:
+        """Get statistics about traced events."""
+        entity_counts = {}
+        resource_counts = {}
+        event_type_counts = {}
+        
+        for event in self.all_events:
+            # Count entities
+            entity_id = event['entity_id']
+            entity_counts[entity_id] = entity_counts.get(entity_id, 0) + 1
+            
+            # Count resources
+            if event['resource_name']:
+                resource_counts[event['resource_name']] = \
+                    resource_counts.get(event['resource_name'], 0) + 1
+            
+            # Count event types
+            event_type = event['event_type']
+            event_type_counts[event_type] = event_type_counts.get(event_type, 0) + 1
+        
+        return {
+            'total_events': len(self.all_events),
+            'unique_entities': len(entity_counts),
+            'entity_counts': entity_counts,
+            'resource_counts': resource_counts,
+            'event_type_counts': event_type_counts,
+            'time_span': (self.all_events[0]['time'], self.all_events[-1]['time']) 
+                        if self.all_events else (0, 0)
+        }
+    
+    def print_statistics(self):
+        """Print summary statistics of trace."""
+        stats = self.get_statistics()
+        
+        print("\n" + "=" * 60)
+        print("=== TRACE STATISTICS ===")
+        print("=" * 60)
+        print(f"Total events: {stats['total_events']}")
+        print(f"Unique entities: {stats['unique_entities']}")
+        print(f"Time span: {stats['time_span'][0]:.2f} - {stats['time_span'][1]:.2f}")
+        
+        print("\nEvents by type:")
+        for event_type, count in sorted(stats['event_type_counts'].items(), 
+                                       key=lambda x: x[1], reverse=True):
+            print(f"  {event_type:.<20} {count:>6}")
+        
+        print("\nEvents by resource:")
+        for resource, count in sorted(stats['resource_counts'].items(), 
+                                     key=lambda x: x[1], reverse=True):
+            print(f"  {resource:.<20} {count:>6}")
+        
+        print("\nTop 10 most active entities:")
+        sorted_entities = sorted(stats['entity_counts'].items(), 
+                               key=lambda x: x[1], reverse=True)[:10]
+        for entity_id, count in sorted_entities:
+            print(f"  {entity_id:.<20} {count:>6} events")
+        
+        print("=" * 60)
 # =====================================================================
 # FILE: config/simulation_config.py
 # =====================================================================
@@ -2893,7 +3410,7 @@ class SimulationPlotter:
     
     def _plot_single_resource(self, ax, resource_name: str, blocks: List,
                              show_warm_up: bool, moving_avg_window: int):
-        """Plot utilization for a single resource."""
+        """Plot utilization for a single resource with moving AND cumulative averages."""
         # from blocks.process_block import ProcessBlock, MultiProcessBlock
         
         # Combine and deduplicate data
@@ -2949,7 +3466,19 @@ class SimulationPlotter:
                alpha=0.7, color='lightblue', linewidth=1.5, 
                label='Utilizacao')
         
-        # Plot moving average
+        # ✅ NEW: Plot cumulative average (dark green)
+        if len(utilizations) >= 2:
+            times_array = np.array(times)
+            utils_array = np.array(utilizations)
+            
+            # Calculate cumulative average
+            cumulative_avg = np.cumsum(utils_array) / np.arange(1, len(utils_array) + 1)
+            
+            ax.plot(times_array, cumulative_avg, color='darkgreen', 
+                linewidth=2.5, label='Média Cumulativa (Warm-up)',
+                alpha=0.9, linestyle='-')
+        
+        # Plot moving average (dark blue - existing)
         if len(utilizations) >= moving_avg_window:
             times_array = np.array(times)
             utils_array = np.array(utilizations)
@@ -2976,7 +3505,7 @@ class SimulationPlotter:
         ax.set_ylim(0, 105)
         ax.set_xlim(0, max_time)
         ax.grid(True, alpha=0.3)
-        ax.legend(loc='upper right')
+        ax.legend(loc='upper right', fontsize=9)  # Smaller font for more labels
         
         # Add utilization bands
         ax.axhline(y=85, color='orange', linestyle=':', alpha=0.7, 
@@ -4613,20 +5142,34 @@ import random
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_hospital_model(event_logger=None):
-    """Build a hospital simulation model with refactored structure."""
+def build_hospital_model(event_logger=None, verbose=False,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None):  # NEW: verbose parameter
+    """Build a hospital simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas=4         # por minuto        
+        taxa_chegadas= 0.25         # por minuto        
         return {
-            'arrival': random.expovariate(1/taxa_chegadas),
+            'arrival': random.expovariate(taxa_chegadas),
             'triage': random.uniform(2, 3),
             'consultation': random.uniform(5, 15),
             'pharmacy': random.expovariate(1/5)
@@ -4918,7 +5461,11 @@ def hospital_factorial_analysis():
     return factorial
 # ================================================================
 
-
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 def main():
     """Main example demonstrating refactored usage."""
@@ -4932,14 +5479,14 @@ def main():
     
     # Build model
     print("Building hospital model...")
-    model = build_hospital_model(event_logger)
+    model = build_hospital_model(event_logger, verbose=True)
     
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
-        duration=24*HOURS,
-        warm_up_period=2*HOURS,
+        warm_up_period=0.5*HOURS,
+        duration=2*HOURS,
+        # duration=24*HOURS,
+        # warm_up_period=2*HOURS,
         # duration=21*DAYS,
         # warm_up_period=5*DAYS,        
         # duration=364*DAYS,
@@ -4965,10 +5512,85 @@ def main():
     )
         
     # === ANALYSIS PHASE (using separate modules) ===
+
+    # # ========================================
+    # # Trace specific patient
+    # # ========================================    
+    # print("\n" + "="*80)
+    # print("FILTER: Journey of Patient_1")
+    # print("="*80)    
+    # model.trace_entity('Patient_1')    
+    # pause_simulation()
     
-    # 1. Basic results
+    # # ========================================
+    # # Replay with filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - First 3 patients only")
+    # print("="*80)    
+    # model.replay_trace(entity_pattern = r'^Patient_[0-2]$')
+    # pause_simulation()
+
+    # ========================================
+    # Trace specific resource
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Doctor interactions only")
+    print("="*80)    
+    model.replay_trace(resource_filter={'doctors'})
+    pause_simulation()
+
+    # # ========================================
+    # # Trace specific event types
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Queue and service events only")
+    # print("="*80)    
+    # model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace time window
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Events between t=20 and t=40")
+    # print("="*80)    
+    # model.replay_trace(time_range=(20, 40))
+    # pause_simulation()
+
+    # # ========================================
+    # # Combined filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Patient_1 at doctors (queue + service)")
+    # print("="*80)    
+    # model.replay_trace(
+    #     entity_filter={'Patient_1'},
+    #     resource_filter={'doctors'},
+    #     event_type_filter={'queue', 'service_start', 'service_end'}
+    # )
+    # pause_simulation()
+
+    # # ========================================
+    # # Multiple patient journeys
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Detailed journeys of first 3 patients")
+    # print("="*80)    
+    # model.trace_entities(['Patient_0', 'Patient_1', 'Patient_2'])
+    # pause_simulation()
+
+    # ========================================
+    # Trace statistics
+    # ========================================
+    model.print_trace_statistics()
+    pause_simulation()
+
+        
     print("\n" + "="*60)
+    # ========================================
     print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    # ========================================
     print("="*60)
     
     # 2. Detailed reporting

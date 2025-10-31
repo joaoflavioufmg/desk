@@ -1041,15 +1041,6 @@ class SimulationVisualizer:
                 # Segment complete, move to next
                 self._animate_segment(entity_id, circle, text, path_segments, index + 1, final_block, final_state)
                 return
-
-            # (3) MODIFY: Remove the "jump to end on pause" logic.
-            # We now *always* animate, and the pause button just stops
-            # the *simulation* from generating new events.
-            
-            # if self.is_paused:
-            #     # Jump to end of entire path
-            #     self._animate_segment(entity_id, circle, text, path_segments, len(path_segments), final_block, final_state)
-            #     return
             
             try:
                 self.canvas.move(circle, step_dx, step_dy)
@@ -1196,6 +1187,11 @@ class SimulationVisualizer:
     # (3) MODIFY: Run method
     def run(self):
         """Start the visualizer (blocks until window closed)."""
+
+        print("=" * 120)        
+        print(f"{'Time':<8} | {'Event':<22}  | {'Entity':<15} | {'Resource':<30} | {'Details':<50}")
+        print("-" * 120)
+        
         self.setup_gui()
         self._initialize_simulation() # (1) ADD: Initialize generators
         self.root.mainloop()
@@ -1313,9 +1309,9 @@ class VisualizationInstrument:
         """Wrap CreateBlock generator to track entity creation."""
         def new_wrapped_generator():
             for item in original_gen_func():
-                if hasattr(block, 'entities_created') and block.entities_created > 0:
-                    entity_num = block.entities_created
-                    entity_id = f"{block.entity_prefix}_{entity_num-1}"
+                if hasattr(block, 'entities_created') and block.entities_created > 1: # ✅ Changed > 0 to > 1
+                    entity_num = block.entities_created - 1 # This is AFTER increment
+                    entity_id = f"{block.entity_prefix}_{entity_num}" # ✅ FIX: Remove -1
                     
                     if entity_id not in self.entity_locations:
                         self.event_queue.put(VisualizationEvent(

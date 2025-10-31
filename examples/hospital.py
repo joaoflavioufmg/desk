@@ -2,6 +2,8 @@
 # FILE: hospital.py
 # =====================================================================
 import random
+import sys
+from tabnanny import verbose
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -41,14 +43,28 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_hospital_model(event_logger=None):
-    """Build a hospital simulation model with refactored structure."""
+def build_hospital_model(event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None):  
+    """Build a hospital simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -76,7 +92,6 @@ def build_hospital_model(event_logger=None):
     # Create blocks
     arrivals = CreateBlock(
         "Arrivals", model.env,
-        # inter_arrival_time=lambda: random.expovariate(1/4),
         inter_arrival_time=lambda: distribution('arrival'),
         entity_prefix="Patient",
         max_arrivals=None, # Infinito
@@ -89,7 +104,6 @@ def build_hospital_model(event_logger=None):
         "Triage", model.env,
         # resource=None,    # None, se apenas Delay (sem recursos)
         resource=nursesT,
-        # delay_time=lambda: random.uniform(2, 5),
         delay_time=lambda: distribution('triage'),
         resource_units=2,         # 2 CHECK! nurse of triage per service
         event_logger=event_logger
@@ -101,17 +115,14 @@ def build_hospital_model(event_logger=None):
         "Consultation", model.env,
         resource_requirements={
             doctors: 1,
-            nurses: 1
-            # pharmacy: 1
+            nurses: 1            
         },
-        # delay_time=lambda: random.uniform(5, 15),
         delay_time=lambda: distribution('consultation'),
         event_logger=event_logger
     )
     consultation.set_resource_names({
         doctors: 'doctors',
         nurses: 'nurses'
-        # pharmacy: 'pharmacy'
     })
     
     treatment_decision = DecideBlock(
@@ -135,9 +146,8 @@ def build_hospital_model(event_logger=None):
     pharmacy_block = ProcessBlock(
         "Pharmacy", model.env,
         resource=pharmacy,
-        # delay_time=lambda: random.expovariate(1/5),
         delay_time=lambda: distribution('pharmacy'),
-        resource_units=2,                 # 2 pharmacists per service
+        resource_units=2,       # 2 pharmacists per service
         event_logger=event_logger
     )
     pharmacy_block.set_resource_name('pharmacy')
@@ -146,8 +156,7 @@ def build_hospital_model(event_logger=None):
         "Need_medication", model.env,
         decision_type="probability",
         event_logger=event_logger
-    )
-    
+    )    
     
     discharge = DisposeBlock("Discharge", model.env, event_logger=event_logger)
     
@@ -236,17 +245,13 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     from core.entity import EventLogger
     
     event_logger = EventLogger()
-    model = build_hospital_model(event_logger)
+    model = build_hospital_model(event_logger, verbose=False)
 
     # # Validate once on first run
     # if seed == 12345:
     #     model.validate_resources()
     
-    # model.run_simulation(
-    #     until=until or 24*60,
-    #     seed=seed,
-    #     warm_up_period=warm_up_period or 2*60
-    # )
+    
     model.run_simulation(
         validate_resources=False,
         until=until,
@@ -303,7 +308,7 @@ def hospital_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_hospital_model()
+        model = build_hospital_model(verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -358,6 +363,11 @@ def hospital_factorial_analysis():
     return factorial
 # ================================================================
 
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 def main():
     """Main example demonstrating refactored usage."""
@@ -365,20 +375,13 @@ def main():
     HOURS = 60  # Time conversion factor (base time: Minutos)
     DAYS = 1440
     YEARS = 525600
-    
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building hospital model...")
-    model = build_hospital_model(event_logger)
-    
+
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
-        duration=24*HOURS,
-        warm_up_period=2*HOURS,
+        warm_up_period=0.5*HOURS,
+        duration=1*HOURS,
+        # duration=24*HOURS,
+        # warm_up_period=2*HOURS,
         # duration=21*DAYS,
         # warm_up_period=5*DAYS,        
         seed=123,
@@ -386,6 +389,15 @@ def main():
     )
     config.validate()
     
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building hospital model...")
+    verbose = config.duration <= 2*HOURS
+    model = build_hospital_model(event_logger, verbose=verbose)
+    
+        
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
     stability_analyzer = StabilityAnalyzer(model)
@@ -401,12 +413,88 @@ def main():
         warm_up_period=config.warm_up_period
     )
     
+    pause_simulation()
     
     # === ANALYSIS PHASE (using separate modules) ===
     
-    # 1. Basic results
+    # # ========================================
+    # # Trace specific patient
+    # # ========================================    
+    # print("\n" + "="*80)
+    # print("FILTER: Journey of Patient_1")
+    # print("="*80)    
+    # model.trace_entity('Patient_1')    
+    # pause_simulation()
+    
+    # # ========================================
+    # # Replay with filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - First 3 patients only")
+    # print("="*80)    
+    # model.replay_trace(entity_pattern = r'^Patient_[1-3]$')
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace specific resource
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Doctor interactions only")
+    # print("="*80)    
+    # model.replay_trace(resource_filter={'doctors'})
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace specific event types
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Queue and service events only")
+    # print("="*80)    
+    # model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace time window
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Events between t=20 and t=40")
+    # print("="*80)    
+    # model.replay_trace(time_range=(20, 40))
+    # pause_simulation()
+
+    # # ========================================
+    # # Combined filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Patient_1 at doctors (queue + service)")
+    # print("="*80)    
+    # model.replay_trace(
+    #     entity_filter={'Patient_1'},
+    #     resource_filter={'doctors'},
+    #     event_type_filter={'queue', 'service_start', 'service_end'}
+    # )
+    # pause_simulation()
+
+    # # ========================================
+    # # Multiple patient journeys
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Detailed journeys of first 3 patients")
+    # print("="*80)    
+    # model.trace_entities(['Patient_1', 'Patient_2', 'Patient_3'])
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace statistics
+    # # ========================================
+    # model.print_trace_statistics()
+    # pause_simulation()
+
+        
     print("\n" + "="*60)
+    # ========================================
     print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    # ========================================
     print("="*60)
     
     # 2. Detailed reporting

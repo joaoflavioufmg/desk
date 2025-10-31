@@ -26,7 +26,7 @@ class CreateBlock(BaseBlock):
         self.entity_prefix = entity_prefix
         self.max_arrivals = max_arrivals
         self.first_creation = first_creation
-        self.entities_created = 0
+        self.entities_created = 1
         self.priority_generator = priority_generator
         
     def start_generation(self):
@@ -39,7 +39,7 @@ class CreateBlock(BaseBlock):
             yield self.env.timeout(self.first_creation)
             
         while True:
-            if self.max_arrivals and self.entities_created >= self.max_arrivals:
+            if self.max_arrivals and self.entities_created > self.max_arrivals:
                 break
                 
             entity = Entity(
@@ -55,6 +55,9 @@ class CreateBlock(BaseBlock):
 
             # ✅ ADD THIS LINE: Apply configured attributes to the entity
             self._apply_attributes(entity)
+
+            # NEW: Trace entity generation
+            self._trace('arrival', entity, details=f"entity created, priority={entity.priority}")
             
             # Log creation as an event
             if self.event_logger:

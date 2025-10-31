@@ -19,6 +19,7 @@
 # FILE: 3.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -39,12 +40,20 @@ from validation.warmup import WarmUpAnalyzer
 from config.simulation_config import SimulationConfig
 from visualization.interface import run_visualization
 
-
+# ####################################################################################
+# Projeto: Central telefônica (variante 1)
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Descrição: Considere o exemplo anterior (3) da central telefônica. 
+# Suponha que uma chamada possa ser perdida ao encontrar o sistema congestionado 
+# (todos os troncos ocupados), fato que ocorre com 30% de probabilidade, 
+# ou então, voltar a ser efetivada (retorno) dentro de 10 segundos. 
+# Não há limite preestabelecido para o número de retornos que uma chamada pode ter.
+# ####################################################################################
 
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True):
+def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False):  # NEW: verbose parameter
     """Build a hospital simulation model with refactored structure."""
     
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -54,7 +63,7 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True)
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -351,7 +360,12 @@ def ex3_factorial_analysis():
     return factorial
 # ================================================================
 
-
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
+        
 
 def main():
     """Main example demonstrating refactored usage."""
@@ -379,7 +393,7 @@ def main():
     )
     config.validate()
 
-    model = build_ex3_model(config.duration, event_logger)
+    model = build_ex3_model(config.duration, event_logger, verbose=True)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -472,7 +486,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex3_factorial_analysis()
-    run_visualization(build_ex3_model, simulation_time=60)
+    # run_visualization(build_ex3_model, simulation_time=60)

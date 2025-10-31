@@ -2,6 +2,7 @@
 # FILE: 2.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -37,11 +38,42 @@ from visualization.interface import run_visualization
 # print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
 # ####################################################################################
 
+# ####################################################################################
+# Projeto: Problema do bar
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Descrição: Num bar, os clientes chegam da rua para tomar chope, numa quantidade 
+# que varia aleatoriamente em função da sede de cada um. Os intervalos entre chegadas 
+# consecutivas são exponencialmente distribuídos com média de 10 minutos. 
+# A quantidade de copos que cada cliente toma é definida quando da sua chegada, 
+# através do atributo SEDE. A SEDE de um cliente varia de acordo com uma distribuição 
+# uniforme discreta com um mínimo de 1 e um máximo de 4 copos. 
+# Chegando ao bar, um cliente aguardará sua vez de ser servido. Uma vez servido, 
+# atividade cuja duração segue uma distribuição normal com média de 6 segundos e 
+# desvio padrão de 1 segundo, o cliente beberá seu copo a seguir. 
+# O tempo para beber um copo distribui-se uniformemente com valores entre 5 e 8 minutos. 
+# Este ciclo irá se repetir até que o cliente tenha sua sede saciada. 
+# Um garçom é responsável pelo atendimento dos clientes e pela lavagem dos copos usados. 
+# O atendimento, além do cliente, exige também que um copo limpo esteja disponível. 
+# A lavagem dos copos tem duração que pode ser considerada constante e igual a 30 segundos. 
+# Supõe-se ainda que o bar dispõe de 70 copos. 
+# Pede-se desenvolver um modelo utilizando o DCA para representação do sistema.
+# ####################################################################################
+
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex2_model(final_simulation_time=None, event_logger=None):
-    """Build a hospital simulation model with refactored structure."""
+def build_ex2_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None):  
+    """Build a simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -50,7 +82,11 @@ def build_ex2_model(final_simulation_time=None, event_logger=None):
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -256,8 +292,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex2_model(config.duration, event_logger)
-    # model = build_ex2_model(event_logger)
+    model = build_ex2_model(config.duration, event_logger, verbose=False)
 
     # Validate once on first run
     # if seed == 12345:
@@ -303,7 +338,7 @@ def run_replications():
 # Factorial Analysis
 # ================================================================
 def ex2_factorial_analysis():
-    """Example of factorial analysis with hospital simulation."""
+    """Factorial analysis."""
 
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -329,7 +364,7 @@ def ex2_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex2_model(config.duration)
+        model = build_ex2_model(config.duration,  verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -385,27 +420,24 @@ def ex2_factorial_analysis():
     return factorial
 # ================================================================
 
-
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 def main():
-    """Main example demonstrating refactored usage."""
     
     HOURS = 60  # Time conversion factor (base time: Minutos)
     DAYS = 1440
     YEARS = 525600
     
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building ex2 model...")    
-    
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
-        duration=8*HOURS,
-        warm_up_period=0.5*HOURS,
+        duration=30,
+        warm_up_period=5,
+        # duration=8*HOURS,
+        # warm_up_period=0.5*HOURS,
         # duration=21*DAYS,
         # warm_up_period=5*DAYS,        
         seed=123,
@@ -413,7 +445,13 @@ def main():
     )
     config.validate()
 
-    model = build_ex2_model(config.duration, event_logger)
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex2 model...")
+    verbose = config.duration <= 2*HOURS
+    model = build_ex2_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -430,6 +468,7 @@ def main():
         warm_up_period=config.warm_up_period
     )
     
+    pause_simulation()
     
     # === ANALYSIS PHASE (using separate modules) ===
     
@@ -497,7 +536,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex2_factorial_analysis()
-    run_visualization(build_ex2_model, simulation_time=8*60)
+    # run_visualization(build_ex2_model, simulation_time=8*60)

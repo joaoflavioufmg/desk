@@ -2,6 +2,7 @@
 # FILE: ex1.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -52,22 +53,36 @@ from visualization.interface import run_visualization
 # print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
 # ####################################################################################
 
-def build_ex1_model(final_simulation_time=None, event_logger=None):
-    """Build a ex1 simulation model with refactored structure."""
+def build_ex1_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None): 
+    """Build the simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
 
+    # Set default to match the intended simulation time
     if final_simulation_time is None:
-        final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
+        final_simulation_time = 365 * DAYS  
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
-    def distribution(tipo):
-        taxa_chegadas=1         # por minuto        
+    def distribution(tipo):        
         return {
-            'arrival': random.expovariate(taxa_chegadas),
+            'arrival': 0, 
             'operacao': random.expovariate(1/(3*DAYS)),
             'manutencao': random.expovariate(1/(1*DAYS))
         }.get(tipo,0.0)  
@@ -124,13 +139,13 @@ def build_ex1_model(final_simulation_time=None, event_logger=None):
         "Dispose_Yes", 
         next_block=None,  # Will be connected later
         # time_condition=should_dispose)
-        time_condition=lambda t: t >= (final_simulation_time - 3*DAYS))
+        time_condition=lambda t: t >= (final_simulation_time - 0.1*final_simulation_time))
 
     decision_time.add_route(
         "Dispose_No", 
         next_block=None,  # Will be connected later
         # time_condition=should_not_dispose)
-        time_condition=lambda t: t < (final_simulation_time - 3*DAYS))
+        time_condition=lambda t: t < (final_simulation_time - 0.1*final_simulation_time))
 
     dispose = DisposeBlock(
         "Dispose", 
@@ -188,7 +203,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex1_model(config.duration, event_logger)
+    model = build_ex1_model(config.duration, event_logger, verbose=False)
 
     # # Validate once on first run
     # if seed == 12345:
@@ -232,7 +247,7 @@ def run_replications():
 # Factorial Analysis
 # ================================================================
 def ex1_factorial_analysis():
-    """Example of factorial analysis with simulation."""
+    """Factorial analysis with simulation."""
 
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -254,7 +269,7 @@ def ex1_factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        model = build_ex1_model(config.duration)
+        model = build_ex1_model(config.duration, verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -303,27 +318,25 @@ def ex1_factorial_analysis():
     return factorial
 # ================================================================
 
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 
-def main():
-    """Main example demonstrating refactored usage."""
+def main():    
     
     HOURS = 60  # Time conversion factor (base time: Minutos)
     DAYS = 1440
     YEARS = 525600
     
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building ex1 model...")    
-    
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
         # duration=24*HOURS,
         # warm_up_period=2*HOURS,
+        # duration=30*DAYS,
+        # warm_up_period=3*DAYS,
         duration=365*DAYS,
         warm_up_period=30*DAYS,        
         seed=123,
@@ -331,7 +344,13 @@ def main():
     )
     config.validate()
 
-    model = build_ex1_model(config.duration, event_logger)
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex1 model...")  
+    verbose = config.duration <= 30*DAYS
+    model = build_ex1_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -348,6 +367,7 @@ def main():
         warm_up_period=config.warm_up_period
     )    
     
+    pause_simulation()
     # === ANALYSIS PHASE (using separate modules) ===
     
     # 1. Basic results
@@ -413,7 +433,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex1_factorial_analysis()
-    run_visualization(build_ex1_model, simulation_time=365*1440)
+    # run_visualization(build_ex1_model, simulation_time=365*1440)

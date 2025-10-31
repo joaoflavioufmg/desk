@@ -36,6 +36,10 @@ class DisposeBlock(BaseBlock):
             self.total_system_time += system_time
             self.entities_disposed += 1
 
+        # NEW: Trace departure
+        self._trace('departure', entity, 
+                   details=f"total_time_in_system={system_time:.2f}")
+
         # Log disposal
         if self.event_logger:
             self.event_logger.log_event(

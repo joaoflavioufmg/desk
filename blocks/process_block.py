@@ -124,12 +124,17 @@ class ProcessBlock(BaseBlock):
 
             acquired = []
             try:
+                # NEW: Trace queue entry
+                queue_length = len(self.resource.queue)
+                self._trace('queue', entity, self.resource_name, 
+                           f"waiting, queue_length={queue_length}")
+
                 # ⚠️ ACQUISITION - can be preempted here too!
                 yield simpy.AllOf(self.env, requests)
                 acquired = requests
 
                 self._monitor_resource()
-                self.log_start(entity, self.resource_name)
+                # self.log_start(entity, self.resource_name)
 
                 # Record queue time
                 queue_time = self.env.now - queue_start
@@ -142,6 +147,13 @@ class ProcessBlock(BaseBlock):
                 else:
                     delay = max(0.0, self.delay_time())
 
+                # NEW: Trace service start
+                utilization = self.resource.count / self.resource.capacity
+                self._trace('service_start', entity, self.resource_name,
+                           f"service_time={delay:.2f}, queue_time={queue_time:.2f}")
+                
+                self.log_start(entity, self.resource_name)
+
                 yield self.env.timeout(delay)
                 
                 # ✅ SUCCESS - completed without interruption
@@ -151,11 +163,21 @@ class ProcessBlock(BaseBlock):
                 
                 self._apply_attributes(entity)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications
+                
+                # NEW: Trace service end
+                utilization = self.resource.count / self.resource.capacity
+                self._trace('service_end', entity, self.resource_name,
+                           f"utilization={utilization:.0%}")
+
                 self.log_complete(entity, self.resource_name)
                 
                 break  # Exit retry loop - we're done!
                 
             except simpy.Interrupt as interrupt:
+                # NEW: Trace preemption
+                self._trace('interrupt', entity, self.resource_name,
+                           f"preempted by higher priority")
+
                 # 🚨 PREEMPTED (during acquisition or service)
                 if self.event_logger:
                     # Determine if interrupted during service or acquisition
@@ -268,54 +290,29 @@ class MultiProcessBlock(BaseBlock):
                     else:
                         req = resource.request()
                     requests.append((resource, req))
-        
-        # =====================================================================
-        # # Acquire all resources sequentially but hold them all
-        # acquired_resources = []
-        # try:
-        #     # IMPORTANT: Unpack the (resource, req) tuple here and yield ONLY the req (which is the SimPy event).
-        #     # If you mistakenly loop with 'for req in requests: yield req', it would yield the tuple instead,
-        #     # causing the "Invalid yield value" error with the (Resource, Request) tuple.
-        #     for resource, req in requests:
-        #         yield req
-        #         acquired_resources.append((resource, req))
-            
-            
-        #     # Log activity start with all resources
-        #     resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
-        #                               for r, _ in acquired_resources])
-        #     self.log_start(entity, resources_str)
-        # =====================================================================
-
-        # ======================= START: CODE CORRECTION =======================
-        # # Store all requests for the finally block to release them.
-        # acquired_resources = requests 
-        
-        # # Create a list of just the request events to wait for.
-        # request_events = [req for _, req in requests]
 
             acquired_resources = []
             try:
-                # # Atomically wait for ALL resources to be available.
-                # # This is the key change that prevents deadlock.
-                # yield self.env.all_of(request_events)
                 
-                # ...OR..
+                # ✅ FIX 1: Trace queue entry BEFORE acquiring resources
+                # Build combined resource string
+                resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
+                                          for r, _ in requests])
+                
+                # Calculate total queue length across all required resources
+                total_queue_length = sum(len(r.queue) for r, _ in requests)
+                
+                self._trace('queue', entity, resources_str, 
+                           f"waiting for all resources, total_queue={total_queue_length}")
+
                 # Acquire all resources simultaneously
                 yield simpy.AllOf(self.env, [req for _, req in requests])
-                acquired_resources = requests
-                
-                # The original sequential acquisition loop is removed.
-                # for resource, req in requests:
-                #     yield req
-                #     acquired_resources.append((resource, req))
+                acquired_resources = requests                
                 
                 # Log activity start with all resources
                 resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
                                         for r, _ in acquired_resources])
                 self.log_start(entity, resources_str)
-        # ======================== END: CODE CORRECTION ========================
-
 
                 # Record queue time and monitor state after seizing all
                 queue_time = self.env.now - queue_start
@@ -327,7 +324,6 @@ class MultiProcessBlock(BaseBlock):
                 # #############################################################
                 # Para Evitar erros de dados negativos no modelo
                 # #############################################################
-                # delay = self.delay_time()
                 if hasattr(self.env, 'model') and hasattr(self.env.model, 'safe_delay_time'):
                     # If the model has the safe_delay_time method, use it
                     delay = self.env.model.safe_delay_time(self.delay_time)
@@ -335,11 +331,22 @@ class MultiProcessBlock(BaseBlock):
                     # Fallback: ensure non-negative manually
                     delay = max(0.0, self.delay_time())
 
-                # yield self.env.timeout(delay)
+                # ✅ FIX 2: Trace service start AFTER acquiring all resources
+                # Calculate average utilization across all resources
+                avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
+                
+                self._trace('service_start', entity, resources_str,
+                           f"service_time={delay:.2f}, queue_time={queue_time:.2f}")
+                
+                self.log_start(entity, resources_str)
 
                 try:    
                     yield self.env.timeout(delay)
                 except simpy.Interrupt:
+                    # ✅ FIX 3: Trace preemption/interrupt
+                    self._trace('interrupt', entity, resources_str,
+                               f"preempted by higher priority")
+
                     # Preempted: log, release, and retry
                     if self.event_logger:
                         self.event_logger.log_event(
@@ -361,6 +368,14 @@ class MultiProcessBlock(BaseBlock):
                 
                 self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
+                
+                # ✅ FIX 4: Trace service end AFTER service completion
+                # Calculate average utilization across all resources
+                avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
+                
+                self._trace('service_end', entity, resources_str,
+                           f"utilization={avg_utilization:.0%}")
+                
                 self.log_complete(entity, resources_str) # Log activity complete
 
                 break  # Success, exit retry loop
@@ -374,7 +389,6 @@ class MultiProcessBlock(BaseBlock):
                 self._monitor_all_resources()
         
         # Send to next block
-        # yield from self.send_to_next(entity)
         self.env.process(self.send_to_next(entity))
         yield self.env.timeout(0)
     
