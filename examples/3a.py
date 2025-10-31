@@ -53,8 +53,18 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False):  # NEW: verbose parameter
-    """Build a hospital simulation model with refactored structure."""
+def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None): 
+    """Build the simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -63,7 +73,11 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel(verbose=verbose)  # NEW: Pass verbose flag
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -372,13 +386,7 @@ def main():
     
     HOURS = 60  # Time conversion factor (base time: Minutos)
     DAYS = 1440
-    YEARS = 525600
-    
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building ex3 model...")    
+    YEARS = 525600 
     
     # Create configuration
     config = SimulationConfig(
@@ -393,7 +401,14 @@ def main():
     )
     config.validate()
 
-    model = build_ex3_model(config.duration, event_logger, verbose=True)
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex3 model...")
+    verbose = config.duration <= 2*HOURS    
+
+    model = build_ex3_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")

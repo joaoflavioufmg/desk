@@ -335,10 +335,10 @@ def main():
     config = SimulationConfig(
         # duration=24*HOURS,
         # warm_up_period=2*HOURS,
-        # duration=30*DAYS,
-        # warm_up_period=3*DAYS,
-        duration=365*DAYS,
-        warm_up_period=30*DAYS,        
+        duration=30*DAYS,
+        warm_up_period=3*DAYS,
+        # duration=365*DAYS,
+        # warm_up_period=30*DAYS,        
         seed=123,
         check_stability=True
     )
@@ -369,10 +369,85 @@ def main():
     
     pause_simulation()
     # === ANALYSIS PHASE (using separate modules) ===
+
+    # ========================================
+    # Trace specific maquina
+    # ========================================    
+    print("\n" + "="*80)
+    print("FILTER: Journey of Maquina_1")
+    print("="*80)    
+    model.trace_entity('Maquina_1')    
+    pause_simulation()
     
-    # 1. Basic results
+    # ========================================
+    # Replay with filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - First 2 maquinas only")
+    print("="*80)    
+    model.replay_trace(entity_pattern = r'^Maquina_[1-2]$')
+    pause_simulation()
+
+    # ========================================
+    # Trace specific resource
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Equipe interactions only")
+    print("="*80)    
+    model.replay_trace(resource_filter={'Equipes'})
+    pause_simulation()
+
+    # ========================================
+    # Trace specific event types
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Queue and service events only")
+    print("="*80)    
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    pause_simulation()
+
+    # ========================================
+    # Trace time window
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Events between t=20 and t=40")
+    print("="*80)    
+    model.replay_trace(time_range=(1000, 10000))
+    pause_simulation()
+
+    # ========================================
+    # Combined filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Maquina_1 at equipe (queue + service)")
+    print("="*80)    
+    model.replay_trace(
+        entity_filter={'Maquina_1'},
+        resource_filter={'Equipes'},
+        event_type_filter={'queue', 'service_start', 'service_end'}
+    )
+    pause_simulation()
+
+    # ========================================
+    # Multiple patient journeys
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Detailed journeys of first 2 maquinas")
+    print("="*80)    
+    model.trace_entities(['Maquina_1', 'Maquina_2', 'Maquina_3'])
+    pause_simulation()
+
+    # ========================================
+    # Trace statistics
+    # ========================================
+    model.print_trace_statistics()
+    pause_simulation()
+
+        
     print("\n" + "="*60)
+    # ========================================
     print("SIMULATION COMPLETE - ANALYZING RESULTS")
+    # ========================================
     print("="*60)
     
     # 2. Detailed reporting

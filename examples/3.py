@@ -63,8 +63,18 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False):  # NEW: verbose parameter
-    """Build a hospital simulation model with refactored structure."""
+def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None): 
+    """Build the simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -74,7 +84,11 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=False
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel(verbose=verbose)  # NEW: Pass verbose flag
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -233,7 +247,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex3_model(config.duration, event_logger)
+    model = build_ex3_model(config.duration, event_logger, verbose=False)
     # model = build_ex3_model(event_logger)
 
     # Validate once on first run
@@ -306,7 +320,7 @@ def ex3_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex3_model(config.duration)
+        model = build_ex3_model(config.duration, verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -370,12 +384,7 @@ def main():
     DAYS = 1440
     YEARS = 525600
     
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building ex3 model...")    
-    
+       
     # Create configuration
     config = SimulationConfig(
         warm_up_period=5,
@@ -389,7 +398,13 @@ def main():
     )
     config.validate()
 
-    model = build_ex3_model(config.duration, event_logger, verbose=True)
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex3 model...")
+    verbose = config.duration <= 2*HOURS    
+    model = build_ex3_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -406,13 +421,81 @@ def main():
         warm_up_period=config.warm_up_period
     )
     
-    
+    pause_simulation()
     # === ANALYSIS PHASE (using separate modules) ===
+
+    # # ========================================
+    # # Trace specific patient
+    # # ========================================    
+    # print("\n" + "="*80)
+    # print("FILTER: Journey of Patient_1")
+    # print("="*80)    
+    # model.trace_entity('Patient_1')    
+    # pause_simulation()
     
-    # 1. Basic results
-    print("\n" + "="*60)
-    print("SIMULATION COMPLETE - ANALYZING RESULTS")
-    print("="*60)
+    # # ========================================
+    # # Replay with filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - First 3 patients only")
+    # print("="*80)    
+    # model.replay_trace(entity_pattern = r'^Patient_[1-3]$')
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace specific resource
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Doctor interactions only")
+    # print("="*80)    
+    # model.replay_trace(resource_filter={'doctors'})
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace specific event types
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Queue and service events only")
+    # print("="*80)    
+    # model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace time window
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Events between t=20 and t=40")
+    # print("="*80)    
+    # model.replay_trace(time_range=(20, 40))
+    # pause_simulation()
+
+    # # ========================================
+    # # Combined filters
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Replay - Patient_1 at doctors (queue + service)")
+    # print("="*80)    
+    # model.replay_trace(
+    #     entity_filter={'Patient_1'},
+    #     resource_filter={'doctors'},
+    #     event_type_filter={'queue', 'service_start', 'service_end'}
+    # )
+    # pause_simulation()
+
+    # # ========================================
+    # # Multiple patient journeys
+    # # ========================================
+    # print("\n" + "="*80)
+    # print("FILTER: Detailed journeys of first 3 patients")
+    # print("="*80)    
+    # model.trace_entities(['Patient_1', 'Patient_2', 'Patient_3'])
+    # pause_simulation()
+
+    # # ========================================
+    # # Trace statistics
+    # # ========================================
+    # model.print_trace_statistics()
+    # pause_simulation()
     
     # 2. Detailed reporting
     reporter = SimulationReporter(model)
