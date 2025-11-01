@@ -172,10 +172,75 @@ class EventTracer:
         # Print event
         icon = self.ICONS.get(event_type.lower(), '•')        
         event_name = f"{icon} {event_type.upper()}"
-        resource_str = resource_name if resource_name else ""
+        # resource_str = resource_name if resource_name else ""
+        # ✅ FIX: Format resource string with usage/capacity
+        resource_str = self._format_resource_string(resource_name) if resource_name else ""
         
         print(f"{time:>7.2f}  | {event_name:<22} | {entity_id:<15} | {resource_str:<30} | {details}")
         self.event_count += 1
+
+    def _format_resource_string(self, resource_name: str) -> str:
+        """
+        Format resource string with current usage and capacity.
+        
+        Args:
+            resource_name: Name of resource(s), possibly comma-separated
+            
+        Returns:
+            Formatted string like "[3/30] Troncos" or "[2/4] doctors, [1/3] nurses"
+        """
+        if not resource_name:
+            return ""
+        
+        # Handle multi-resource activities (comma-separated)
+        resource_names = [r.strip() for r in resource_name.split(',')]
+        formatted_parts = []
+        
+        for res_name in resource_names:
+            # Try to find the resource object in the model
+            resource_obj = self._find_resource_by_name(res_name)
+            
+            if resource_obj:
+                # Get current usage and capacity
+                current_usage = resource_obj.count
+                capacity = resource_obj.capacity
+                formatted_parts.append(f"[{current_usage}/{capacity}] {res_name}")
+            else:
+                # If resource not found, just use the name
+                formatted_parts.append(res_name)
+        
+        return ", ".join(formatted_parts)
+
+
+    def _find_resource_by_name(self, resource_name: str):
+        """
+        Find resource object by name from the model.
+        
+        Args:
+            resource_name: Name of the resource
+            
+        Returns:
+            Resource object or None if not found
+        """
+        # Access the model through env.model if it exists
+        if not hasattr(self.env, 'model'):
+            return None
+        
+        model = self.env.model
+        
+        if not hasattr(model, 'resources'):
+            return None
+        
+        # Direct lookup
+        if resource_name in model.resources:
+            return model.resources[resource_name]
+        
+        # Fuzzy match (case-insensitive)
+        for res_name, res_obj in model.resources.items():
+            if res_name.lower() == resource_name.lower():
+                return res_obj
+        
+        return None
 
     def replay_trace(self, entity_filter: Optional[Set[str]] = None,
                     resource_filter: Optional[Set[str]] = None,
@@ -225,6 +290,8 @@ class EventTracer:
                 icon = self.ICONS.get(event['event_type'].lower(), '•')
                 event_name = f"{icon} {event['event_type'].upper()}"
                 resource_str = event['resource_name'] if event['resource_name'] else ""
+                # ✅ FIX: Format resource string with usage/capacity
+                # resource_str = self._format_resource_string(event['resource_name']) if event['resource_name'] else ""
                 
                 print(f"{event['time']:>7.2f}  | {event_name:<22} | "
                       f"{event['entity_id']:<15} | {resource_str:<30} | {event['details']}")
@@ -284,9 +351,10 @@ class EventTracer:
         for event in journey:
             icon = self.ICONS.get(event['event_type'].lower(), '•')
             event_name = f"{icon} {event['event_type'].upper()}"
-            resource_str = event['resource_name'] if event['resource_name'] else ""
+            resource_str = event['resource_name'] if event['resource_name'] else ""            
+            # resource_str = self._format_resource_string(event['resource_name']) if event['resource_name'] else ""
             
-            print(f"{event['time']:>7.2f}  | {event_name:<22} | {resource_str:<30} | {event['details']}")
+            print(f"{event['time']:>7.2f}  | {event_name:<21} | {resource_str:<30} | {event['details']}")
             
             # Extract statistics
             if event['resource_name']:

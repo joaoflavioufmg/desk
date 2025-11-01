@@ -124,7 +124,7 @@ def build_ex3_model(final_simulation_time=None, event_logger=None, verbose=True,
     chegadas_chamadas = CreateBlock(
         "ChegadasChamadas", model.env,
         inter_arrival_time=lambda: distribution('chegada'),
-        entity_prefix="Chamadas",
+        entity_prefix="Chamada",
         max_arrivals=None, # Infinito
         first_creation=0.0,
         # priority_generator=prio("Cliente"),
@@ -390,12 +390,12 @@ def main():
     
     # Create configuration
     config = SimulationConfig(
-        warm_up_period=5,
-        duration=25,
-        # duration=8*HOURS,
+        warm_up_period=1,
+        duration=60,
         # warm_up_period=0.5*HOURS,
-        # duration=21*DAYS,
+        # duration=8*HOURS,        
         # warm_up_period=5*DAYS,        
+        # duration=21*DAYS,        
         seed=123,
         check_stability=True
     )
@@ -406,8 +406,7 @@ def main():
     
     # Build model
     print("Building ex3 model...")
-    verbose = config.duration <= 2*HOURS    
-
+    verbose = config.duration <= 1/10*HOURS
     model = build_ex3_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
@@ -425,15 +424,91 @@ def main():
         warm_up_period=config.warm_up_period
     )
     
-    
     # === ANALYSIS PHASE (using separate modules) ===
+    # ========================================
+    # Trace specific chamada
+    # ========================================    
+    print("\n" + "="*80)
+    print("FILTER: Journey of Chamada_1")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entity('Chamada_1')    
     
-    # 1. Basic results
-    print("\n" + "="*60)
-    print("SIMULATION COMPLETE - ANALYZING RESULTS")
-    print("="*60)
     
+    # ========================================
+    # Replay with filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - First 3 chamadas only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(entity_pattern = r'^Chamada_[1-3]$')
+    
+
+    # ========================================
+    # Trace specific resource
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Troncos interactions only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(resource_filter={'Troncos'})
+    
+
+    # ========================================
+    # Trace specific event types
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Queue and service events only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    
+
+    # ========================================
+    # Trace time window
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Events between t=2 and t=3")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(time_range=(2, 3))
+    
+
+    # ========================================
+    # Combined filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Chamada_1 at Troncos (queue + service)")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(
+        entity_filter={'Chamada_1'},
+        resource_filter={'Troncos'},
+        event_type_filter={'queue', 'service_start', 'service_end'}
+    )
+    
+
+    # ========================================
+    # Multiple chamadas journeys
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Detailed journeys of first 3 chamadas")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entities(['Chamada_1', 'Chamada_2', 'Chamada_3'])
+    
+
+    # ========================================
+    # Trace statistics
+    # ========================================
+    model.print_trace_statistics()
+    pause_simulation()
+
+
+    # ========================================
     # 2. Detailed reporting
+    # ========================================
     reporter = SimulationReporter(model)
     reporter.print_results()
     
