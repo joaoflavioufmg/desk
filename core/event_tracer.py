@@ -308,7 +308,7 @@ class EventTracer:
         
         print("-" * 80)
         print(f"\nJOURNEY SUMMARY:")
-        print(f"  Total time in system: {total_time:.2f} time units")
+        print(f"  Total time in system: {total_time:.2f} minutes")
         print(f"  Number of events: {len(journey)}")
         print(f"  Resources used: {', '.join(sorted(resources_used)) if resources_used else 'None'}")
         

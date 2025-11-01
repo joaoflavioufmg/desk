@@ -477,25 +477,25 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Journey of Cliente_1")
     print("="*80)    
-    model.trace_entity('Patient_1')    
+    model.trace_entity('Cliente_1')    
     pause_simulation()
     
     # ========================================
     # Replay with filters
     # ========================================
     print("\n" + "="*80)
-    print("FILTER: Replay - First 3 patients only")
+    print("FILTER: Replay - First 3 customers only")
     print("="*80)    
-    model.replay_trace(entity_pattern = r'^Patient_[1-3]$')
+    model.replay_trace(entity_pattern = r'^Cliente_[1-3]$')
     pause_simulation()
 
     # ========================================
     # Trace specific resource
     # ========================================
     print("\n" + "="*80)
-    print("FILTER: Replay - Doctor interactions only")
+    print("FILTER: Replay - Garcons interactions only")
     print("="*80)    
-    model.replay_trace(resource_filter={'doctors'})
+    model.replay_trace(resource_filter={'Garcons'})
     pause_simulation()
 
     # ========================================
@@ -520,22 +520,22 @@ def main():
     # Combined filters
     # ========================================
     print("\n" + "="*80)
-    print("FILTER: Replay - Patient_1 at doctors (queue + service)")
+    print("FILTER: Replay - Cliente_1 at garcons (queue + service)")
     print("="*80)    
     model.replay_trace(
-        entity_filter={'Patient_1'},
-        resource_filter={'doctors'},
+        entity_filter={'Cliente_1'},
+        resource_filter={'Garcons'},
         event_type_filter={'queue', 'service_start', 'service_end'}
     )
     pause_simulation()
 
     # ========================================
-    # Multiple patient journeys
+    # Multiple customers journeys
     # ========================================
     print("\n" + "="*80)
-    print("FILTER: Detailed journeys of first 3 patients")
+    print("FILTER: Detailed journeys of first 3 customers")
     print("="*80)    
-    model.trace_entities(['Patient_1', 'Patient_2', 'Patient_3'])
+    model.trace_entities(['Cliente_1', 'Cliente_2', 'Cliente_3'])
     pause_simulation()
 
     # ========================================
