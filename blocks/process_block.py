@@ -161,13 +161,26 @@ class ProcessBlock(BaseBlock):
                 self.total_delay_time += delay
                 entity.add_attribute(f"{self.name}_service_time", delay)
                 
-                self._apply_attributes(entity)
+                # self._apply_attributes(entity)
+                # ✅ MODIFIED: Capture assigned attributes
+                assigned_attrs = self._apply_attributes(entity)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications
                 
-                # NEW: Trace service end
+                # # NEW: Trace service end
+                # utilization = self.resource.count / self.resource.capacity
+                # self._trace('service_end', entity, self.resource_name,
+                #            f"utilization={utilization:.0%}")
+                
+                # ✅ MODIFIED: Include attributes in trace
                 utilization = self.resource.count / self.resource.capacity
-                self._trace('service_end', entity, self.resource_name,
-                           f"utilization={utilization:.0%}")
+                details = f"utilization={utilization:.0%}"
+
+                # Add attribute info if any were assigned
+                if assigned_attrs:
+                    attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
+                    details += f", Attrib: {', '.join(attr_strs)}"
+
+                self._trace('service_end', entity, self.resource_name, details)
 
                 self.log_complete(entity, self.resource_name)
                 
@@ -366,15 +379,27 @@ class MultiProcessBlock(BaseBlock):
                 entity.add_attribute(f"{self.name}_service_time", delay)
 
                 
-                self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)
+                # self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)                
+                # ✅ MODIFIED: Capture assigned attributes
+                assigned_attrs = self._apply_attributes(entity) # Apply configured attributes (e.g., cost, revenue)
                 self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
                 
                 # ✅ FIX 4: Trace service end AFTER service completion
                 # Calculate average utilization across all resources
                 avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
                 
-                self._trace('service_end', entity, resources_str,
-                           f"utilization={avg_utilization:.0%}")
+                # ✅ MODIFIED: Include attributes in trace
+                details = f"utilization={avg_utilization:.0%}"
+                
+                # self._trace('service_end', entity, resources_str,
+                #            f"utilization={avg_utilization:.0%}")
+
+                # Add attribute info if any were assigned
+                if assigned_attrs:
+                    attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
+                    details += f", Attrib: {', '.join(attr_strs)}"
+
+                self._trace('service_end', entity, resources_str, details)
                 
                 self.log_complete(entity, resources_str) # Log activity complete
 

@@ -376,16 +376,24 @@ class EventTracer:
         
         print("-" * 80)
         print(f"\nJOURNEY SUMMARY:")
+        # ✅ NEW: Check if journey is incomplete
+        has_departure = any(e['event_type'] == 'departure' for e in journey)
+        if total_time == 0 or not has_departure:
+            print(f"  ⚠️  WARNING: Incomplete journey (entity still in system at simulation end)")
         print(f"  Total time in system: {total_time:.2f} minutes")
         print(f"  Number of events: {len(journey)}")
         print(f"  Resources used: {', '.join(sorted(resources_used)) if resources_used else 'None'}")
         
+        # ✅ FIX: Prevent division by zero
         if queue_times:
-            print(f"  Total queue time: {sum(queue_times):.2f} ({sum(queue_times)/total_time*100:.1f}%)")
+            queue_total = sum(queue_times)
+            queue_pct = (queue_total / total_time * 100) if total_time > 0 else 0.0
+            print(f"  Total queue time: {queue_total:.2f} ({queue_pct:.1f}%)")
         
         if service_times:
-            print(f"  Total service time: {sum(service_times):.2f} ({sum(service_times)/total_time*100:.1f}%)")
-        
+            service_total = sum(service_times)
+            service_pct = (service_total / total_time * 100) if total_time > 0 else 0.0
+            print(f"  Total service time: {service_total:.2f} ({service_pct:.1f}%)")        
         print("=" * 80)
     
     def get_statistics(self) -> dict:

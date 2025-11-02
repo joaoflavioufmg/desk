@@ -19,11 +19,13 @@
 # FILE: model_template.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
 from validation.resource_validator import ResourceValidator
 from core.simulation_model import SimulationModel
+from core.simulation_observer import SimulationObserver
 from core.entity import EventLogger
 from blocks.create_block import CreateBlock
 from blocks.process_block import ProcessBlock, MultiProcessBlock
@@ -41,8 +43,18 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex_model(final_simulation_time=None, event_logger=None):
-    """Build a hospital simulation model with refactored structure."""
+def build_ex_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None): 
+    """Build the simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -51,22 +63,45 @@ def build_ex_model(final_simulation_time=None, event_logger=None):
     if final_simulation_time is None:
         final_simulation_time = 365 * DAYS  # Set default to match the intended simulation time
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
-        taxa_chegadas = 10         # por minuto        
+        # taxa_chegadas = 6         # 6 por minuto        
         return {
-            'chegada': random.expovariate(1/taxa_chegadas),
-            'servir': random.gauss(6, 1),
-            'lavar': 0.5,
-            'beber': random.uniform(5, 8)
+            # 'chegada': random.expovariate(taxa_chegadas), # or ...
+            # 'chegada': random.expovariate(1/6), # Intervalo entre chegadas 1 a cada 0,16 min.
+            'chegada': random.expovariate(1/10), # Intervalo entre chegadas 1 a cada 10 min.
+            'ativ1': random.gauss(6, 1),
+            'ativ2': 0.5,
+            'ativ3': random.uniform(5, 8)
         }.get(tipo,0.0)
 
     
     # Resources - regular, priority, preempt
-    rec1 = model.add_resource("Rec1", 2, "regular") 
-    rec2 = model.add_resource("Rec2", 70, "regular")  
+    rec1 = model.add_resource("Rec1", 2, "regular")     
+    rec2 = model.add_resource("Rec2", 6, "priority")
+    # rec3 = model.add_resource("Rec3", 4, "preemptive") 
+    rec3 = model.add_resource("Rec3", 6, "regular") 
+
+    # Entity severity generator
+    def entity_priority():
+        severity_dist = [0.1, 0.2, 0.3, 0.3, 0.1]
+        return random.choices([0, 1, 2, 3, 4], weights=severity_dist)[0]
+
+    # Add model variables
+    model.add_model_variable('var1_num_eventos', 0, 
+                            'Descrição da variável 01', 'unidades')
+
+    model.add_model_variable('var_02_percentual_eventos', 0,
+                            'Descrição da variável 02', '%',
+                            calculate_fn=lambda m: (
+                                m.variable_tracker.get_current('var1_num_eventos') /
+                                max(1, m.entity_count) * 100))
     
     
     # Create blocks
@@ -76,110 +111,130 @@ def build_ex_model(final_simulation_time=None, event_logger=None):
         entity_prefix="Ent_A",
         max_arrivals=None, # Infinito
         first_creation=0.0,
-        # priority_generator=prio("Cliente"),
+        priority_generator=entity_priority,
         event_logger=event_logger
     )    
     # CONFIGURE ENTITY ATTRIBUTES # Assign "atrib1" to each entity
     chegadas_ent_A.assign_attributes(
-        atrib1=lambda: random.randint(1, 4)  # Entre 1 e 4 
+        atrib1=lambda: random.randint(1, 4)  # Entidade recebe um atributo: Num entre 1 e 4 
     )
 
+    # Chegada de 2 entidades em paralelo?
     chegadas_ent_B = CreateBlock(
         "ChegadasEnt_B", model.env,
         inter_arrival_time=lambda: distribution('chegada'),
         entity_prefix="Ent_B",
-        max_arrivals=1, 
-        first_creation=0.0,
-        # priority_generator=prio("Cliente"),
+        max_arrivals=1, # Limite do num max de chegadas
+        first_creation=0.0, # A chegada do entidade_B pode ser a posteriori
+        # priority_generator=entity_priority,
         event_logger=event_logger
     ) 
 
     decide_condition = DecideBlock(
         "Decide1", model.env,
-        decision_type="condition",
+        decision_type="condition", # Condition tradicional (entity based)
         event_logger=event_logger
     )   
 
-    # Define activity priorities
-    PRIO_ATIVIDADE = {
-        "ativ1": 0,  # Highest priority
-        "ativ2": 1    # Lower priority
-    }    
-    
-    ativ1 = MultiProcessBlock(
-        "Ativ_1", model.env,
-        resource_requirements={
-            rec1: 1,
-            rec2: 1
-        },
-        delay_time=lambda: distribution('ativ1'),
+    decide_generic_condition = DecideBlock(
+        "Decide2", model.env,
+        decision_type="condition_generic", # Condition generic (formula based)
+        event_logger=event_logger
+    )    
+
+    decide_probalility = DecideBlock(
+        "Decide3", model.env,
+        decision_type="probability", # Probability (hostorical based)
         event_logger=event_logger
     )
-    ativ1.set_resource_names({
-        rec1: 'Rec_1',
-        rec2: 'Rec_2'
-    })
-    ativ1.set_activity_priority(PRIO_ATIVIDADE["ativ1"])  # Set activity priority
-    
-    ativ2 = ProcessBlock(
-        "Ativ_2", model.env,
+
+    # Define activity priorities
+    PRIO_ATIVIDADE = {
+        "ativ2": 0,  # Highest priority
+        "ativ3": 1    # Lower priority
+    }    
+
+    # Activity with attibute modification
+    atividade_1 = ProcessBlock(
+        "Ativ_1", model.env,
         # resource=None,    # None, se apenas Delay (sem recursos)
-        resource=rec2,
-        delay_time=lambda: distribution('ativ2'),
+        resource=rec1,
+        delay_time=lambda: distribution('ativ1'),
         resource_units=1,         # 1 CHECK! 
         event_logger=event_logger
     )
-    ativ2.set_resource_name('Rec_2')
-    # NEW: Configure dynamic attribute modification
-    rec2.modify_attributes(        
-        atrib1=lambda current: max(0, current - 1)
+    atividade_1.set_resource_name('Rec1')    
+    atividade_1.modify_attributes(        
+        atrib1=lambda current: max(0, current - 1) # Dynamic attribute modification
     )
-
-
-    # Lavar activity with lower priority
-    ativ3 = MultiProcessBlock(
+    
+    # Higher priority Activity
+    atividade_2 = MultiProcessBlock(
+        "Ativ_2", model.env,
+        resource_requirements={
+            rec2: 1,
+            rec3: 1 
+        },
+        delay_time=lambda: distribution('ativ2'),
+        event_logger=event_logger
+    )
+    atividade_2.set_resource_names({
+        rec2: 'Rec2',
+        rec3: 'Rec3'
+    })
+    atividade_2.set_activity_priority(PRIO_ATIVIDADE["ativ2"])  # Set activity priority
+    
+    
+    # lower priority Activity
+    atividade_3 = MultiProcessBlock(
         "Ativ3", model.env,
         resource_requirements={
-            rec1: 1,
-            rec2: 1
+            rec2: 1, # Need 2 resources for that activity (check: Is there (capacity) 3 resouces?)
+            rec3: 1  # Both rec2 and rec3 must evaluate priority (preempt evaluate priority too)
         },
         delay_time=lambda: distribution('ativ3'),
         event_logger=event_logger
     )
-    ativ3.set_resource_names({
-        rec1: 'Rec1',
-        rec2: 'Rec2'
+    atividade_3.set_resource_names({
+        rec2: 'Rec2',
+        rec3: 'Rec3'
     })
-    ativ3.set_activity_priority(PRIO_ATIVIDADE["ativ3"])  # Set activity priority
+    atividade_3.set_activity_priority(PRIO_ATIVIDADE["ativ3"])  # Set activity priority
 
-    decide_time = DecideBlock(
+    decide_time_condition = DecideBlock(
         "DisposeDecision", model.env,
-        decision_type="time_condition",
+        decision_type="time_condition", # Decide (time condition based)
         event_logger=event_logger
     )   
     
-    dispose = DisposeBlock(
-        "Dispose", 
+    dispose1 = DisposeBlock(
+        "Dispose1", 
         model.env, 
         event_logger=event_logger)
 
-    
+    dispose2 = DisposeBlock(
+        "Dispose2", 
+        model.env, 
+        event_logger=event_logger)
+
 
     # Add blocks to model
-    for block in [chegadas_ent_A, chegadas_ent_B, ativ1,
-                ativ2, ativ3, decide_condition, 
-                decide_time, dispose]:
+    for block in [chegadas_ent_A, chegadas_ent_B, 
+        atividade_1, atividade_2, atividade_3, 
+        decide_condition, decide_generic_condition, decide_probalility, decide_time_condition, 
+        dispose1, dispose2]:
         model.add_block(block)
     
     # Connect flow
-    chegadas_ent_A.connect_to(ativ1)    
-    ativ1.connect_to(decide_condition)    
-    decide_condition.connect_to(decide_time)
-    decide_time.connect_to(dispose)
+    chegadas_ent_A.connect_to(atividade_1)    
+    atividade_1.connect_to(decide_condition)    
+    decide_condition.connect_to(decide_generic_condition)
+    decide_generic_condition.connect_to(decide_time_condition)
+    decide_time_condition.connect_to(dispose1)
     
-    chegadas_ent_B.connect_to(ativ2)
-    ativ2.connect_to(ativ3)
-    ativ3.connect_to(dispose)
+    chegadas_ent_B.connect_to(atividade_2)
+    atividade_2.connect_to(decide_generic_condition)
+    atividade_3.connect_to(dispose1)
     
 
     # Decision routing functions
@@ -190,31 +245,92 @@ def build_ex_model(final_simulation_time=None, event_logger=None):
         return "Ent_B" in entity.id.lower()
 
     def evaluate_attribute_1(entity):
-        return entity.get_attribute("atrib1", 0) < 1
-        # sede_value = entity.get_attribute("sede", 0)
-        # print(f"[DEBUG SATISFEITO] {entity.id}: sede={sede_value}, satisfeito={sede_value < 1}")
-        # return sede_value < 1
+        return entity.get_attribute("atrib1", 0) < 1        
     
     def evaluate_attribute_2(entity):
         return entity.get_attribute("atrib1", 0) >= 1
+    
+    # Decision routing functions
+    def entity_urgent(entity):
+        return entity.priority <= 1
+    
+    def entity_not_very_urgent(entity):
+        return entity.priority == 2 
+    
+    def entity_not_urgent(entity):
+        return entity.priority >= 3 
         
     
-    # Add decision routes
-    decide_condition.add_route("Ent_1", ativ1, condition=entity_type_A)
-    decide_time.add_route("Dispose_Yes", dispose,
-        time_condition=lambda t: t >= (final_simulation_time - 10))
-    decide_time.add_route("Dispose_No", ativ3,
-        time_condition=lambda t: t < (final_simulation_time - 10))
+    # Add decision routes (Attention: MUST consider 100% of flows!)
+    decide_condition.add_route("It_is_Ent_A_Attrib_01", dispose1, 
+        condition=entity_type_A and evaluate_attribute_1)
+    decide_condition.add_route("It_is_Ent_A_Attrib_02", dispose2, 
+        condition=entity_type_A and evaluate_attribute_2)
+
+    # Add decision routes (Attention: MUST consider 100% of flows!)
+    decide_condition.add_route("It_is_Ent_B_Urgent", atividade_3, 
+        condition=entity_type_B and entity_urgent)
+    decide_condition.add_route("It_is_Ent_B_Not_Very_Urgent", atividade_2, 
+        condition=entity_type_B and entity_not_very_urgent)
+    decide_condition.add_route("It_is_Ent_B_Not_Urgent", dispose2, 
+        condition=entity_type_B and entity_not_urgent)
+
+    # Add decision routes (Attention: MUST consider 100% of flows!)
+    decide_generic_condition.add_route(
+        "Route1", decide_time_condition, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Rec1'].count >= ctx['resources']['Rec1'].capacity
+            )
+        )
+    decide_generic_condition.add_route(
+        "Route2", decide_probalility, 
+        condition_generic=lambda e, ctx: (
+            ctx['resources']['Rec1'].count < ctx['resources']['Rec1'].capacity
+            )
+        ) 
+
+    # Add decision routes (Attention: MUST consider 100% of flows!)
+    decide_time_condition.add_route("Dispose_Yes", dispose2,
+        time_condition=lambda t: t >= (final_simulation_time - 0.1*final_simulation_time))
+
+    decide_time_condition.add_route("Dispose_No", atividade_3,
+        time_condition=lambda t: t < (final_simulation_time - 0.1*final_simulation_time))
+
+    # Add decision routes (Attention: MUST consider 100% of flows!)
+    decide_probalility.add_route("Return_Ativ_1", atividade_1, probability=0.3)
+    decide_probalility.add_route("Go_on", atividade_2, probability=0.7)
+
+
+    # ================================================================
+    # ✅ Systen variable: CREATE OBSERVER 
+    # ================================================================    
+    observer = SimulationObserver(model)
     
-   
+    # ✅ DEFINE CALLBACK: What to do when call is lost
+    # def count_lost_call(entity, block_name, time, verbose=True):        
+    def var_compute_variable_value(entity, block_name, time, verbose=verbose):        
+        """Called when entity disposed to Dispose2."""
+        tracker = model.variable_tracker
+        current = tracker.get_current('var1_num_eventos')
+        tracker.update('var1_num_eventos', time, current + 1)
+        tracker.update('var_02_percentual_eventos')  # Auto-calculate (lambda)
+        if verbose:
+            print(f"[{time:.2f}] VAR: Entidade {entity.id} COMPUTADA - Total: {current + 1}")
+    
+    # ✅ ATTACH OBSERVER: Monitor specific dispose block
+    observer.on_entity_disposed(
+        block_name='Dispose2',
+        callback=var_compute_variable_value
+    )
 
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
     # Assign costs to each activity
-    ativ1.assign_attributes(cost=lambda: random.uniform(20, 30))    
-    ativ2.assign_attributes(cost=lambda: random.uniform(10, 20))
-    dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
+    atividade_1.assign_attributes(cost=lambda: round(random.uniform(20, 30), 2))    
+    atividade_2.assign_attributes(cost=lambda: round(random.uniform(10, 20)))
+    atividade_3.assign_attributes(cost=lambda: round(random.uniform(5, 15)))
+    dispose1.assign_attributes(revenue=lambda: round(random.uniform(50, 100)))    
     # ================================================================
     
     return model
@@ -238,8 +354,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex_model(config.duration, event_logger)
-    # model = build_ex2_model(event_logger)
+    model = build_ex_model(config.duration, event_logger, verbose=False)
 
     # Validate once on first run
     # if seed == 12345:
@@ -271,8 +386,8 @@ def run_replications():
     
     replication_framework.run_replications(
         base_seed=12345,
-        until=24*60,
-        warm_up_period=2*60
+        until=24*HOURS,
+        warm_up_period=2*HOURS
     )
 
     # Access results
@@ -300,7 +415,7 @@ def ex_factorial_analysis():
     )
     
     # Define simulation function wrapper
-    def ex_simulation_wrapper(arrival_rate=10, num_res1=1, num_res2=70,
+    def ex_simulation_wrapper(arrival_rate=10, num_Rec1=5, num_Rec2=10, 
                                     seed=None, until=None, warm_up_period=0, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
@@ -310,7 +425,7 @@ def ex_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex_model(config.duration)
+        model = build_ex_model(config.duration, verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -329,16 +444,16 @@ def ex_factorial_analysis():
     )
     
     factorial.add_factor(
-        factor_name='num_rec_1',
+        factor_name='num_Rec1',
         parameter_path='Resource.rec1.capacity',
-        levels=[1, 2, 3],
+        levels=[5, 10, 15],
         description='Número de Rec #1'
     )
     
     factorial.add_factor(
-        factor_name='num_rec_2',
+        factor_name='num_Rec2',
         parameter_path='Resource.rec2.capacity',
-        levels=[70, 80, 90],
+        levels=[10, 20, 30],
         description='Número de Rec #2'
     )
     
@@ -366,6 +481,11 @@ def ex_factorial_analysis():
     return factorial
 # ================================================================
 
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 
 def main():
@@ -375,26 +495,26 @@ def main():
     DAYS = 1440
     YEARS = 525600
     
-    # Create event logger
-    event_logger = EventLogger()
-    
-    # Build model
-    print("Building ex2 model...")    
-    
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=0
-        # until=20
-        duration=8*HOURS,
+        # warm_up_period=1,
+        # duration=30,
         warm_up_period=0.5*HOURS,
-        # duration=21*DAYS,
+        duration=8*HOURS,        
         # warm_up_period=5*DAYS,        
+        # duration=21*DAYS,        
         seed=123,
         check_stability=True
     )
     config.validate()
 
-    model = build_ex_model(config.duration, event_logger)
+    # Create event logger
+    event_logger = EventLogger()
+    
+    # Build model
+    print("Building ex model...")
+    verbose = config.duration <= 10*HOURS    
+    model = build_ex_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -413,13 +533,90 @@ def main():
     
     
     # === ANALYSIS PHASE (using separate modules) ===
+    # ========================================
+    # Trace specific chamada
+    # ========================================    
+    print("\n" + "="*80)
+    print("FILTER: Journey of Ent_A_1")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entity('Ent_A_1')    
     
-    # 1. Basic results
-    print("\n" + "="*60)
-    print("SIMULATION COMPLETE - ANALYZING RESULTS")
-    print("="*60)
     
+    # ========================================
+    # Replay with filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - First 3 Ent_A only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(entity_pattern = r'^Ent_A_[1-3]$')
+    
+
+    # ========================================
+    # Trace specific resource
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Rec1 interactions only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(resource_filter={'Rec1'})
+    
+
+    # ========================================
+    # Trace specific event types
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Queue and service events only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    
+
+    # ========================================
+    # Trace time window
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Events between t=20 and t=30")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(time_range=(20, 30))
+    
+
+    # ========================================
+    # Combined filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Ent_A_1 at Rec1 (queue + service)")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(
+        entity_filter={'Ent_A_1'},
+        resource_filter={'Rec1'},
+        event_type_filter={'queue', 'service_start', 'service_end'}
+    )
+    
+
+    # ========================================
+    # Multiple chamadas journeys
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Detailed journeys of first 3 Ent_A")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entities(['Ent_A_1', 'Ent_A_2', 'Ent_A_3'])
+    
+
+    # ========================================
+    # Trace statistics
+    # ========================================
+    model.print_trace_statistics()
+    pause_simulation()
+
+
+    # ========================================
     # 2. Detailed reporting
+    # ========================================
     reporter = SimulationReporter(model)
     reporter.print_results()
     
@@ -433,8 +630,8 @@ def main():
     plotter = SimulationPlotter(model)
     
     # Plot resource utilization over time
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Garcons', moving_average_window=50)
-    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Copos', moving_average_window=50)    
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Rec1', moving_average_window=50)
+    plotter.plot_resource_use_over_time(show_warm_up=True, resource='Rec2', moving_average_window=50)    
     plotter.plot_wip_over_time()
     plotter.plot_system_time_distribution()
 
@@ -460,7 +657,7 @@ def main():
 
     # 5. Export event log
     print("\nExporting event log...")
-    df = event_logger.export_to_csv("ex2_event_log.csv")
+    df = event_logger.export_to_csv("ex_event_log.csv")
     print(f"\nFirst 10 events:")
     print(df.head(10))
     
@@ -478,7 +675,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = ex_factorial_analysis()
     run_visualization(build_ex_model, simulation_time=8*60)

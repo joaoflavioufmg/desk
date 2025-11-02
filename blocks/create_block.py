@@ -53,11 +53,28 @@ class CreateBlock(BaseBlock):
             self.entities_created += 1
             entity.route_history.append(self.name)
 
-            # ✅ ADD THIS LINE: Apply configured attributes to the entity
-            self._apply_attributes(entity)
+            # # ✅ ADD THIS LINE: Apply configured attributes to the entity
+            # self._apply_attributes(entity)
 
-            # NEW: Trace entity generation
-            self._trace('arrival', entity, details=f"entity created, priority={entity.priority}")
+            # # NEW: Trace entity generation
+            # self._trace('arrival', entity, details=f"entity created, priority={entity.priority}")
+
+            # ✅ MODIFIED: Capture assigned attributes at creation
+            assigned_attrs = self._apply_attributes(entity)
+
+            # ✅ MODIFIED: Include initial attributes in trace
+            details = f"entity created, priority={entity.priority}"
+
+            if assigned_attrs:
+                attr_strs = []
+                for name, value in assigned_attrs:
+                    if isinstance(value, float):
+                        attr_strs.append(f"{name}={value:.2f}")
+                    else:
+                        attr_strs.append(f"{name}={value}")
+                details += f", Attrib: {', '.join(attr_strs)}"
+
+            self._trace('generate', entity, details=details)
             
             # Log creation as an event
             if self.event_logger:

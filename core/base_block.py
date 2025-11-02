@@ -86,6 +86,9 @@ class BaseBlock(ABC):
     
     def _apply_attributes(self, entity: Entity):
         """Apply configured attributes to entity."""
+
+        assigned_attrs = []  # ✅ NEW: Track assigned attributes
+
         for attr_name, attr_value in self.attributes_to_assign.items():
             if callable(attr_value):
                 value = attr_value()
@@ -96,10 +99,14 @@ class BaseBlock(ABC):
             # print(f"[DEBUG ATTRIBUTE 1]: {attr_name}: {value}")
             entity.add_attribute(f"{self.name}_{attr_name}", value)            
             # print(f"[DEBUG ATTRIBUTE 2]: {self.name}_{attr_name}: {value}")
-            
+
+            # ✅ NEW: Record what was assigned
+            assigned_attrs.append((attr_name, value))            
 
             # ✅ Debug print
             # print(f"[DEBUG] {attr_name}: {value}")
+
+        return assigned_attrs  # ✅ NEW: Return list of (name, value) tuples
 
     def _modify_attributes(self, entity: Entity):
         """
@@ -107,6 +114,8 @@ class BaseBlock(ABC):
         
         NEW: Modifies existing attributes based on configured functions.
         """
+        modified_attrs = []  # ✅ NEW: Track modifications
+
         for attr_name, modification_func in self.attributes_to_modify.items():
             # Get current value (with default of 0)
             current_value = entity.get_attribute(attr_name, 0)
@@ -119,6 +128,11 @@ class BaseBlock(ABC):
             
             # Update attribute
             entity.add_attribute(attr_name, new_value)
+
+            # ✅ NEW: Record what was modified (old -> new)
+            modified_attrs.append((attr_name, current_value, new_value))
+        
+        return modified_attrs  # ✅ NEW: Return list of (name, old_value, new_value) tuples
 
         
     def connect_to(self, next_block: 'BaseBlock'):

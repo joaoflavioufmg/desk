@@ -26,8 +26,11 @@ class DisposeBlock(BaseBlock):
         entity.add_attribute("system_time", system_time)
         entity.add_attribute("disposal_time", self.env.now)
 
-        # NEW: Apply configured attributes (e.g., revenue)
-        self._apply_attributes(entity)
+        # # NEW: Apply configured attributes (e.g., revenue)
+        # self._apply_attributes(entity)
+
+        # ✅ MODIFIED: Capture assigned attributes (e.g., revenue)
+        assigned_attrs = self._apply_attributes(entity)
 
         self.disposed_entities.append(entity)  # Always keep for plotting
         
@@ -36,9 +39,20 @@ class DisposeBlock(BaseBlock):
             self.total_system_time += system_time
             self.entities_disposed += 1
 
-        # NEW: Trace departure
-        self._trace('departure', entity, 
-                   details=f"total_time_in_system={system_time:.2f}")
+        # # NEW: Trace departure
+        # self._trace('departure', entity, 
+        #            details=f"total_time_in_system={system_time:.2f}")
+
+        # ✅ MODIFIED: Include attributes in departure trace
+        details = f"total_time_in_system={system_time:.2f}"
+
+        # Add attribute info if any were assigned
+        if assigned_attrs:
+            attr_strs = [f"{name}={value:.2f}" if isinstance(value, float) else f"{name}={value}" 
+                        for name, value in assigned_attrs]
+            details += f", Attrib: {', '.join(attr_strs)}"
+
+        self._trace('departure', entity, details=details)
 
         # Log disposal
         if self.event_logger:
