@@ -376,8 +376,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Journey of Maquina_1")
     print("="*80)    
-    model.trace_entity('Maquina_1')    
     pause_simulation()
+    model.trace_entity('Maquina_1')        
     
     # ========================================
     # Replay with filters
@@ -385,8 +385,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - First 2 maquinas only")
     print("="*80)    
-    model.replay_trace(entity_pattern = r'^Maquina_[1-2]$')
     pause_simulation()
+    model.replay_trace(entity_pattern = r'^Maquina_[1-2]$')    
 
     # ========================================
     # Trace specific resource
@@ -394,8 +394,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Equipe interactions only")
     print("="*80)    
-    model.replay_trace(resource_filter={'Equipes'})
     pause_simulation()
+    model.replay_trace(resource_filter={'Equipes'})    
 
     # ========================================
     # Trace specific event types
@@ -403,8 +403,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Queue and service events only")
     print("="*80)    
-    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
     pause_simulation()
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})    
 
     # ========================================
     # Trace time window
@@ -412,8 +412,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Events between t=20 and t=40")
     print("="*80)    
-    model.replay_trace(time_range=(1000, 10000))
     pause_simulation()
+    model.replay_trace(time_range=(1000, 10000))    
 
     # ========================================
     # Combined filters
@@ -421,12 +421,12 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Maquina_1 at equipe (queue + service)")
     print("="*80)    
+    pause_simulation()
     model.replay_trace(
         entity_filter={'Maquina_1'},
         resource_filter={'Equipes'},
         event_type_filter={'queue', 'service_start', 'service_end'}
-    )
-    pause_simulation()
+    )    
 
     # ========================================
     # Multiple patient journeys
@@ -434,8 +434,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Detailed journeys of first 2 maquinas")
     print("="*80)    
-    model.trace_entities(['Maquina_1', 'Maquina_2', 'Maquina_3'])
     pause_simulation()
+    model.trace_entities(['Maquina_1', 'Maquina_2', 'Maquina_3'])    
 
     # ========================================
     # Trace statistics
