@@ -84,7 +84,7 @@ def build_ex_model(final_simulation_time=None, event_logger=None, verbose=True,
     
     # Resources - regular, priority, preempt
     rec1 = model.add_resource("Rec1", 2, "regular")     
-    rec2 = model.add_resource("Rec2", 6, "priority")
+    rec2 = model.add_resource("Rec2", 4, "priority")
     # rec3 = model.add_resource("Rec3", 4, "preemptive") 
     rec3 = model.add_resource("Rec3", 6, "regular") 
 
@@ -264,7 +264,7 @@ def build_ex_model(final_simulation_time=None, event_logger=None, verbose=True,
     # Add decision routes (Attention: MUST consider 100% of flows!)
     decide_condition.add_route("It_is_Ent_A_Attrib_01", dispose1, 
         condition=entity_type_A and evaluate_attribute_1)
-    decide_condition.add_route("It_is_Ent_A_Attrib_02", dispose2, 
+    decide_condition.add_route("It_is_Ent_A_Attrib_02", atividade_2, 
         condition=entity_type_A and evaluate_attribute_2)
 
     # Add decision routes (Attention: MUST consider 100% of flows!)
@@ -470,7 +470,7 @@ def ex_factorial_analysis():
     factorial.print_summary()
     factorial.plot_correlation_matrix()
     factorial.plot_main_effects('system_time_avg')
-    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_rec1')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_Rec1')
     
     # Export
     factorial.export_results()
@@ -497,10 +497,10 @@ def main():
     
     # Create configuration
     config = SimulationConfig(
-        # warm_up_period=1,
-        # duration=30,
-        warm_up_period=0.5*HOURS,
-        duration=8*HOURS,        
+        warm_up_period=1,
+        duration=60,
+        # warm_up_period=0.5*HOURS,
+        # duration=8*HOURS,        
         # warm_up_period=5*DAYS,        
         # duration=21*DAYS,        
         seed=123,
@@ -649,6 +649,18 @@ def main():
     reporter._print_block_statistics()
 
     
+    # Print variable results
+    # ================================================================
+    tracker = model.variable_tracker
+    print(f"\n{'='*60}")
+    print(f"RESULTS (Variables):")
+    print(f"Total entities: {model.entity_count}")
+    print(f"Entities tracked: {tracker.get_final('var1_num_eventos')}")
+    print(f"Percentage tracked: {tracker.get_final('var_02_percentual_eventos'):.2f}%")
+    print(f"{'='*60}")
+    # ================================================================
+    
+
     # Financial analysis
     print("\nPlotting financial analysys...")
     financial_analyzer = FinancialAnalyzer(model)
@@ -678,4 +690,4 @@ if __name__ == "__main__":
     model, logger = main()
     # run_replications()
     # factorial = ex_factorial_analysis()
-    run_visualization(build_ex_model, simulation_time=8*60)
+    # run_visualization(build_ex_model, simulation_time=8*60)

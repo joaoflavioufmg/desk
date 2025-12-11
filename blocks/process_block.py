@@ -164,21 +164,45 @@ class ProcessBlock(BaseBlock):
                 # self._apply_attributes(entity)
                 # ✅ MODIFIED: Capture assigned attributes
                 assigned_attrs = self._apply_attributes(entity)
-                self._modify_attributes(entity)  # NEW: Apply dynamic modifications
+                # self._modify_attributes(entity)  # NEW: Apply dynamic modifications
+                modified_attrs = self._modify_attributes(entity)
                 
                 # # NEW: Trace service end
                 # utilization = self.resource.count / self.resource.capacity
                 # self._trace('service_end', entity, self.resource_name,
-                #            f"utilization={utilization:.0%}")
+                #            f"use={utilization:.0%}")
                 
                 # ✅ MODIFIED: Include attributes in trace
                 utilization = self.resource.count / self.resource.capacity
-                details = f"utilization={utilization:.0%}"
+                details = f"use={utilization:.0%}"
 
-                # Add attribute info if any were assigned
+                # # Add attribute info if any were assigned
+                # if assigned_attrs:
+                #     attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
+                #     details += f", Attrib: {', '.join(attr_strs)}"
+
+                # Collect all attribute changes
+                attr_changes = []
+
+                # Add assigned attributes
                 if assigned_attrs:
-                    attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
-                    details += f", Attrib: {', '.join(attr_strs)}"
+                    for name, value in assigned_attrs:
+                        if isinstance(value, float):
+                            attr_changes.append(f"{name}={value:.2f}")
+                        else:
+                            attr_changes.append(f"{name}={value}")
+
+                # Add modified attributes (show old->new)
+                if modified_attrs:
+                    for name, old_val, new_val in modified_attrs:
+                        if isinstance(new_val, float):
+                            attr_changes.append(f"{name}: {old_val:.2f}→{new_val:.2f}")
+                        else:
+                            attr_changes.append(f"{name}: {old_val}→{new_val}")
+
+                # Append to details if any changes occurred
+                if attr_changes:
+                    details += f", Attrib: {', '.join(attr_changes)}"
 
                 self._trace('service_end', entity, self.resource_name, details)
 
@@ -380,24 +404,48 @@ class MultiProcessBlock(BaseBlock):
 
                 
                 # self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)                
-                # ✅ MODIFIED: Capture assigned attributes
+                # ✅ MODIFIED: Capture assigned and modified attributes
                 assigned_attrs = self._apply_attributes(entity) # Apply configured attributes (e.g., cost, revenue)
-                self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
+                # self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
+                modified_attrs = self._modify_attributes(entity)
                 
                 # ✅ FIX 4: Trace service end AFTER service completion
                 # Calculate average utilization across all resources
                 avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
                 
                 # ✅ MODIFIED: Include attributes in trace
-                details = f"utilization={avg_utilization:.0%}"
+                details = f"use={avg_utilization:.0%}"
                 
                 # self._trace('service_end', entity, resources_str,
-                #            f"utilization={avg_utilization:.0%}")
+                #            f"use={avg_utilization:.0%}")
 
-                # Add attribute info if any were assigned
+                # # Add attribute info if any were assigned
+                # if assigned_attrs:
+                #     attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
+                #     details += f", Attrib: {', '.join(attr_strs)}"
+
+                # Collect all attribute changes
+                attr_changes = []
+
+                # Add assigned attributes
                 if assigned_attrs:
-                    attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
-                    details += f", Attrib: {', '.join(attr_strs)}"
+                    for name, value in assigned_attrs:
+                        if isinstance(value, float):
+                            attr_changes.append(f"{name}={value:.2f}")
+                        else:
+                            attr_changes.append(f"{name}={value}")
+
+                # Add modified attributes (show old->new)
+                if modified_attrs:
+                    for name, old_val, new_val in modified_attrs:
+                        if isinstance(new_val, float):
+                            attr_changes.append(f"{name}: {old_val:.2f}→{new_val:.2f}")
+                        else:
+                            attr_changes.append(f"{name}: {old_val}→{new_val}")
+
+                # Append to details if any changes occurred
+                if attr_changes:
+                    details += f", Attrib: {', '.join(attr_changes)}"
 
                 self._trace('service_end', entity, resources_str, details)
                 
