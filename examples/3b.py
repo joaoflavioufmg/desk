@@ -433,7 +433,6 @@ def main():
     pause_simulation()
     model.trace_entity('Chamada_1')    
     
-    
     # ========================================
     # Replay with filters
     # ========================================

@@ -469,16 +469,16 @@ def main():
     )
     
     pause_simulation()
+    
     # === ANALYSIS PHASE (using separate modules) ===
-
     # ========================================
     # Trace specific patient
     # ========================================    
     print("\n" + "="*80)
     print("FILTER: Journey of Cliente_1")
     print("="*80)    
-    model.trace_entity('Cliente_1')    
     pause_simulation()
+    model.trace_entity('Cliente_1')        
     
     # ========================================
     # Replay with filters
@@ -486,8 +486,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - First 3 customers only")
     print("="*80)    
-    model.replay_trace(entity_pattern = r'^Cliente_[1-3]$')
     pause_simulation()
+    model.replay_trace(entity_pattern = r'^Cliente_[1-3]$')    
 
     # ========================================
     # Trace specific resource
@@ -495,8 +495,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Garcons interactions only")
     print("="*80)    
-    model.replay_trace(resource_filter={'Garcons'})
     pause_simulation()
+    model.replay_trace(resource_filter={'Garcons'})    
 
     # ========================================
     # Trace specific event types
@@ -504,8 +504,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Queue and service events only")
     print("="*80)    
-    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
     pause_simulation()
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})    
 
     # ========================================
     # Trace time window
@@ -513,8 +513,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Events between t=20 and t=40")
     print("="*80)    
-    model.replay_trace(time_range=(20, 40))
     pause_simulation()
+    model.replay_trace(time_range=(20, 40))    
 
     # ========================================
     # Combined filters
@@ -522,12 +522,12 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Replay - Cliente_1 at garcons (queue + service)")
     print("="*80)    
+    pause_simulation()
     model.replay_trace(
         entity_filter={'Cliente_1'},
         resource_filter={'Garcons'},
         event_type_filter={'queue', 'service_start', 'service_end'}
-    )
-    pause_simulation()
+    )    
 
     # ========================================
     # Multiple customers journeys
@@ -535,8 +535,8 @@ def main():
     print("\n" + "="*80)
     print("FILTER: Detailed journeys of first 3 customers")
     print("="*80)    
-    model.trace_entities(['Cliente_1', 'Cliente_2', 'Cliente_3'])
     pause_simulation()
+    model.trace_entities(['Cliente_1', 'Cliente_2', 'Cliente_3'])    
 
     # ========================================
     # Trace statistics

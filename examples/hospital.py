@@ -417,78 +417,78 @@ def main():
     
     # === ANALYSIS PHASE (using separate modules) ===
     
-    # # ========================================
-    # # Trace specific patient
-    # # ========================================    
-    # print("\n" + "="*80)
-    # print("FILTER: Journey of Patient_1")
-    # print("="*80)    
-    # model.trace_entity('Patient_1')    
-    # pause_simulation()
+    # ========================================
+    # Trace specific patient
+    # ========================================    
+    print("\n" + "="*80)
+    print("FILTER: Journey of Patient_1")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entity('Patient_1')        
     
-    # # ========================================
-    # # Replay with filters
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Replay - First 3 patients only")
-    # print("="*80)    
-    # model.replay_trace(entity_pattern = r'^Patient_[1-3]$')
-    # pause_simulation()
+    # ========================================
+    # Replay with filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - First 3 patients only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(entity_pattern = r'^Patient_[1-3]$')
+    
+    # ========================================
+    # Trace specific resource
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Doctor interactions only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(resource_filter={'doctors'})
+    
+    # ========================================
+    # Trace specific event types
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Queue and service events only")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
+    
+    # ========================================
+    # Trace time window
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Events between t=20 and t=40")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(time_range=(20, 40))
+    
+    # ========================================
+    # Combined filters
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Replay - Patient_1 at doctors (queue + service)")
+    print("="*80)    
+    pause_simulation()
+    model.replay_trace(
+        entity_filter={'Patient_1'},
+        resource_filter={'doctors'},
+        event_type_filter={'queue', 'service_start', 'service_end'}
+    )    
 
-    # # ========================================
-    # # Trace specific resource
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Replay - Doctor interactions only")
-    # print("="*80)    
-    # model.replay_trace(resource_filter={'doctors'})
-    # pause_simulation()
-
-    # # ========================================
-    # # Trace specific event types
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Replay - Queue and service events only")
-    # print("="*80)    
-    # model.replay_trace(event_type_filter={'queue', 'service_start', 'service_end'})
-    # pause_simulation()
-
-    # # ========================================
-    # # Trace time window
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Replay - Events between t=20 and t=40")
-    # print("="*80)    
-    # model.replay_trace(time_range=(20, 40))
-    # pause_simulation()
-
-    # # ========================================
-    # # Combined filters
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Replay - Patient_1 at doctors (queue + service)")
-    # print("="*80)    
-    # model.replay_trace(
-    #     entity_filter={'Patient_1'},
-    #     resource_filter={'doctors'},
-    #     event_type_filter={'queue', 'service_start', 'service_end'}
-    # )
-    # pause_simulation()
-
-    # # ========================================
-    # # Multiple patient journeys
-    # # ========================================
-    # print("\n" + "="*80)
-    # print("FILTER: Detailed journeys of first 3 patients")
-    # print("="*80)    
-    # model.trace_entities(['Patient_1', 'Patient_2', 'Patient_3'])
-    # pause_simulation()
-
-    # # ========================================
-    # # Trace statistics
-    # # ========================================
-    # model.print_trace_statistics()
-    # pause_simulation()
+    # ========================================
+    # Multiple patient journeys
+    # ========================================
+    print("\n" + "="*80)
+    print("FILTER: Detailed journeys of first 3 patients")
+    print("="*80)    
+    pause_simulation()
+    model.trace_entities(['Patient_1', 'Patient_2', 'Patient_3'])
+    
+    # ========================================
+    # Trace statistics
+    # ========================================
+    model.print_trace_statistics()
+    pause_simulation()
 
         
     print("\n" + "="*60)
@@ -558,7 +558,7 @@ def main():
 
 
 if __name__ == "__main__":
-    # model, logger = main()
+    model, logger = main()
     # run_replications()
     # factorial = hospital_factorial_analysis()    
-    run_visualization(build_hospital_model, simulation_time=500)
+    # run_visualization(build_hospital_model, simulation_time=500)
