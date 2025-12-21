@@ -2,6 +2,7 @@
 # FILE: core/model_variables.py
 # =====================================================================
 from dataclasses import dataclass, field
+from tabnanny import verbose
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
@@ -137,7 +138,8 @@ class ModelVariableTracker:
         # Record initial value
         var.record(self.model.env.now, initial_value)
         
-        print(f"Variable added: {name} = {initial_value} {unit}")
+        if verbose:
+            print(f"Variable added: {name} = {initial_value} {unit}")
     
     def update(self, name: str, time: Optional[float] = None, value: Any = None):
         """
