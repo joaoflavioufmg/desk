@@ -1,7 +1,5 @@
 # Citation
 
-If you use DESK in academic work, please cite:
-
 If you use **DESK — Discrete Event Simulation Kit** in academic work, please cite it as software.
 
 ---

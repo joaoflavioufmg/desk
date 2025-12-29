@@ -331,11 +331,11 @@ MIT License — see `LICENSE` file.
 If you use DESK in academic work, please cite:
 
 ```bibtex
-@software{desk2024,
+@software{desk2025,
   author = {Almeida, João Flávio de Freitas},
   title = {DESK: Discrete Event Simulation Kit},
-  year = {2024},
+  year = {2025},
   institution = {PPGEP-UFMG},
-  url = {https://github.com/joaoflavioufmg/DESK}
+  url = {https://github.com/joaoflavioufmg/desk}
 }
 ```
