@@ -309,7 +309,7 @@ Contributions are welcome:
 
 ## 📄 License
 
-MIT License — see `LICENSE` file.
+GPL-3.0 License — see `LICENSE` file.
 
 ---
 
