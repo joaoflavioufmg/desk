@@ -1,9 +1,8 @@
-```markdown
 # Input Analysis with DistFit
 
 
 DESK includes a CLI tool for fitting probability distributions to empirical data.
-```
+
 
 ```bash
 python input.py -d data.txt

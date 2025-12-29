@@ -1,6 +1,5 @@
-```markdown
 # Replication Analysis
-```
+
 
 ```python
 from stats.replication import ReplicationFramework

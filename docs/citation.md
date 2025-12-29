@@ -16,3 +16,4 @@ If you use **DESK — Discrete Event Simulation Kit** in academic work, please c
   doi          = {10.5281/zenodo.18088013},
   url          = {https://doi.org/10.5281/zenodo.18088013}
 }
+```

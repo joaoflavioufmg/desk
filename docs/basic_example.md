@@ -1,9 +1,8 @@
-```markdown
 # Basic Simulation Example
 
 
 This example illustrates a simple hospital triage system using DESK blocks.
-```
+
 
 ```python
 from core.simulation_model import SimulationModel
