@@ -1,10 +1,10 @@
 site_name: DESK — Discrete Event Simulation Kit
 site_description: Scientific framework for discrete-event simulation and experimental design
 site_author: João Flávio de Freitas Almeida
-site_url: https://joaoflavioufmg.github.io/DESK
+site_url: https://joaoflavioufmg.github.io/desk
 
 repo_name: DESK
-repo_url: https://github.com/joaoflavioufmg/DESK
+repo_url: https://github.com/joaoflavioufmg/desk
 
 theme:
   name: material
