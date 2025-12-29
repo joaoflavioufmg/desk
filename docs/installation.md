@@ -14,7 +14,9 @@
 
 
 ## Install dependencies
-
+```
 
 ```bash
 pip install simpy numpy pandas scipy matplotlib
+```
+
