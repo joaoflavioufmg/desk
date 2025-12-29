@@ -311,6 +311,10 @@ Contributions are welcome:
 
 GPL-3.0 License — see `LICENSE` file.
 
+- The DESK book and documentation are licensed under Creative Commons
+
+Attribution 4.0 (CC BY 4.0).
+
 ---
 
 ## 👨‍🏫 Acknowledgements
