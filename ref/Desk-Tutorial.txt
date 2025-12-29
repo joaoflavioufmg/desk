@@ -1611,25 +1611,62 @@ Orientações
 
 📌 This multiplicity strengthens evaluation.
 
+
+
 ##################################
 
 How to use it (next 5 minutes)
 
-Copy the structure into your DESK repository
-
-Replace <username> with your GitHub username
-
 Run locally:
 
 pip install mkdocs mkdocs-material
-mkdocs serve
 
+mkdocs serve
 
 Deploy:
 
 mkdocs gh-deploy
 
+Make this repository public to enable Pages
+
+GitHub Pages is designed to host your personal, organization, or project pages from a GitHub repository.
+
+https://github.com/joaoflavioufmg/desk/settings/pages
+
 
 Your site will be live at:
 
 https://joaoflavioufmg.github.io/desk
+
+
+Configure GitHub Pages (one-time)
+
+In your repository:
+
+Settings → Pages
+
+Source: Deploy from a branch
+
+Branch: gh-pages
+
+Folder: / (root)
+
+Save
+
+
+Commit and push
+git add .github/workflows/deploy-docs.yml
+git commit -m "Add GitHub Actions workflow for MkDocs deployment"
+git push origin main
+
+
+Verify deployment
+Go to Actions tab → you should see:
+
+Deploy MkDocs to GitHub Pages
+
+Wait for ✔ green check
+
+Visit:
+
+https://joaoflavioufmg.github.io/DESK/
