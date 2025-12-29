@@ -3,7 +3,7 @@
 
 
 This example illustrates a simple hospital triage system using DESK blocks.
-
+```
 
 ```python
 from core.simulation_model import SimulationModel
@@ -51,3 +51,4 @@ triage.connect_to(discharge)
 
 
 model.run_simulation(until=480, warm_up_period=60, seed=123)
+```

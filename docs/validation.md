@@ -9,3 +9,4 @@ DESK provides built-in validation utilities:
 - Resource consistency validation
 - Little’s Law verification
 - Automated warm-up detection
+```
