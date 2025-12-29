@@ -1,9 +1,9 @@
-# Distribution Fitting Tool
-
-Course: EPD899: Simulacao de Sistemas Logísticos 
+# Distribution Fitting Tool (DistFit) for DESK
+ 
 Prof: João Flávio de Freitas Almeida (PPGEP-UFMG)
+Course: EPD899: Simulating Logistics Systems
 
-A Python tool for fitting probability distributions to empirical data using statistical tests. This tool helps identify the best-fitting probability distribution from a set of common distributions and provides Python code for generating random numbers from the fitted distribution.
+DistFit is a Python tool for fitting probability distributions to empirical data using statistical tests. This tool helps identify the best-fitting probability distribution from a set of common distributions and provides Python code for generating random numbers from the fitted distribution. It can be used with the Discrete Event Simulation Kit (DESK).
 
 ## Features
 
@@ -30,9 +30,10 @@ pip install numpy pandas scipy matplotlib
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/distribution-fitting-tool.git
-cd distribution-fitting-tool
+git clone https://github.com/joaoflavioufmg/desk.git
+cd desk/distfit
 ```
+
 
 2. Install dependencies:
 ```bash
@@ -321,8 +322,8 @@ python input.py -d data.txt -v
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/distribution-fitting-tool.git
-cd distribution-fitting-tool
+git clone https://github.com/joaoflavioufmg/desk.git
+cd desk/distfit
 
 # Create virtual environment
 python -m venv venv
@@ -341,7 +342,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Based on work from EPD899: Simulacao de Sistemas Logísticos course
+- Based on work from Course: EPD899: Simulating Logistics Systems
 - Prof. João Flávio de Freitas Almeida (PPGEP-UFMG)
 - Uses SciPy for statistical distributions and tests
 - Matplotlib for visualization
