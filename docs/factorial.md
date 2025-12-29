@@ -1,6 +1,4 @@
-```markdown
 # Factorial and Scenario Experiments
-```
 
 ```python
 from stats.factorial import FactorialExperiment
