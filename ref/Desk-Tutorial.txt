@@ -1610,3 +1610,26 @@ Orientações
 	Courses based on DESK
 
 📌 This multiplicity strengthens evaluation.
+
+##################################
+
+How to use it (next 5 minutes)
+
+Copy the structure into your DESK repository
+
+Replace <username> with your GitHub username
+
+Run locally:
+
+pip install mkdocs mkdocs-material
+mkdocs serve
+
+
+Deploy:
+
+mkdocs gh-deploy
+
+
+Your site will be live at:
+
+https://joaoflavioufmg.github.io/desk
