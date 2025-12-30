@@ -13,6 +13,8 @@ A comprehensive Python framework for **Discrete Event Simulation** with advanced
 
 **DESK (Discrete Event Simulation Kit)** is a professional-grade simulation framework built on top of **SimPy**, designed for modeling complex systems such as hospitals, call centers, manufacturing, and service operations.
 
+DESK addresses the gap of structured experimental design and replication automation in discrete-event simulation workflows.
+
 The framework emphasizes:
 - modularity,
 - reusability,
