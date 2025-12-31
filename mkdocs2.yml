@@ -16,6 +16,17 @@ theme:
 
 nav:
   - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Basic Example: basic_example.md
+  - Analysis:
+      - Input Analysis (DistFit): input_analysis.md
+      - Replication Analysis: replication.md
+      - Factorial Experiments: factorial.md
+  - Validation & V&V: validation.md
+  - Examples: examples.md
+  - Project Structure: project_structure.md
+  - Citation: citation.md
 
 markdown_extensions:
   - admonition
