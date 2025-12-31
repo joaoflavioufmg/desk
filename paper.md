@@ -8,7 +8,7 @@ tags:
   - reproducible research
   - operations research
 authors:
-  - name: João Flávio de Freitas Almeida
+  - name: "João Flávio de Freitas Almeida"
     orcid: 0000-0002-3884-217X
     affiliation: 1
 affiliations:
@@ -32,7 +32,7 @@ DESK addresses this gap by structuring simulation experiments as configurable an
 
 # Related Work
 
-Several established tools support discrete-event simulation, including open-source libraries such as SimPy [@simpy2014], commercial simulation platforms, and domain-specific simulators. These tools provide robust mechanisms for event scheduling and process interaction but typically leave experiment orchestration, replication management, and experimental design to the user.
+Several established tools support discrete-event simulation, including open-source libraries such as SimPy [@matloff2008introduction], commercial simulation platforms, and domain-specific simulators. These tools provide robust mechanisms for event scheduling and process interaction but typically leave experiment orchestration, replication management, and experimental design to the user.
 
 DESK is designed to complement existing simulation engines by focusing on the organization and execution of simulation experiments rather than on simulation performance or low-level execution mechanisms. Its design is aligned with established principles for the design and analysis of simulation experiments [@kleijnen2015design], while remaining interoperable with existing DES modeling approaches.
 

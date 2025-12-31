@@ -428,3 +428,93 @@ Statement of research need		⚠
 Automated tests					⚠
 Documentation sufficient 		⚠
 Paper ready						❌
+
+
+📋 Next Steps for JOSS Readiness
+
+Here’s a practical TODO list before submission:
+
+🎯 MUST-DO
+
+	Add paper.md in root with required sections
+	Improve README
+	Clear statement of need (research context)
+	Installation + test instructions
+	Automate test suite
+	Link to documentation clearly
+	Ensure DOI badge is visible
+
+	OPTIONAL BUT HELPFUL
+	Add example research workflows (e.g., classroom use, replication study)
+	Add performance metrics or verification scripts to tests
+	Mention future work / extensibility
+	
+
+pandoc paper.md --citeproc --bibliography=paper.bib -o paper.pdf
+
+
+====================================
+📝 JOSS Submission Issue (Ready to Paste)
+
+Title
+
+DESK: A Replication- and Experimental-Design-Oriented Framework for Discrete-Event Simulation
+
+
+Summary
+
+Discrete-event simulation (DES) is widely used in operations research, logistics, healthcare, and service systems. While mature simulation engines exist for model execution, the design and management of simulation experiments—such as replication analysis, factorial experiments, and result aggregation—are often implemented in an ad hoc manner, limiting reproducibility and increasing implementation effort.
+
+DESK (Discrete Event Simulation Kit) is an open-source Python framework that explicitly supports the experimental workflow of discrete-event simulation studies. The framework provides abstractions for replication management, factorial and scenario analysis, and automated aggregation of performance metrics, while remaining compatible with existing DES modeling approaches. DESK is intended for research and teaching applications, with an emphasis on reproducibility, transparency, and methodological rigor.
+
+Statement of Need
+
+Simulation studies require multiple replications, parameter variations, and systematic output analysis to ensure valid statistical inference. Despite their central role, these experimental components are rarely treated as first-class entities in simulation software, leading researchers to repeatedly reimplement replication loops and experimental logic across projects.
+
+DESK addresses this gap by structuring simulation experiments as configurable, reusable software components that are decoupled from core model logic. This approach reduces methodological ambiguity, supports reproducible research practices, and lowers the barrier for conducting rigorous simulation experiments, particularly in academic and educational contexts.
+
+Research Context
+
+DESK complements existing discrete-event simulation engines, such as SimPy and commercial simulation platforms, by focusing on experiment orchestration rather than low-level simulation execution. Its design is grounded in established principles of simulation output analysis and experimental design and is aligned with best practices in reproducible computational research.
+
+Key References
+
+Banks et al., Discrete-Event System Simulation
+
+Law, Simulation Modeling and Analysis
+
+Kleijnen, Design and Analysis of Simulation Experiments
+
+Montgomery, Design and Analysis of Experiments
+
+SimPy (Journal of Statistical Software)
+
+Repository
+
+Code repository:
+https://github.com/joaoflavioufmg/desk
+
+License:
+GNU General Public License v3.0 (GPL-3.0)
+
+Documentation:
+Included in the repository (README.md and docs/)
+
+Manuscript
+
+Manuscript file: paper.md
+
+Bibliography: paper.bib
+
+Archive
+
+DOI (Zenodo):
+https://doi.org/10.5281/zenodo.18088013
+
+(concept DOI; versioned releases available)
+
+Authors
+
+João Flávio de Freitas Almeida
+Graduate Program in Production Engineering (PPGEP),
+Federal University of Minas Gerais (UFMG), Brazil
