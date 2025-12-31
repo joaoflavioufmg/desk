@@ -1,3 +1,5 @@
+<!-- AUTO-GENERATED FROM README.md — DO NOT EDIT -->
+
 # DESK — Discrete Event Simulation Kit
 
 

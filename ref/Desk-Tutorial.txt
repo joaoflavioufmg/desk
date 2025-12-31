@@ -1659,7 +1659,6 @@ git add .github/workflows/deploy-docs.yml
 git commit -m "Add GitHub Actions workflow for MkDocs deployment"
 git push origin main
 
-
 Verify deployment
 Go to Actions tab → you should see:
 
@@ -1670,3 +1669,10 @@ Wait for ✔ green check
 Visit:
 
 https://joaoflavioufmg.github.io/DESK/
+
+
+=============================
+Run locally:
+pip install mkdocs mkdocs-material
+mkdocs serve
+mkdocs gh-deploy
