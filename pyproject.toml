@@ -7,7 +7,7 @@ name = "desk-sim"
 version = "1.0.2"
 description = "DESK: Discrete Event Simulation Kit"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13.6"
 license = { text = "GPL-3.0" }
 authors = [
   { name = "João Flávio", email = "joao.flavio@dep.ufmg.br" }
