@@ -1,7 +1,7 @@
 ## Requirements
 
 
-- Python >= 3.8
+- Python >= 3.13.6
 - simpy >= 4.0.1
 - numpy
 - pandas
