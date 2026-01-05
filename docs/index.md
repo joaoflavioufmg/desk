@@ -5,8 +5,6 @@
 ![Run unit tests](https://github.com/joaoflavioufmg/desk/actions/workflows/tests.yml/badge.svg)![Docs](https://github.com/joaoflavioufmg/desk/actions/workflows/deploy-docs.yml/badge.svg?branch=main)
 
 
-
-
 A comprehensive Python framework for **Discrete Event Simulation** with advanced analysis, visualization, and experimental design capabilities.
 
 ---
