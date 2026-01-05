@@ -42,14 +42,29 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_hospital_model(event_logger=None):
-    """Build a hospital simulation model with refactored structure."""
+def build_hospital_model(final_simulation_time=None, event_logger=None, verbose=True,
+                        entity_filter=None, resource_filter=None,
+                        event_type_filter=None, time_range=None): 
+    """Build the simulation model with refactored structure.
+    Args:
+        event_logger: Optional event logger
+        verbose: Enable event tracing
+        entity_filter: Optional entity filter for tracing
+        resource_filter: Optional resource filter for tracing
+        event_type_filter: Optional event type filter for tracing
+        time_range: Optional time range for tracing
+    """
+    
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
     YEARS = 525600
     
-    model = SimulationModel()
+    model = SimulationModel(verbose=verbose,
+        entity_filter=entity_filter,
+        resource_filter=resource_filter,
+        event_type_filter=event_type_filter,
+        time_range=time_range)  # NEW: Pass verbose flag
 
     # Unidade básica para todos os tempos: minutos
     def distribution(tipo):
@@ -204,6 +219,8 @@ def build_hospital_model(event_logger=None):
     
     pharmacy_block.connect_to(discharge)
 
+
+
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
@@ -237,7 +254,21 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     from core.entity import EventLogger
     
     event_logger = EventLogger()
-    model = build_hospital_model(event_logger)
+
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+
+    # Create configuration
+    config = SimulationConfig(
+        duration=24*HOURS,
+        warm_up_period=2*HOURS,        
+        seed=123,
+        check_stability=True
+    )
+
+    # model = build_hospital_model(event_logger)
+    model = build_hospital_model(config.duration, event_logger, verbose=False)
 
     # # Validate once on first run
     # if seed == 12345:
@@ -379,8 +410,7 @@ def main():
     
     # Build model
     print("Building hospital model...")
-    model = build_hospital_model(event_logger)
-    
+
     # Create configuration
     config = SimulationConfig(
         # warm_up_period=0
@@ -393,6 +423,11 @@ def main():
         check_stability=True
     )
     config.validate()
+    
+    # model = build_hospital_model(event_logger)
+    model = build_hospital_model(config.duration, event_logger, verbose=True)
+    
+    
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
