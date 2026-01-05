@@ -11,6 +11,31 @@ from core.simulation_model import SimulationModel
 from core.entity import EventLogger
 
 
+# @pytest.fixture
+# def env_with_model(event_logger):
+#     """
+#     SimPy environment with attached DESK SimulationModel.
+#     This is the canonical fixture for block-level tests.
+#     """
+#     env = simpy.Environment()
+#     model = SimulationModel(env=env, event_logger=event_logger)
+#     env.model = model
+#     return env
+@pytest.fixture
+def env_with_model(event_logger):
+    """
+    SimPy environment with attached DESK SimulationModel.
+    Matches the real SimulationModel API.
+    """
+    env = simpy.Environment()
+    model = SimulationModel()
+    model.env = env
+    model.event_logger = event_logger
+    env.model = model
+    return env
+
+
+
 @pytest.fixture
 def simple_env():
     """Create a simple SimPy environment."""

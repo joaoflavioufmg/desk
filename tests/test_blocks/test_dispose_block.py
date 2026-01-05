@@ -8,9 +8,9 @@ from core.entity import Entity, EventLogger
 class TestDisposeBlock:
     """Test DisposeBlock functionality."""
     
-    def test_dispose_block_initialization(self):
+    def test_dispose_block_initialization(self, env_with_model):
         """Test DisposeBlock initialization."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DisposeBlock("Exit", env)
         
         assert block.name == "Exit"
@@ -18,9 +18,9 @@ class TestDisposeBlock:
         assert block.total_system_time == 0.0
         assert block.disposed_entities == []
     
-    def test_entity_disposal(self):
+    def test_entity_disposal(self, env_with_model):
         """Test basic entity disposal."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DisposeBlock("Exit", env)
         
         entity = Entity("E1", creation_time=10.0)
@@ -37,9 +37,9 @@ class TestDisposeBlock:
         assert entity.get_attribute("system_time") == 15.0
         assert entity.get_attribute("disposal_time") == 25.0
     
-    def test_multiple_disposals(self):
+    def test_multiple_disposals(self, env_with_model):
         """Test disposing multiple entities."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DisposeBlock("Exit", env)
         
         entities = [
@@ -60,9 +60,9 @@ class TestDisposeBlock:
         assert block.entities_disposed == 3
         assert len(block.disposed_entities) == 3
     
-    def test_warm_up_handling(self):
+    def test_warm_up_handling(self, env_with_model):
         """Test that warm-up period is respected."""
-        env = simpy.Environment()
+        env = env_with_model
         env.warm_up_period = 50.0
         block = DisposeBlock("Exit", env)
         
@@ -90,9 +90,9 @@ class TestDisposeBlock:
         assert block.entities_disposed == 1
         assert len(block.disposed_entities) == 2  # Both kept for plotting
     
-    def test_average_system_time(self):
+    def test_average_system_time(self, env_with_model):
         """Test average system time calculation."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DisposeBlock("Exit", env)
         
         # Create entities with known system times
@@ -113,9 +113,9 @@ class TestDisposeBlock:
         # Average: (10 + 20 + 30) / 3 = 20
         assert block.get_average_system_time() == 20.0
     
-    def test_event_logging(self):
+    def test_event_logging(self, env_with_model):
         """Test that disposal events are logged."""
-        env = simpy.Environment()
+        env = env_with_model
         logger = EventLogger()
         block = DisposeBlock("Exit", env, event_logger=logger)
         
@@ -134,9 +134,9 @@ class TestDisposeBlock:
         assert events.iloc[0]["lifecycle"] == "complete"
         assert events.iloc[0]["system_time"] == 10.0
     
-    def test_attribute_assignment(self):
+    def test_attribute_assignment(self, env_with_model):
         """Test that configured attributes are applied."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DisposeBlock("Exit", env)
         
         block.assign_attributes(

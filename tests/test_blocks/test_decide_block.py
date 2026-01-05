@@ -9,9 +9,9 @@ from core.entity import Entity, EventLogger
 class TestDecideBlock:
     """Test DecideBlock functionality."""
     
-    def test_decide_block_initialization(self):
+    def test_decide_block_initialization(self, env_with_model):
         """Test DecideBlock initialization."""
-        env = simpy.Environment()
+        env = env_with_model
         
         block = DecideBlock("Decision", env, decision_type="probability")
         
@@ -20,9 +20,9 @@ class TestDecideBlock:
         assert block.routes == {}
         assert block.decision_counts == {}
     
-    def test_add_route_probability(self):
+    def test_add_route_probability(self, env_with_model):
         """Test adding probability-based route."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DecideBlock("Decision", env, decision_type="probability")
         next_block = DisposeBlock("Exit", env)
         
@@ -32,9 +32,9 @@ class TestDecideBlock:
         assert block.routes["route1"]["probability"] == 0.7
         assert block.routes["route1"]["block"] == next_block
     
-    def test_add_route_condition(self):
+    def test_add_route_condition(self, env_with_model):
         """Test adding condition-based route."""
-        env = simpy.Environment()
+        env = env_with_model
         block = DecideBlock("Decision", env, decision_type="condition")
         next_block = DisposeBlock("Exit", env)
         
@@ -44,9 +44,9 @@ class TestDecideBlock:
         assert "urgent" in block.routes
         assert block.routes["urgent"]["condition"] == condition
     
-    def test_probability_routing(self):
+    def test_probability_routing(self, env_with_model):
         """Test probability-based routing."""
-        env = simpy.Environment()
+        env = env_with_model
         decision = DecideBlock("Decision", env, decision_type="probability")
         
         exit1 = DisposeBlock("Exit1", env)
@@ -74,9 +74,9 @@ class TestDecideBlock:
         assert decision.decision_counts["route2"] > 0
         assert decision.decision_counts["route1"] + decision.decision_counts["route2"] == 100
     
-    def test_condition_routing(self):
+    def test_condition_routing(self, env_with_model):
         """Test condition-based routing."""
-        env = simpy.Environment()
+        env = env_with_model
         decision = DecideBlock("Decision", env, decision_type="condition")
         
         urgent_exit = DisposeBlock("UrgentExit", env)
@@ -106,7 +106,7 @@ class TestDecideBlock:
         assert urgent_entity.get_attribute("Decision_decision") == "urgent"
         
         # Test normal entity
-        env = simpy.Environment()
+        env = env_with_model
         decision = DecideBlock("Decision", env, decision_type="condition")
         decision.add_route("urgent", urgent_exit, condition=lambda e: e.priority <= 1)
         decision.add_route("normal", normal_exit, condition=lambda e: e.priority > 1)
@@ -121,9 +121,9 @@ class TestDecideBlock:
         
         assert decision.decision_counts["normal"] == 1
     
-    def test_event_logging(self):
+    def test_event_logging(self, env_with_model):
         """Test that decisions are logged."""
-        env = simpy.Environment()
+        env = env_with_model
         logger = EventLogger()
         decision = DecideBlock("Decision", env, decision_type="probability", event_logger=logger)
         
