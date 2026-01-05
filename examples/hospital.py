@@ -326,7 +326,7 @@ def hospital_factorial_analysis():
     
     # Define simulation function wrapper
     def hospital_simulation_wrapper(arrival_rate=4, num_doctors=4, num_nurses=3,
-                                    seed=None, until=None, warm_up_period=0, **kwargs):
+                                    seed=None, until=None, warm_up_period=0, verbose=False, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
         # ############################################################
@@ -336,7 +336,7 @@ def hospital_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_hospital_model()
+        model = build_hospital_model(verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
