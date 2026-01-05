@@ -2,6 +2,7 @@
 # FILE: hospital.py
 # =====================================================================
 import random
+import sys
 from stats.factorial import FactorialExperiment
 from stats.replication import ReplicationFramework    
 from analytics.financial import FinancialAnalyzer
@@ -359,6 +360,11 @@ def hospital_factorial_analysis():
     return factorial
 # ================================================================
 
+def pause_simulation(message="Continue? (Enter=yes / n=no): "):
+    answer = input(message)
+    if answer.lower().startswith('n'):
+        print(f"Simulation stopped!")
+        sys.exit()  # stops the simulation
 
 
 def main():
