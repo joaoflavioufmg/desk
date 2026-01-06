@@ -3,6 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18088013.svg)](https://doi.org/10.5281/zenodo.18088013)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 ![CI](https://github.com/joaoflavioufmg/desk/actions/workflows/tests.yml/badge.svg)![Docs](https://github.com/joaoflavioufmg/desk/actions/workflows/deploy-docs.yml/badge.svg?branch=main)
+[![Documentation Status](https://readthedocs.org/projects/desk-sim/badge/?version=latest)](https://desk-sim.readthedocs.io/en/latest/?badge=latest)
 
 
 A comprehensive Python framework for **Discrete Event Simulation** with advanced analysis, visualization, and experimental design capabilities.
