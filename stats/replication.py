@@ -572,7 +572,7 @@ class ReplicationFramework:
         # return pd.DataFrame(self.replication_results)
         return df
     
-    def export_results(self, filename: str = "framework_results.csv"):
+    def export_results(self, filename: str = "results/framework_results.csv"):
         """
         Export results to CSV file.
         

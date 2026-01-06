@@ -34,7 +34,7 @@ print(verification_plot)
 
 # Now create the animation with verified colors
 # NOTE: Replace "ex1_event_log_bupar.csv" with the actual path if running outside a script's directory
-event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/ex1_event_log.csv")
+event_log <- read.csv("C:/Users/user/Desktop/desk/results/ex1_event_log.csv")
 
 
 # Map priorities

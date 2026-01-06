@@ -236,7 +236,7 @@ class TestReplicationFramework:
             warm_up_period=0
         )
         
-        csv_file = tmp_path / "test_results.csv"
+        csv_file = tmp_path / "results/test_results.csv"
         framework.export_results(str(csv_file))
         
         assert csv_file.exists()

@@ -490,7 +490,7 @@ def main():
 
     # 5. Export event log
     print("\nExporting event log...")
-    df = event_logger.export_to_csv("ex1_event_log.csv")
+    df = event_logger.export_to_csv("results/ex1_event_log.csv")
     print(f"\nFirst 10 events:")
     print(df.head(10))
     

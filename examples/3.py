@@ -404,7 +404,7 @@ def main():
     # Build model
     print("Building ex3 model...")
     verbose = config.duration <= 1/10*HOURS    
-    model = build_ex3_model(config.duration, event_logger, verbose=verbose)
+    model = build_ex3_model(config.duration, event_logger, verbose=True)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -555,7 +555,7 @@ def main():
 
     # 5. Export event log
     print("\nExporting event log...")
-    df = event_logger.export_to_csv("ex3_event_log.csv")
+    df = event_logger.export_to_csv("results/ex3_event_log.csv")
     print(f"\nFirst 10 events:")
     print(df.head(10))
     

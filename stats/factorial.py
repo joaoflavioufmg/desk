@@ -571,7 +571,7 @@ class FactorialExperiment:
         print(f"   Replicações por configuração: {n_reps}")
         print(f"   Total de execuções: {len(self.results_df)}")
     
-    def export_results(self, filename: str = "factorial_results.csv",
+    def export_results(self, filename: str = "results/factorial_results.csv",
                       export_filtered: bool = False):
         """
         Export results to CSV.
