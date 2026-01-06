@@ -4,6 +4,8 @@
 desk/
 │
 ├── __init__.py
+|
+├── input.py                   # DistFit CLI tool
 │
 ├── core/
 │   ├── __init__.py
