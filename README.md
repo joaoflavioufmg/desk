@@ -51,7 +51,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Replication Framework**: Automated multi-run experiments with confidence intervals
 - **Factorial Experiments**: Full factorial design with interaction analysis
 - **Warm-Up Analysis**: Automated transient detection
-- **Stability Analysis**: Capacity validation (ρ < 1)
+- **Stability Analysis**: Capacity analysis on utilization (ρ < 1)
 
 ---
 
@@ -60,7 +60,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Resource Metrics**: Utilization, queue length, busy/idle time
 - **WIP Tracking**: Time-weighted work-in-process analysis
 - **Financial Analysis**: Cost and revenue per activity
-- **Little’s Law Verification**: Automatic validation of L = λW
+- **Little’s Law Verification**: Automatic analysis on stability: The average number of items in the system (L) equals the average arrival rate (λ) multiplied by the average time an item spends in the system (W): L = λW
 
 ---
 
