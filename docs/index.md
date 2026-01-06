@@ -244,6 +244,7 @@ factorial.plot_interaction_effects(
 
 ```text
 DESK/
+├── config/                    # Simulation setting
 ├── core/                      # Core simulation engine
 ├── blocks/                    # Simulation building blocks
 ├── analytics/                 # Metrics, plots, reports
@@ -251,8 +252,9 @@ DESK/
 ├── validation/                # Stability and warm-up analysis
 ├── visualization/             # Real-time visualization
 ├── input.py                   # DistFit CLI tool
+├── examples/
 ├── hospital.py                # Hospital example
-├── 3.py                       # Call center example
+├── 3.py                       # Call center examples (3, 3a, 3b)
 └── README.md
 ```
 
