@@ -71,7 +71,8 @@ DESK is suitable for **teaching, research, and applied decision support**.
   - WIP evolution
   - System time distributions
   - Activity-level metrics
-- **BupaR Integration**: Process mining and animation in R
+- **BupaR Integration**: Process mining and animation in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
+
 - **Automated Reports**: Results with diagnostics and recommendations
 
 ---
@@ -86,7 +87,7 @@ git clone https://github.com/joaoflavioufmg/desk.git
 cd desk
 
 # Install dependencies
-pip install -r requirements.txt
+pip install .
 
 
 
@@ -95,47 +96,57 @@ pip install -r requirements.txt
 ## 🚀 Basic Example
 
 ```python
-from core.simulation_model import SimulationModel
-from core.entity import EventLogger
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-import random
+def build_model(until=None, event_logger=None, verbose=True): 
+    
+    import random
+    from core.simulation_model import SimulationModel
+    from core.entity import EventLogger
+    from blocks.create_block import CreateBlock
+    from blocks.process_block import ProcessBlock
+    from blocks.dispose_block import DisposeBlock
+    
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Create model
+    model = SimulationModel()
+    event_logger = EventLogger()
 
-# Create model
-model = SimulationModel()
-event_logger = EventLogger()
+    # Add resources
+    nurses = model.add_resource("Nurses", capacity=3, resource_type="priority")
 
-# Add resources
-nurses = model.add_resource("Nurses", capacity=3, resource_type="priority")
+    # Define blocks
+    arrivals = CreateBlock(
+        "Arrivals", model.env,
+        inter_arrival_time=lambda: random.expovariate(1/10),
+        entity_prefix="Patient",
+        event_logger=event_logger
+    )
 
-# Define blocks
-arrivals = CreateBlock(
-    "Arrivals", model.env,
-    inter_arrival_time=lambda: random.expovariate(1/10),
-    entity_prefix="Patient",
-    event_logger=event_logger
-)
+    triage = ProcessBlock(
+        "Triage", model.env,
+        resource=nurses,
+        delay_time=lambda: random.uniform(5, 10),
+        resource_units=1,
+        event_logger=event_logger
+    )
 
-triage = ProcessBlock(
-    "Triage", model.env,
-    resource=nurses,
-    delay_time=lambda: random.uniform(5, 10),
-    resource_units=1,
-    event_logger=event_logger
-)
+    discharge = DisposeBlock("Discharge", model.env, event_logger=event_logger)
 
-discharge = DisposeBlock("Discharge", model.env, event_logger=event_logger)
+    # Register blocks
+    for block in [arrivals, triage, discharge]:
+        model.add_block(block)
 
-# Register blocks
-for block in [arrivals, triage, discharge]:
-    model.add_block(block)
-
-# Connect flow
-arrivals.connect_to(triage)
-triage.connect_to(discharge)
-
-# Run simulation
+    # Connect flow
+    arrivals.connect_to(triage)
+    triage.connect_to(discharge)
+    
+    return model
+    
+    
+# Run a simulation replication
+model = build_model()
 model.run_simulation(
     until=480,          # 8 hours
     warm_up_period=60,  # 1 hour
@@ -146,6 +157,10 @@ model.run_simulation(
 from analytics.reporting import SimulationReporter
 reporter = SimulationReporter(model)
 reporter.print_results()
+reporter._print_activity_metrics()
+reporter._print_resource_metrics()
+reporter._print_entity_counts()
+reporter._print_block_statistics()
 ```
 
 ---
@@ -185,57 +200,124 @@ python input.py -d data.txt --no-plot
 ### Replication Analysis
 
 ```python
-from stats.replication import ReplicationFramework
+# Define simulation function wrapper
+def simulation_wrapper(seed=None, until=None, warm_up_period=None):
+    """Wrapper function for replication framework."""
+    
+    from core.entity import EventLogger
+    event_logger = EventLogger()
 
-replication_framework = ReplicationFramework(
-    simulation_function=simulation_wrapper,
-    n_replications=30
-)
+    # Create a fresh model
+    model = build_model(until=until, event_logger=event_logger, verbose=False)
+    
+    model.run_simulation(
+        validate_resources=False,
+        until=until,
+        seed=seed,
+        warm_up_period=warm_up_period
+    )
+    
+    return model
 
-replication_framework.run_replications(
-    base_seed=12345,
-    until=24*60,
-    warm_up_period=2*60
-)
+def run_replications():
+    from stats.replication import ReplicationFramework
+    
+    replication_framework = ReplicationFramework(
+        simulation_function=simulation_wrapper,
+        n_replications=30
+    )
 
-df = replication_framework.get_results_dataframe()
-print(df.describe())
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    replication_framework.run_replications(
+        base_seed=12345,
+        until=8*HOURS,
+        warm_up_period=1*HOURS
+    )
+
+    # Access results
+    df = replication_framework.get_results_dataframe()
+    print(df.describe())
+
+   
+# Run a full simulation    
+run_replications()
 ```
 
 ### Factorial Experiments
 
 ```python
-from stats.factorial import FactorialExperiment
+def factorial_analysis():
+    """Factorial analysis with simulation."""
+    
+    from stats.factorial import FactorialExperiment
 
-factorial = FactorialExperiment(
-    simulation_function=hospital_simulation_wrapper,
-    base_seed=12345
-)
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
 
-factorial.add_factor(
-    factor_name='arrival_rate',
-    parameter_path='CreateBlock.inter_arrival_time',
-    levels=[3, 4, 5],
-    description='Patient arrival rate (minutes)'
-)
+    def simulation_wrapper(arrival_rate=1, num_nurses=1,
+                                seed=None, until=None, warm_up_period=0, **kwargs):
+        """Wrapper that adapts parameters for factorial analysis."""
 
-factorial.add_factor(
-    factor_name='num_doctors',
-    parameter_path='Resource.doctors.capacity',
-    levels=[3, 4, 5],
-    description='Number of doctors'
-)
+        from core.entity import EventLogger
+        event_logger = EventLogger()
 
-factorial.run_factorial_experiment(
-    n_replications=5,
-    simulation_time=40*60,
-    warm_up_period=7*60
-)
+        # Create a fresh model
+        model = build_model(until=until, event_logger=event_logger, verbose=False)
+        
+        model.run_simulation(
+            validate_resources=False,
+            until=until,
+            seed=seed,
+            warm_up_period=warm_up_period
+        )
+        
+        return model
+    
+    # Create factorial analysis
+    factorial = FactorialExperiment(
+        simulation_function=simulation_wrapper,
+        base_seed=12345
+    )
+    
+    # Add factors
+    factorial.add_factor(
+        factor_name='arrival_rate',
+        parameter_path='CreateBlock.inter_arrival_time',
+        levels=[1, 2, 3],  # Minutes between arrivals
+        description='Inter arrival rates (min)'
+    )
+    
+    factorial.add_factor(
+        factor_name='num_nurses',
+        parameter_path='Resource.nurses.capacity',
+        levels=[1, 2, 3],
+        description='Number of nurses'
+    )
+    
+    
+    # Run experiment
+    factorial.run_factorial_experiment(
+        n_replications=5,
+        simulation_time=4*HOURS,  # 4 hours
+        warm_up_period=1/2*HOURS,    # 1/2 hour
+        verbose=True
+    )
+    
+    # Analyze results
+    factorial.print_summary()
+    factorial.plot_correlation_matrix()
+    factorial.plot_main_effects('system_time_avg')
+    factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_nurses')
+     
+    return factorial
 
-factorial.plot_main_effects('system_time_avg')
-factorial.plot_interaction_effects(
-    'system_time_avg', 'arrival_rate', 'num_doctors'
-)
+# Run factorial analysis
+factorial_analysis()
 ```
 
 ---
@@ -253,8 +335,9 @@ DESK/
 ├── visualization/             # Real-time visualization
 ├── input.py                   # DistFit CLI tool
 ├── examples/
-├── hospital.py                # Hospital example
-├── 3.py                       # Call center examples (3, 3a, 3b)
+├── 1) hospital.py             # Hospital example
+├── 2) 2.py                    # Restaurant example
+├── 3) 3.py, 3a.py, 3b.py      # Call center (and variations 3a, 3b)
 └── README.md
 ```
 
@@ -262,14 +345,16 @@ DESK/
 
 ## 🎓 Example Models
 
-* **Hospital Emergency Department**
+1) **Hospital Emergency Department**
   Triage, multiple resources, priority routing, financial tracking
 
-* **Call Center with Lost Calls**
+2) **Restaurant Service**
+  Multi-resource activities, dynamic attributes, financials
+
+3) **Call Center with Lost Calls**
   Trunk capacity, blocking, retrials, custom KPIs
 
-* **Restaurant Service**
-  Multi-resource activities, dynamic attributes, satisfaction metrics
+
 
 ---
 
@@ -277,26 +362,26 @@ DESK/
 
 DESK includes:
 
-* Stability checker (ρ < 1)
+* Stability checker (utilization ρ < 1)
 * Resource consistency validation
-* Little’s Law verification
-* Automated warm-up detection
+* Little’s Law analysis
+* Automated warm-up suggestion
 
 ---
 
 ## 🛠️ Requirements
 
-* Python >= 3.8
-* simpy >= 4.0.1
-* numpy
-* pandas
-* scipy
-* matplotlib
+* Python >= 3.10
+* simpy == 4.1.1
+* numpy == 2.2.6
+* pandas == 2.3.1
+* scipy == 1.15.3
+* matplotlib == 3.10.5
 
 **Optional (for process mining):**
 
 * R >= 4.0
-* bupaR
+* BupaR
 * processanimateR
 
 ---
@@ -316,7 +401,7 @@ Contributions are welcome:
 
 GPL-3.0 License — see `LICENSE` file.
 
-- The DESK book and documentation are licensed under Creative Commons
+- The DESK documentation are licensed under Creative Commons
 
 Attribution 4.0 (CC BY 4.0).
 
@@ -325,11 +410,12 @@ Attribution 4.0 (CC BY 4.0).
 ## 👨‍🏫 Acknowledgements
 
 **Author:** Prof. João Flávio de Freitas Almeida
-**Program:** PPGEP — UFMG
+
+**Program:** PPGEP — UFMG (Brazil)
+
 **Course:** Simulating Logistics Systems
 
 **Credits:**
-
 * SimPy
 * bupaR (R)
 
