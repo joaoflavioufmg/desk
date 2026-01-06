@@ -36,13 +36,20 @@ jobs:
       # =========================
       # Upload to Read the Docs
       # =========================
-      - name: Upload docs to Read the Docs
-        uses: readthedocs/actions/upload@v1
-        with:
-          api-token: ${{ secrets.RTD_API_TOKEN }}
-          project: desk
-          version: latest
-          path: site/
+      # - name: Upload docs to Read the Docs
+      #   uses: readthedocs/actions/upload@v1
+      #   with:
+      #     api-token: ${{ secrets.RTD_API_TOKEN }}
+      #     project: desk
+      #     version: latest
+      #     path: site/
+      - name: Trigger Read the Docs build
+        run: |
+          curl -X POST \
+            -H "Authorization: Token ${{ secrets.RTD_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://readthedocs.org/api/v3/projects/desk/versions/latest/builds/
+
 
       # =========================
       # GitHub Pages
