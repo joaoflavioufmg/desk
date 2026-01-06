@@ -1,5 +1,6 @@
 [build-system]
 requires = ["setuptools>=60"]
+requires-python = ">=3.10,<3.14"
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -33,12 +34,12 @@ classifiers = [
 ]
 
 dependencies = [
-  "simpy>=4.1,<5",
-  "numpy>=1.23,<2.1",
-  "pandas>=1.5,<2.2",
-  "scipy>=1.9,<1.12",
-  "matplotlib>=3.6,<3.9",
-  "seaborn>=0.12,<0.14"
+  "numpy==1.26.4",
+  "scipy==1.11.4",
+  "pandas==2.0.3",
+  "matplotlib==3.8.4",
+  "seaborn==0.13.2",
+  "simpy==4.1"
 ]
 
 [project.optional-dependencies]
