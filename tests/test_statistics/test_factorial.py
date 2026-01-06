@@ -290,7 +290,7 @@ class TestFactorialExperiment:
             verbose=False
         )
         
-        csv_file = tmp_path / "results/factorial_results.csv"
+        csv_file = tmp_path / "factorial_results.csv"
         factorial.export_results(str(csv_file))
         
         assert csv_file.exists()
