@@ -1,0 +1,1594 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Scientific framework for discrete-event simulation and experimental design">
+      
+      
+        <meta name="author" content="João Flávio de Freitas Almeida">
+      
+      
+        <link rel="canonical" href="https://desk.readthedocs.io/">
+      
+      
+      
+        <link rel="next" href="getting-started/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>DESK — Discrete Event Simulation Kit</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#desk-discrete-event-simulation-kit" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="DESK — Discrete Event Simulation Kit" class="md-header__button md-logo" aria-label="DESK — Discrete Event Simulation Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DESK — Discrete Event Simulation Kit
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Home
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/joaoflavioufmg/desk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    joaoflavioufmg/desk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="input_analysis/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Input Analysis (DistFit)
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="replication/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Replication Analysis
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="factorial/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Factorial Experiments
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="validation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Validation & V&V
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="project_structure/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Project Structure
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="citation/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Citation
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="DESK — Discrete Event Simulation Kit" class="md-nav__button md-logo" aria-label="DESK — Discrete Event Simulation Kit" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    DESK — Discrete Event Simulation Kit
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/joaoflavioufmg/desk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    joaoflavioufmg/desk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✨ Key Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="✨ Key Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-simulation-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Simulation Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experimental-design-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental Design &amp; Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualization &amp; Reporting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🚀 Quick Start
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🚀 Quick Start">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-analysis-with-distfit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 Input Analysis with DistFit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#experimental-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧪 Experimental Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧪 Experimental Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#replication-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replication Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factorial-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factorial Experiments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎓 Example Models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔬 Validation &amp; Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🤝 Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📄 License
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        👨‍🏫 Acknowledgements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#citation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📚 Citation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="input_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Analysis (DistFit)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="factorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Factorial Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & V&V
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="project_structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="citation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Citation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📋 Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ✨ Key Features
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="✨ Key Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#core-simulation-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Simulation Engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experimental-design-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experimental Design &amp; Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualization &amp; Reporting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🚀 Quick Start
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🚀 Quick Start">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-analysis-with-distfit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 Input Analysis with DistFit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#experimental-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🧪 Experimental Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🧪 Experimental Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#replication-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replication Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#factorial-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factorial Experiments
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#project-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📂 Project Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🎓 Example Models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔬 Validation &amp; Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🛠️ Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🤝 Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📄 License
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        👨‍🏫 Acknowledgements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#citation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📚 Citation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="desk-discrete-event-simulation-kit">DESK — Discrete Event Simulation Kit<a class="headerlink" href="#desk-discrete-event-simulation-kit" title="Permanent link">&para;</a></h1>
+<p><a href="https://doi.org/10.5281/zenodo.18088013"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.18088013.svg" /></a>
+<a href="LICENSE"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg" /></a>
+<img alt="CI" src="https://github.com/joaoflavioufmg/desk/actions/workflows/tests.yml/badge.svg" /><img alt="Docs" src="https://github.com/joaoflavioufmg/desk/actions/workflows/deploy-docs.yml/badge.svg?branch=main" /></p>
+<p>A comprehensive Python framework for <strong>Discrete Event Simulation</strong> with advanced analysis, visualization, and experimental design capabilities.</p>
+<hr />
+<h2 id="overview">📋 Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p><strong>DESK (Discrete Event Simulation Kit)</strong> is a professional-grade simulation framework built on top of <strong>SimPy</strong>, designed for modeling complex systems such as hospitals, call centers, manufacturing, and service operations.</p>
+<p>DESK addresses the gap of structured experimental design and replication automation in discrete-event simulation workflows.</p>
+<p>The framework emphasizes:
+- modularity,
+- reusability,
+- transparency,
+- and rigorous statistical analysis.</p>
+<p>DESK is suitable for <strong>teaching, research, and applied decision support</strong>.</p>
+<hr />
+<h2 id="key-features">✨ Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
+<h3 id="core-simulation-engine">Core Simulation Engine<a class="headerlink" href="#core-simulation-engine" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Modular Block Architecture</strong>: Reusable building blocks (<code>CREATE</code>, <code>PROCESS</code>, <code>DECIDE</code>, <code>DISPOSE</code>)</li>
+<li><strong>Advanced Resource Management</strong>: Regular, priority-based, and preemptive resources</li>
+<li><strong>Entity Attributes &amp; State Variables</strong>: Dynamic assignment and modification</li>
+<li><strong>Priority Scheduling</strong>: Activity-level and entity-level priority control</li>
+<li><strong>Event Tracing</strong>: Comprehensive event logging with filtering and replay</li>
+</ul>
+<hr />
+<h3 id="input-analysis">Input Analysis<a class="headerlink" href="#input-analysis" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>DistFit Tool</strong>: Automated distribution fitting with statistical tests  </li>
+<li>Supports 9+ distributions:</li>
+<li>uniform, triangular, exponential, normal, lognormal, beta, gamma, Weibull</li>
+<li>Kolmogorov–Smirnov goodness-of-fit tests</li>
+<li>Automatic Python <code>random</code> code generation</li>
+<li>Multiple output formats: table, JSON, CSV</li>
+</ul>
+<hr />
+<h3 id="experimental-design-analysis">Experimental Design &amp; Analysis<a class="headerlink" href="#experimental-design-analysis" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Replication Framework</strong>: Automated multi-run experiments with confidence intervals</li>
+<li><strong>Factorial Experiments</strong>: Full factorial design with interaction analysis</li>
+<li><strong>Warm-Up Analysis</strong>: Automated transient detection</li>
+<li><strong>Stability Analysis</strong>: Capacity validation (ρ &lt; 1)</li>
+</ul>
+<hr />
+<h3 id="performance-metrics">Performance Metrics<a class="headerlink" href="#performance-metrics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Entity Metrics</strong>: System time, queue time, service time</li>
+<li><strong>Resource Metrics</strong>: Utilization, queue length, busy/idle time</li>
+<li><strong>WIP Tracking</strong>: Time-weighted work-in-process analysis</li>
+<li><strong>Financial Analysis</strong>: Cost and revenue per activity</li>
+<li><strong>Little’s Law Verification</strong>: Automatic validation of L = λW</li>
+</ul>
+<hr />
+<h3 id="visualization-reporting">Visualization &amp; Reporting<a class="headerlink" href="#visualization-reporting" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Real-Time Visualization</strong>: Interactive process animation during simulation</li>
+<li><strong>Statistical Plots</strong>:</li>
+<li>Resource utilization over time</li>
+<li>WIP evolution</li>
+<li>System time distributions</li>
+<li>Activity-level metrics</li>
+<li><strong>BupaR Integration</strong>: Process mining and animation in R</li>
+<li><strong>Automated Reports</strong>: Results with diagnostics and recommendations</li>
+</ul>
+<hr />
+<h2 id="quick-start">🚀 Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<h3 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Clone the repository</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/joaoflavioufmg/desk.git
+<span class="nb">cd</span><span class="w"> </span>desk
+
+<span class="c1"># Install dependencies</span>
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
+
+
+
+<span class="c1"># DESK — Discrete Event Simulation Kit</span>
+
+<span class="c1">## 🚀 Basic Example</span>
+
+<span class="sb">```</span>python
+from<span class="w"> </span>core.simulation_model<span class="w"> </span>import<span class="w"> </span>SimulationModel
+from<span class="w"> </span>core.entity<span class="w"> </span>import<span class="w"> </span>EventLogger
+from<span class="w"> </span>blocks.create_block<span class="w"> </span>import<span class="w"> </span>CreateBlock
+from<span class="w"> </span>blocks.process_block<span class="w"> </span>import<span class="w"> </span>ProcessBlock
+from<span class="w"> </span>blocks.dispose_block<span class="w"> </span>import<span class="w"> </span>DisposeBlock
+import<span class="w"> </span>random
+
+<span class="c1"># Create model</span>
+<span class="nv">model</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>SimulationModel<span class="o">()</span>
+<span class="nv">event_logger</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>EventLogger<span class="o">()</span>
+
+<span class="c1"># Add resources</span>
+<span class="nv">nurses</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>model.add_resource<span class="o">(</span><span class="s2">&quot;Nurses&quot;</span>,<span class="w"> </span><span class="nv">capacity</span><span class="o">=</span><span class="m">3</span>,<span class="w"> </span><span class="nv">resource_type</span><span class="o">=</span><span class="s2">&quot;priority&quot;</span><span class="o">)</span>
+
+<span class="c1"># Define blocks</span>
+<span class="nv">arrivals</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>CreateBlock<span class="o">(</span>
+<span class="w">    </span><span class="s2">&quot;Arrivals&quot;</span>,<span class="w"> </span>model.env,
+<span class="w">    </span><span class="nv">inter_arrival_time</span><span class="o">=</span>lambda:<span class="w"> </span>random.expovariate<span class="o">(</span><span class="m">1</span>/10<span class="o">)</span>,
+<span class="w">    </span><span class="nv">entity_prefix</span><span class="o">=</span><span class="s2">&quot;Patient&quot;</span>,
+<span class="w">    </span><span class="nv">event_logger</span><span class="o">=</span>event_logger
+<span class="o">)</span>
+
+<span class="nv">triage</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>ProcessBlock<span class="o">(</span>
+<span class="w">    </span><span class="s2">&quot;Triage&quot;</span>,<span class="w"> </span>model.env,
+<span class="w">    </span><span class="nv">resource</span><span class="o">=</span>nurses,
+<span class="w">    </span><span class="nv">delay_time</span><span class="o">=</span>lambda:<span class="w"> </span>random.uniform<span class="o">(</span><span class="m">5</span>,<span class="w"> </span><span class="m">10</span><span class="o">)</span>,
+<span class="w">    </span><span class="nv">resource_units</span><span class="o">=</span><span class="m">1</span>,
+<span class="w">    </span><span class="nv">event_logger</span><span class="o">=</span>event_logger
+<span class="o">)</span>
+
+<span class="nv">discharge</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>DisposeBlock<span class="o">(</span><span class="s2">&quot;Discharge&quot;</span>,<span class="w"> </span>model.env,<span class="w"> </span><span class="nv">event_logger</span><span class="o">=</span>event_logger<span class="o">)</span>
+
+<span class="c1"># Register blocks</span>
+<span class="k">for</span><span class="w"> </span>block<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">[</span>arrivals,<span class="w"> </span>triage,<span class="w"> </span>discharge<span class="o">]</span>:
+<span class="w">    </span>model.add_block<span class="o">(</span>block<span class="o">)</span>
+
+<span class="c1"># Connect flow</span>
+arrivals.connect_to<span class="o">(</span>triage<span class="o">)</span>
+triage.connect_to<span class="o">(</span>discharge<span class="o">)</span>
+
+<span class="c1"># Run simulation</span>
+model.run_simulation<span class="o">(</span>
+<span class="w">    </span><span class="k">until</span><span class="o">=</span><span class="m">480</span>,<span class="w">          </span><span class="c1"># 8 hours</span>
+<span class="w">    </span><span class="nv">warm_up_period</span><span class="o">=</span><span class="m">60</span>,<span class="w">  </span><span class="c1"># 1 hour</span>
+<span class="w">    </span><span class="nv">seed</span><span class="o">=</span><span class="m">123</span>
+<span class="o">)</span>
+
+<span class="c1"># Report results</span>
+from<span class="w"> </span>analytics.reporting<span class="w"> </span>import<span class="w"> </span>SimulationReporter
+<span class="nv">reporter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>SimulationReporter<span class="o">(</span>model<span class="o">)</span>
+reporter.print_results<span class="o">()</span>
+</code></pre></div>
+<hr />
+<h2 id="input-analysis-with-distfit">📊 Input Analysis with DistFit<a class="headerlink" href="#input-analysis-with-distfit" title="Permanent link">&para;</a></h2>
+<p>Fit probability distributions to empirical data:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Basic usage</span>
+python<span class="w"> </span>input.py<span class="w"> </span>-d<span class="w"> </span>data.txt
+
+<span class="c1"># Custom significance level</span>
+python<span class="w"> </span>input.py<span class="w"> </span>-d<span class="w"> </span>data.txt<span class="w"> </span>-a<span class="w"> </span><span class="m">0</span>.01
+
+<span class="c1"># Test specific distributions</span>
+python<span class="w"> </span>input.py<span class="w"> </span>-d<span class="w"> </span>data.txt<span class="w"> </span>--distributions<span class="w"> </span>norm<span class="w"> </span>expon<span class="w"> </span>gamma
+
+<span class="c1"># Save results</span>
+python<span class="w"> </span>input.py<span class="w"> </span>-d<span class="w"> </span>data.txt<span class="w"> </span>-o<span class="w"> </span>results.txt<span class="w"> </span>--format<span class="w"> </span>json
+
+<span class="c1"># Skip plotting</span>
+python<span class="w"> </span>input.py<span class="w"> </span>-d<span class="w"> </span>data.txt<span class="w"> </span>--no-plot
+</code></pre></div>
+<p><strong>Output includes:</strong></p>
+<ul>
+<li>Goodness-of-fit statistics</li>
+<li>Best-fit distribution</li>
+<li>Parameter estimates</li>
+<li>Ready-to-use Python code</li>
+</ul>
+<hr />
+<h2 id="experimental-design">🧪 Experimental Design<a class="headerlink" href="#experimental-design" title="Permanent link">&para;</a></h2>
+<h3 id="replication-analysis">Replication Analysis<a class="headerlink" href="#replication-analysis" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">stats.replication</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReplicationFramework</span>
+
+<span class="n">replication_framework</span> <span class="o">=</span> <span class="n">ReplicationFramework</span><span class="p">(</span>
+    <span class="n">simulation_function</span><span class="o">=</span><span class="n">simulation_wrapper</span><span class="p">,</span>
+    <span class="n">n_replications</span><span class="o">=</span><span class="mi">30</span>
+<span class="p">)</span>
+
+<span class="n">replication_framework</span><span class="o">.</span><span class="n">run_replications</span><span class="p">(</span>
+    <span class="n">base_seed</span><span class="o">=</span><span class="mi">12345</span><span class="p">,</span>
+    <span class="n">until</span><span class="o">=</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">warm_up_period</span><span class="o">=</span><span class="mi">2</span><span class="o">*</span><span class="mi">60</span>
+<span class="p">)</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">replication_framework</span><span class="o">.</span><span class="n">get_results_dataframe</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="factorial-experiments">Factorial Experiments<a class="headerlink" href="#factorial-experiments" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">stats.factorial</span><span class="w"> </span><span class="kn">import</span> <span class="n">FactorialExperiment</span>
+
+<span class="n">factorial</span> <span class="o">=</span> <span class="n">FactorialExperiment</span><span class="p">(</span>
+    <span class="n">simulation_function</span><span class="o">=</span><span class="n">hospital_simulation_wrapper</span><span class="p">,</span>
+    <span class="n">base_seed</span><span class="o">=</span><span class="mi">12345</span>
+<span class="p">)</span>
+
+<span class="n">factorial</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span>
+    <span class="n">factor_name</span><span class="o">=</span><span class="s1">&#39;arrival_rate&#39;</span><span class="p">,</span>
+    <span class="n">parameter_path</span><span class="o">=</span><span class="s1">&#39;CreateBlock.inter_arrival_time&#39;</span><span class="p">,</span>
+    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Patient arrival rate (minutes)&#39;</span>
+<span class="p">)</span>
+
+<span class="n">factorial</span><span class="o">.</span><span class="n">add_factor</span><span class="p">(</span>
+    <span class="n">factor_name</span><span class="o">=</span><span class="s1">&#39;num_doctors&#39;</span><span class="p">,</span>
+    <span class="n">parameter_path</span><span class="o">=</span><span class="s1">&#39;Resource.doctors.capacity&#39;</span><span class="p">,</span>
+    <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Number of doctors&#39;</span>
+<span class="p">)</span>
+
+<span class="n">factorial</span><span class="o">.</span><span class="n">run_factorial_experiment</span><span class="p">(</span>
+    <span class="n">n_replications</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">simulation_time</span><span class="o">=</span><span class="mi">40</span><span class="o">*</span><span class="mi">60</span><span class="p">,</span>
+    <span class="n">warm_up_period</span><span class="o">=</span><span class="mi">7</span><span class="o">*</span><span class="mi">60</span>
+<span class="p">)</span>
+
+<span class="n">factorial</span><span class="o">.</span><span class="n">plot_main_effects</span><span class="p">(</span><span class="s1">&#39;system_time_avg&#39;</span><span class="p">)</span>
+<span class="n">factorial</span><span class="o">.</span><span class="n">plot_interaction_effects</span><span class="p">(</span>
+    <span class="s1">&#39;system_time_avg&#39;</span><span class="p">,</span> <span class="s1">&#39;arrival_rate&#39;</span><span class="p">,</span> <span class="s1">&#39;num_doctors&#39;</span>
+<span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="project-structure">📂 Project Structure<a class="headerlink" href="#project-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>DESK/
+├── core/                      # Core simulation engine
+├── blocks/                    # Simulation building blocks
+├── analytics/                 # Metrics, plots, reports
+├── stats/                     # Replication &amp; factorial design
+├── validation/                # Stability and warm-up analysis
+├── visualization/             # Real-time visualization
+├── input.py                   # DistFit CLI tool
+├── hospital.py                # Hospital example
+├── 3.py                       # Call center example
+└── README.md
+</code></pre></div>
+<hr />
+<h2 id="example-models">🎓 Example Models<a class="headerlink" href="#example-models" title="Permanent link">&para;</a></h2>
+<ul>
+<li>
+<p><strong>Hospital Emergency Department</strong>
+  Triage, multiple resources, priority routing, financial tracking</p>
+</li>
+<li>
+<p><strong>Call Center with Lost Calls</strong>
+  Trunk capacity, blocking, retrials, custom KPIs</p>
+</li>
+<li>
+<p><strong>Restaurant Service</strong>
+  Multi-resource activities, dynamic attributes, satisfaction metrics</p>
+</li>
+</ul>
+<hr />
+<h2 id="validation-verification">🔬 Validation &amp; Verification<a class="headerlink" href="#validation-verification" title="Permanent link">&para;</a></h2>
+<p>DESK includes:</p>
+<ul>
+<li>Stability checker (ρ &lt; 1)</li>
+<li>Resource consistency validation</li>
+<li>Little’s Law verification</li>
+<li>Automated warm-up detection</li>
+</ul>
+<hr />
+<h2 id="requirements">🛠️ Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Python &gt;= 3.8</li>
+<li>simpy &gt;= 4.0.1</li>
+<li>numpy</li>
+<li>pandas</li>
+<li>scipy</li>
+<li>matplotlib</li>
+</ul>
+<p><strong>Optional (for process mining):</strong></p>
+<ul>
+<li>R &gt;= 4.0</li>
+<li>bupaR</li>
+<li>processanimateR</li>
+</ul>
+<hr />
+<h2 id="contributing">🤝 Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<p>Contributions are welcome:</p>
+<ol>
+<li>Fork the repository</li>
+<li>Create a feature branch</li>
+<li>Commit your changes</li>
+<li>Open a Pull Request</li>
+</ol>
+<hr />
+<h2 id="license">📄 License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>GPL-3.0 License — see <code>LICENSE</code> file.</p>
+<ul>
+<li>The DESK book and documentation are licensed under Creative Commons</li>
+</ul>
+<p>Attribution 4.0 (CC BY 4.0).</p>
+<hr />
+<h2 id="acknowledgements">👨‍🏫 Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permanent link">&para;</a></h2>
+<p><strong>Author:</strong> Prof. João Flávio de Freitas Almeida
+<strong>Program:</strong> PPGEP — UFMG
+<strong>Course:</strong> Simulating Logistics Systems</p>
+<p><strong>Credits:</strong></p>
+<ul>
+<li>SimPy</li>
+<li>bupaR (R)</li>
+</ul>
+<hr />
+<h2 id="citation">📚 Citation<a class="headerlink" href="#citation" title="Permanent link">&para;</a></h2>
+<p>If you use DESK in academic work, please cite:</p>
+<div class="highlight"><pre><span></span><code><span class="nc">@software</span><span class="p">{</span><span class="nl">desk2025</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Almeida, João Flávio de Freitas}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{DESK: Discrete Event Simulation Kit}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2025}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">institution</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{PPGEP-UFMG}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{https://github.com/joaoflavioufmg/desk}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.instant", "content.code.copy"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
