@@ -37,8 +37,8 @@ DESK is suitable for **teaching, research, and applied decision support**.
 
 ---
 
-### Input Analysis
-- **DistFit Tool**: Automated distribution fitting with statistical tests  
+### Input Analysis (`desk-distfit`)
+- **DistFit Tool**: Automated distribution fitting with statistical tests (`desk-distfit`) 
 - Supports 9+ distributions:
   - uniform, triangular, exponential, normal, lognormal, beta, gamma, Weibull
 - Kolmogorov–Smirnov goodness-of-fit tests
@@ -88,6 +88,12 @@ cd desk
 
 # Install dependencies
 pip install .
+# or
+pip install -e .
+
+# Then test:
+desk-distfit -h
+desk-distfit -d data.txt
 ```
 
 
@@ -165,25 +171,29 @@ reporter._print_block_statistics()
 
 ---
 
-## 📊 Input Analysis with DistFit
+## 📊 Input Analysis with Desk-DistFit
+
+`desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
+
+*DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*”*
 
 Fit probability distributions to empirical data:
 
 ```bash
 # Basic usage
-python input.py -d data.txt
+desk-distfit -d data.txt
 
 # Custom significance level
-python input.py -d data.txt -a 0.01
+desk-distfit -d data.txt -a 0.01
 
 # Test specific distributions
-python input.py -d data.txt --distributions norm expon gamma
+desk-distfit -d data.txt --distributions norm expon gamma
 
 # Save results
-python input.py -d data.txt -o results.txt --format json
+desk-distfit -d data.txt -o results.txt --format json
 
 # Skip plotting
-python input.py -d data.txt --no-plot
+desk-distfit -d data.txt --no-plot
 ```
 
 **Output includes:**
@@ -333,7 +343,7 @@ DESK/
 ├── stats/                     # Replication & factorial design
 ├── validation/                # Stability and warm-up analysis
 ├── visualization/             # Real-time visualization
-├── input.py                   # DistFit CLI tool
+├── distfit/distfit.py         # DistFit CLI tool
 ├── examples/
 ├── 1) hospital.py             # Hospital example
 ├── 2) 2.py                    # Restaurant example
