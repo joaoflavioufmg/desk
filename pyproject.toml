@@ -42,6 +42,9 @@ dependencies = [
   "simpy==4.1.1"
 ]
 
+[project.scripts]
+desk-distfit = "distfit.distfit:main"
+
 [project.optional-dependencies]
 dev = [
   "pytest",

@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-Distribution Fitting Tool
-========================
-A tool for fitting probability distributions to empirical data using statistical tests.
+Distribution Fitting Tool: Input Analysis with Desk-DistFit
+============================================================
+`desk-distfit` is the official DESK input-analysis CLI for 
+statistically fitting probability distributions to empirical data. 
 
-Author: João Flávio F. Almeida (research in the internet + AI-Claude)
-Course: EPD899: Simulacao de Sistemas Logísticos
+DESK adopts a verb-oriented command-line interface, where simulation 
+tasks are expressed as structured actions (`desk-distfit`), 
+ensuring consistency, reproducibility, and ease of learning across 
+the framework. Fit probability distributions to empirical data.
+
+Author: João Flávio F. Almeida (PPGEP-UFMG) <joao.flavio@dep.ufmg.br>
+Course: EPD899: Simulating Logistics Systems
+Refs: Research in the internet + AI
 """
 
 import warnings
@@ -391,12 +398,12 @@ def create_argument_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python input.py -d entrada1.txt                    # Basic usage
-  python input.py -d data.txt -a 0.01               # Custom significance level
-  python input.py -d data.txt -b 100                # Custom bins
-  python input.py -d data.txt --no-plot             # Skip plotting
-  python input.py -d data.txt --distributions norm expon gamma  # Test specific distributions
-  python input.py -d data.txt -o results.txt        # Save results to file
+  desk-distfit -d data.txt                                    # Basic usage
+  desk-distfit -d data.txt -a 0.01                            # Custom significance level
+  desk-distfit -d data.txt -b 100                             # Custom bins
+  desk-distfit -d data.txt --no-plot                          # Skip plotting
+  desk-distfit -d data.txt --distributions norm expon gamma   # Test specific distributions
+  desk-distfit -d data.txt -o results.txt --format json       # Save results to file
         """
     )
     
@@ -624,12 +631,12 @@ def main():
     else:
         # Run example/demo version (original main functionality)
         logger.info("Running in demo mode (no command line arguments provided)")
-        logger.info("Please provide a data file using: python input.py -d <filename>")
-        logger.info("Use 'python input.py -h' for help")
+        logger.info("Please provide a data file using: desk-distfit -d <filename>")
+        logger.info("Use 'desk-distfit -h' for help")
         
-        print("\nUsage: python input.py -d <data_file>")
-        print("Example: python input.py -d entrada1.txt")
-        print("\nFor more options, use: python input.py -h")
+        print("\nUsage: desk-distfit -d <data_file>")
+        print("Example: desk-distfit -d entrada1.txt")
+        print("\nFor more options, use: desk-distfit -h")
 
 
 if __name__ == "__main__":
