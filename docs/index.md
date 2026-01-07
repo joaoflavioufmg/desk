@@ -88,7 +88,7 @@ cd desk
 
 # Install dependencies
 pip install .
-
+```
 
 
 # DESK — Discrete Event Simulation Kit
