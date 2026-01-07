@@ -474,7 +474,7 @@ desk-distfit -d your_data_file.txt
 
 ```bash
 # Basic analysis
-desk-distfit -d entrada1.txt
+desk-distfit -d data.txt
 
 # Custom significance level
 desk-distfit -d data.txt -a 0.01
