@@ -198,6 +198,9 @@ desk-distfit -d data.txt -o results.txt --format json
 
 # Skip plotting
 desk-distfit -d data.txt --no-plot
+
+# Or run as a python module, from desk/ 
+py -m distfit.distfit -d distfit/data1.txt
 ```
 
 **Output includes:**
