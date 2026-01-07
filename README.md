@@ -210,7 +210,9 @@ py -m distfit.distfit -d distfit/data1.txt
 * Parameter estimates
 * Ready-to-use Python code
 
-See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-(desk-distfit)) for further details.
+
+See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfit) for further details.
+
 
 ---
 
