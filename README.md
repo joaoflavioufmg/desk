@@ -175,7 +175,7 @@ reporter._print_block_statistics()
 
 `desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
 
-*DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*”*
+*DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*
 
 Fit probability distributions to empirical data:
 
