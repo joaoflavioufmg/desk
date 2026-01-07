@@ -173,6 +173,10 @@ reporter._print_block_statistics()
 
 ## 📊 Input Analysis with Desk-DistFit
 
+*How were the input models used in the previous example—such as `random.expovariate(1/10)` or `random.uniform(5, 10)`—derived from empirical data?*
+
+Within DESK, `desk-distfit` addresses this question by performing statistical input analysis, identifying the probability distribution that best fits observed data and replacing heuristic assumptions with data-driven, statistically validated simulation inputs.
+
 `desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
 
 *DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*
