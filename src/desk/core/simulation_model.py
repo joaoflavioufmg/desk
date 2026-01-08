@@ -4,11 +4,17 @@
 from typing import Dict, Any, List, Optional, Union, Callable, Set
 import simpy
 import sys
-from .base_block import BaseBlock
-from .event_tracer import EventTracer
-from blocks.create_block import CreateBlock
-from blocks.dispose_block import DisposeBlock
-from .model_variables import ModelVariableTracker
+
+# from .base_block import BaseBlock
+# from .event_tracer import EventTracer
+# from blocks.create_block import CreateBlock
+# from blocks.dispose_block import DisposeBlock
+# from .model_variables import ModelVariableTracker
+from desk.core.base_block import BaseBlock
+from desk.core.event_tracer import EventTracer
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.model_variables import ModelVariableTracker
 
 
 # =====================================================================
