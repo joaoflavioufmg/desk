@@ -1,6 +1,5 @@
 [build-system]
 requires = ["setuptools>=60"]
-requires-python = ">=3.10,<3.14"
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,10 +7,11 @@ name = "desk-sim"
 version = "1.0.2"
 description = "DESK: Discrete Event Simulation Kit"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 license = { text = "GPL-3.0" }
+
 authors = [
-  { name = "João Flávio", email = "joao.flavio@dep.ufmg.br" }
+  { name = "João Flávio de Freitas Almeida", email = "joao.flavio@dep.ufmg.br" }
 ]
 
 keywords = [
@@ -24,7 +24,6 @@ keywords = [
 ]
 
 classifiers = [
-  "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
   "License :: OSI Approved :: GPL-3.0 License",
@@ -42,11 +41,6 @@ dependencies = [
   "simpy==4.1.1"
 ]
 
-[project.scripts]
-desk-sim = "desk.__main__:main"
-desk-distfit = "distfit.distfit:main"
-
-
 [project.optional-dependencies]
 dev = [
   "pytest",
@@ -63,11 +57,34 @@ dev = [
 [project.urls]
 Homepage = "https://joaoflavioufmg.github.io/desk"
 Repository = "https://github.com/joaoflavioufmg/desk"
-Issues = "https://github.com/joaoflavioufmg/desk/issues"
+Documentation = "https://desk-sim.readthedocs.io/en/latest"
 
+# =========================
+# CLI entry points
+# =========================
+[project.scripts]
+desk-sim = "desk.__main__:main"
+desk-distfit = "desk.distfit.distfit:main"
+
+# =========================
+# setuptools + src layout
+# =========================
 [tool.setuptools]
-packages = { find = { exclude = ["tests*", "docs*", "examples*", "scripts*", "venv*"] } }
+package-dir = { "" = "src" }
 
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+  "tests*",
+  "docs*",
+  "examples*",
+  "scripts*",
+  "venv*"
+]
+
+# =========================
+# Tooling
+# =========================
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]

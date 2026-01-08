@@ -3,23 +3,23 @@
 # =====================================================================
 import random
 import sys
-from stats.factorial import FactorialExperiment
-from stats.replication import ReplicationFramework    
-from analytics.financial import FinancialAnalyzer
-from validation.resource_validator import ResourceValidator
-from core.simulation_model import SimulationModel
-from core.entity import EventLogger
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock, MultiProcessBlock
-from blocks.decide_block import DecideBlock
-from blocks.dispose_block import DisposeBlock
-from analytics.metrics import MetricsCollector
-from analytics.reporting import SimulationReporter
-from analytics.plotting import SimulationPlotter
-from validation.stability import StabilityAnalyzer
-from validation.warmup import WarmUpAnalyzer
-from config.simulation_config import SimulationConfig
-from visualization.interface import run_visualization
+from desk.stats.factorial import FactorialExperiment
+from desk.stats.replication import ReplicationFramework    
+from desk.analytics.financial import FinancialAnalyzer
+from desk.validation.resource_validator import ResourceValidator
+from desk.core.simulation_model import SimulationModel
+from desk.core.entity import EventLogger
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
+from desk.blocks.decide_block import DecideBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.analytics.metrics import MetricsCollector
+from desk.analytics.reporting import SimulationReporter
+from desk.analytics.plotting import SimulationPlotter
+from desk.validation.stability import StabilityAnalyzer
+from desk.validation.warmup import WarmUpAnalyzer
+from desk.config.simulation_config import SimulationConfig
+from desk.visualization.interface import run_visualization
 
 
 # ####################################################################################
@@ -251,7 +251,7 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
 def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
     
-    from core.entity import EventLogger
+    from desk.core.entity import EventLogger
     
     event_logger = EventLogger()
 
@@ -332,7 +332,7 @@ def hospital_factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        # from hospital import build_model()
+        # from desk.hospital import build_model()
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it

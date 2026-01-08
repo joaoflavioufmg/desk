@@ -5,6 +5,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+print("CWD:", Path.cwd())
 
 def load_model_from_file(path: Path):
     if not path.exists():

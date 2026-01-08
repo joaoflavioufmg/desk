@@ -12,7 +12,6 @@ the framework. Fit probability distributions to empirical data.
 
 Author: João Flávio F. Almeida (PPGEP-UFMG) <joao.flavio@dep.ufmg.br>
 Course: EPD899: Simulating Logistics Systems
-Refs: Research in the internet + AI
 """
 
 import warnings
