@@ -109,7 +109,7 @@ class MetricsCollector:
         Returns:
             Dictionary mapping resource names to their metrics
         """
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         summary = {}
         
@@ -183,7 +183,7 @@ class MetricsCollector:
     
     def _group_blocks_by_resource(self) -> Dict[str, List]:
         """Group ProcessBlocks by the resources they use."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         resource_blocks = {}
         

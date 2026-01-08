@@ -223,7 +223,7 @@ class SimulationPlotter:
     
     def _group_blocks_by_resource(self) -> dict:
         """Group process blocks by resource."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         resource_blocks = {}
         

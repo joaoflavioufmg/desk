@@ -99,7 +99,7 @@ class SimulationModel:
         Raises:
             ResourceValidationError: If critical errors found and raise_on_error=True
         """
-        from validation.resource_validator import ResourceValidator
+        from desk.validation.resource_validator import ResourceValidator
         
         validator = ResourceValidator(self)
         return validator.validate_all(raise_on_error=raise_on_error)
@@ -268,7 +268,7 @@ class SimulationModel:
     
     def _clear_warm_up_statistics(self):
         """Clear statistics collected during warm-up."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         # Reset DisposeBlock counters (keep data for plotting)
         for dispose_block in self.dispose_blocks:
