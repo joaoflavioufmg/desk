@@ -19,7 +19,7 @@ DESK addresses the gap of structured experimental design and replication automat
 The framework emphasizes:
 - modularity,
 - reusability,
-- transparency,
+- transparency (visualization and event logs),
 - and rigorous statistical analysis.
 
 DESK is suitable for **teaching, research, and applied decision support**.
@@ -34,6 +34,9 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Entity Attributes & State Variables**: Dynamic assignment and modification
 - **Priority Scheduling**: Activity-level and entity-level priority control
 - **Event Tracing**: Comprehensive event logging with filtering and replay
+- **Visualization**: Graphical interface sincronized with event log printing
+
+![Visualization](figs/hospital-step.gif)
 
 ---
 
@@ -45,6 +48,8 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - Automatic Python `random` code generation
 - Multiple output formats: table, JSON, CSV
 
+![DistFit](figs/dist.png)
+
 ---
 
 ### Experimental Design & Analysis
@@ -53,6 +58,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Warm-Up Analysis**: Automated transient detection
 - **Stability Analysis**: Capacity analysis on utilization (ρ < 1)
 
+![Use](figs/use.png)
 ---
 
 ### Performance Metrics
@@ -62,10 +68,11 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Financial Analysis**: Cost and revenue per activity
 - **Little’s Law Verification**: Automatic analysis on stability: The average number of items in the system (L) equals the average arrival rate (λ) multiplied by the average time an item spends in the system (W): L = λW
 
+![WIP](figs/wip.png)
 ---
 
 ### Visualization & Reporting
-- **Real-Time Visualization**: Interactive process animation during simulation
+- **Real-Time Visualization**: Process animation during simulation
 - **Statistical Plots**:
   - Resource utilization over time
   - WIP evolution
@@ -74,6 +81,8 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **BupaR Integration**: Process mining and animation in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
 
 - **Automated Reports**: Results with diagnostics and recommendations
+
+![Visualization](figs/hospital.gif)
 
 ---
 
@@ -93,13 +102,25 @@ pip install -e .
 
 # Then test:
 desk-distfit -h
-desk-distfit -d data.txt
+desk-distfit -d distfit/data.txt
 ```
 
 
 # DESK — Discrete Event Simulation Kit
 
 ## 🚀 Basic Example
+
+---
+*DESK adopts BPMN (.bpmn) as an open, tool-independent notation for representing activity-cycle and process-interaction models. Although BPMN is not a simulation-native language, its standardized semantics and widespread support make it a suitable representation for discrete-event simulation models.*
+
+Models in `.bpmn` format can be created and shared using the
+[BPMN Web Modeler (bpmn.io)](https://demo.bpmn.io/).
+
+
+---
+![Basic example BPMN](figs/basic.svg)
+
+---
 
 ```python
 def build_model(until=None, event_logger=None, verbose=True): 
@@ -185,19 +206,19 @@ Fit probability distributions to empirical data:
 
 ```bash
 # Basic usage
-desk-distfit -d data.txt
+desk-distfit -d distfit/data.txt
 
 # Custom significance level
-desk-distfit -d data.txt -a 0.01
+desk-distfit -d distfit/data.txt -a 0.01
 
 # Test specific distributions
-desk-distfit -d data.txt --distributions norm expon gamma
+desk-distfit -d distfit/data.txt --distributions norm expon gamma
 
 # Save results
-desk-distfit -d data.txt -o results.txt --format json
+desk-distfit -d distfit/data.txt -o results.txt --format json
 
 # Skip plotting
-desk-distfit -d data.txt --no-plot
+desk-distfit -d distfit/data.txt --no-plot
 
 # Or run as a python module, from desk/ 
 py -m distfit.distfit -d distfit/data1.txt
@@ -375,6 +396,29 @@ DESK/
 3) **Call Center with Lost Calls**
   Trunk capacity, blocking, retrials, custom KPIs
 
+
+
+---
+## 🎓 Running examples
+
+For each example, activate the line for each activity: (1) replication, (2) full simulation, (3) factorial analysis and (4) visualization
+
+1) One replication 
+
+![Replication analysis ](figs/hospital1.png) 
+
+2) Full simulation (run replications)
+
+![Full simulation ](figs/hospital2.png)
+
+3) Factorial analysis
+
+![Factorial analysis ](figs/hospital3.png)
+
+4) Visualization
+
+![Visualization ](figs/hospital4.png)
+---
 
 
 ---
