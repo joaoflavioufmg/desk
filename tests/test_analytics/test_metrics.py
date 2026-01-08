@@ -2,12 +2,12 @@
 import pytest
 import simpy
 import math
-from analytics.metrics import MetricsCollector
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity
+from desk.analytics.metrics import MetricsCollector
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity
 
 
 class TestMetricsCollector:

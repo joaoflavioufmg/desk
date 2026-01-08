@@ -7,8 +7,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 import pytest
 import simpy
-from core.simulation_model import SimulationModel
-from core.entity import EventLogger
+from desk.core.simulation_model import SimulationModel
+from desk.core.entity import EventLogger
 
 
 # @pytest.fixture

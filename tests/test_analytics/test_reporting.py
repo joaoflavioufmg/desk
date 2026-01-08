@@ -1,10 +1,10 @@
 # tests/test_analytics/test_reporting.py
 import pytest
 import simpy
-from analytics.reporting import SimulationReporter
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.dispose_block import DisposeBlock
+from desk.analytics.reporting import SimulationReporter
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.dispose_block import DisposeBlock
 
 
 class TestSimulationReporter:

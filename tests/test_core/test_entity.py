@@ -1,7 +1,7 @@
 # tests/test_core/test_entity.py
 import pytest
 import pandas as pd
-from core.entity import Entity, EventLogger
+from desk.core.entity import Entity, EventLogger
 
 
 class TestEntity:

@@ -3,11 +3,11 @@ import pytest
 import simpy
 import pandas as pd
 import math
-from stats.replication import ReplicationFramework
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
+from desk.stats.replication import ReplicationFramework
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
 import matplotlib
 matplotlib.use("Agg")  # use headless backend, no Tk needed
 import matplotlib.pyplot as plt

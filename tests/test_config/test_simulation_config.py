@@ -1,6 +1,6 @@
 # tests/test_config/test_simulation_config.py
 import pytest
-from config.simulation_config import SimulationConfig
+from desk.config.simulation_config import SimulationConfig
 
 
 class TestSimulationConfig:

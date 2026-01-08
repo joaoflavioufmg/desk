@@ -1,8 +1,8 @@
 # tests/test_blocks/test_create_block.py
 import pytest
 import simpy
-from blocks.create_block import CreateBlock
-from core.entity import Entity, EventLogger
+from desk.blocks.create_block import CreateBlock
+from desk.core.entity import Entity, EventLogger
 
 
 class TestCreateBlock:

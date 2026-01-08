@@ -1,10 +1,10 @@
 # tests/test_analytics/test_wip_metrics.py
 import pytest
 import simpy
-from analytics.wip_metrics import WIPTracker
-from core.simulation_model import SimulationModel
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity
+from desk.analytics.wip_metrics import WIPTracker
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity
 
 
 class TestWIPTracker:

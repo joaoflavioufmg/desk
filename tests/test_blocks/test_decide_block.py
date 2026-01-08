@@ -1,9 +1,9 @@
 # tests/test_blocks/test_decide_block.py
 import pytest
 import simpy
-from blocks.decide_block import DecideBlock
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity, EventLogger
+from desk.blocks.decide_block import DecideBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity, EventLogger
 
 
 class TestDecideBlock:

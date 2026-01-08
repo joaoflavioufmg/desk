@@ -1,10 +1,10 @@
 # tests/test_validation/test_resource_validator.py
 import pytest
 import simpy
-from validation.resource_validator import ResourceValidator, ResourceValidationError
-from core.simulation_model import SimulationModel
-from blocks.process_block import ProcessBlock, MultiProcessBlock
-from blocks.dispose_block import DisposeBlock
+from desk.validation.resource_validator import ResourceValidator, ResourceValidationError
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
 
 
 class TestResourceValidator:

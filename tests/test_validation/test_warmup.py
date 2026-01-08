@@ -2,11 +2,11 @@
 import pytest
 import simpy
 import numpy as np
-from validation.warmup import WarmUpAnalyzer
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
+from desk.validation.warmup import WarmUpAnalyzer
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
 
 
 class TestWarmUpAnalyzer:

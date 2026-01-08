@@ -1,8 +1,8 @@
 # tests/test_blocks/test_dispose_block.py
 import pytest
 import simpy
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity, EventLogger
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity, EventLogger
 
 
 class TestDisposeBlock:

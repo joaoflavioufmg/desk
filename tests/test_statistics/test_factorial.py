@@ -2,11 +2,11 @@
 import pytest
 import simpy
 import pandas as pd
-from stats.factorial import FactorialExperiment, FactorLevel
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
+from desk.stats.factorial import FactorialExperiment, FactorLevel
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
 
 
 def configurable_simulation(arrival_rate=5.0, service_capacity=2, 

@@ -1,11 +1,11 @@
 # tests/test_analytics/test_plotting.py
 import pytest
 import simpy
-from analytics.plotting import SimulationPlotter
-from core.simulation_model import SimulationModel
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity
+from desk.analytics.plotting import SimulationPlotter
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity
 
 
 class TestSimulationPlotter:

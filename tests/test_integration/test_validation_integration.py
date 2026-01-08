@@ -1,10 +1,10 @@
 # tests/test_integration/test_validation_integration.py
 import pytest
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-from validation.resource_validator import ResourceValidationError
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.validation.resource_validator import ResourceValidationError
 
 
 class TestValidationIntegration:

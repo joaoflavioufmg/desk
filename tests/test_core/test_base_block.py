@@ -1,8 +1,8 @@
 # tests/test_core/test_base_block.py
 import pytest
 import simpy
-from core.base_block import BaseBlock
-from core.entity import Entity, EventLogger
+from desk.core.base_block import BaseBlock
+from desk.core.entity import Entity, EventLogger
 
 
 class ConcreteBlock(BaseBlock):

@@ -2,13 +2,13 @@
 import pytest
 import simpy
 import random
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-from core.entity import EventLogger
-from analytics.metrics import MetricsCollector
-from analytics.reporting import SimulationReporter
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import EventLogger
+from desk.analytics.metrics import MetricsCollector
+from desk.analytics.reporting import SimulationReporter
 
 
 class TestSimpleModelIntegration:
@@ -57,7 +57,7 @@ class TestSimpleModelIntegration:
     
     def test_model_with_decision(self):
         """Test model with decision routing."""
-        from blocks.decide_block import DecideBlock
+        from desk.blocks.decide_block import DecideBlock
         
         model = SimulationModel()
         
@@ -147,7 +147,7 @@ class TestSimpleModelIntegration:
     
     def test_financial_attributes(self):
         """Test financial attribute assignment."""
-        from analytics.financial import FinancialAnalyzer
+        from desk.analytics.financial import FinancialAnalyzer
         
         model = SimulationModel()
         

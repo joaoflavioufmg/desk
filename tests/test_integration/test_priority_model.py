@@ -1,11 +1,11 @@
 # tests/test_integration/test_priority_model.py
 import pytest
 import simpy
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock
-from blocks.dispose_block import DisposeBlock
-from core.entity import EventLogger
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import EventLogger
 
 
 class TestPriorityModelIntegration:
@@ -58,7 +58,7 @@ class TestPriorityModelIntegration:
     
     def test_multi_resource_block(self):
         """Test MultiProcessBlock with multiple resources."""
-        from blocks.process_block import MultiProcessBlock
+        from desk.blocks.process_block import MultiProcessBlock
         
         model = SimulationModel()
         

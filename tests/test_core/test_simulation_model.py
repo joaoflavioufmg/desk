@@ -1,10 +1,10 @@
 # tests/test_core/test_simulation_model.py
 import pytest
 import simpy
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.dispose_block import DisposeBlock
-from blocks.process_block import ProcessBlock
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.blocks.process_block import ProcessBlock
 
 
 class TestSimulationModel:

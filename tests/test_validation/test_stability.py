@@ -1,11 +1,11 @@
 # tests/test_validation/test_stability.py
 import pytest
 import simpy
-from validation.stability import StabilityAnalyzer
-from core.simulation_model import SimulationModel
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock, MultiProcessBlock
-from blocks.dispose_block import DisposeBlock
+from desk.validation.stability import StabilityAnalyzer
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
+from desk.blocks.dispose_block import DisposeBlock
 
 
 class TestStabilityAnalyzer:
