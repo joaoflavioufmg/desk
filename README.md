@@ -523,7 +523,6 @@ Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distribut
 ```bash
 # Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
-cd desk
 ```
 
 
@@ -544,7 +543,7 @@ desk-distfit -h
 ### Basic Usage
 
 ```bash
-desk-distfit -d your_data_file.txt
+desk-distfit -d folder/foo.txt
 ```
 
 ### Command-Line Options
@@ -566,31 +565,31 @@ desk-distfit -d your_data_file.txt
 
 ```bash
 # Basic analysis
-desk-distfit -d data.txt
+desk-distfit -d input_data/foo.txt
 
 # Custom significance level
-desk-distfit -d data.txt -a 0.01
+desk-distfit -d input_data/foo.txt -a 0.01
 
 # Test specific distributions only
-desk-distfit -d data.txt --distributions norm expon gamma
+desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 
 # Save results to file
-desk-distfit -d data.txt -o results.txt
+desk-distfit -d input_data/foo.txt -o results.txt
 
 # Generate CSV output
-desk-distfit -d data.txt -o results.csv --format csv
+desk-distfit -d input_data/foo.txt -o results.csv --format csv
 
 # Skip plotting (useful for batch processing)
-desk-distfit -d data.txt --no-plot
+desk-distfit -d input_data/foo.txt --no-plot
 
 # Show all fitted distributions in plot
-desk-distfit -d data.txt --show-all
+desk-distfit -d input_data/foo.txt --show-all
 
 # Verbose output for debugging
-desk-distfit -d data.txt -v
+desk-distfit -d input_data/foo.txt -v
 
 # Complete example with multiple options
-desk-distfit -d data.txt -a 0.01 -b 100 --show-all -o results.json --format json -v
+desk-distfit -d input_data/foo.txt -a 0.01 -b 100 --show-all -o results.json --format json -v
 ```
 
 ## Input Data Format
@@ -721,7 +720,7 @@ from distfit import DistributionFitter
 fitter = DistributionFitter(alpha=0.05, bins=50)
 
 # Load data
-fitter.load_data("your_data.txt")
+fitter.load_data("foo.txt")
 
 # Or set data directly
 import numpy as np
@@ -787,7 +786,7 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 4. **Plotting errors**
    ```bash
    # Use --no-plot flag to skip visualization
-   python input.py -d data.txt --no-plot
+   desk-distfit -d foo.txt --no-plot
    ```
 
 ### Getting Help
@@ -797,7 +796,7 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 desk-distfit -h
 
 # Enable verbose output for debugging
-desk-distfit -d data.txt -v
+desk-distfit -d input_data/foo.txt -v
 ```
 
 ### Development Setup
@@ -805,7 +804,6 @@ desk-distfit -d data.txt -v
 ```bash
 # Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
-cd desk/
 
 # Create virtual environment
 python -m venv venv
