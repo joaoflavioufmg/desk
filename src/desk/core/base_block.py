@@ -4,7 +4,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 import simpy
-from .entity import Entity, EventLogger
+from desk.core.entity import Entity, EventLogger
 
 # =====================================================================
 # FILE: core/BaseBlock.py

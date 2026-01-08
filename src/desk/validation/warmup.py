@@ -16,7 +16,7 @@ class WarmUpAnalyzer:
     
     def analyze_warm_up_period(self):
         """Analyze data to suggest adequate warm-up period."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         print("\n🔍 ANALISE DE WARM-UP:")
         print("=" * 50)
@@ -62,7 +62,7 @@ class WarmUpAnalyzer:
     
     def _group_blocks_by_resource(self) -> dict:
         """Group process blocks by resource."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         resource_blocks = {}
         
@@ -93,7 +93,7 @@ class WarmUpAnalyzer:
     
     def _collect_resource_data(self, resource_name: str, blocks: List) -> List:
         """Collect resource data from blocks."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         all_data = []
         for block in blocks:

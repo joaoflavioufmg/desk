@@ -21,7 +21,7 @@ import queue
 import time
 from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
-from blocks.create_block import CreateBlock
+from desk.blocks.create_block import CreateBlock
 
 
 # =============================================================================
@@ -72,10 +72,10 @@ class ModelInspector:
             - connections: List of (from_block, to_block) tuples
             - resources: Dictionary of resource names and capacities
         """
-        from blocks.create_block import CreateBlock
-        from blocks.dispose_block import DisposeBlock
-        from blocks.decide_block import DecideBlock
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.create_block import CreateBlock
+        from desk.blocks.dispose_block import DisposeBlock
+        from desk.blocks.decide_block import DecideBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         structure = {
             'blocks': {},
@@ -288,7 +288,7 @@ class SimulationVisualizer:
         self.resource_to_blocks_map = {} # Maps res_name -> [block_name]
         
         # Map resources to blocks
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         for res_name, res_obj in self.model.resources.items():
             self.resource_to_blocks_map[res_name] = []
             for block_name, block in self.model.blocks.items():
@@ -1215,9 +1215,9 @@ class VisualizationInstrument:
     
     def _instrument_blocks(self):
         """Wrap block methods to send visualization events."""
-        from blocks.create_block import CreateBlock
-        from blocks.dispose_block import DisposeBlock
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.create_block import CreateBlock
+        from desk.blocks.dispose_block import DisposeBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         for name, block in self.model.blocks.items():
             original_process = block.process_entity
@@ -1252,7 +1252,7 @@ class VisualizationInstrument:
         - If resource has available capacity -> go directly to 'service'
         - If resource is full -> go to 'queue' first, then 'service' when seized
         """
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         def wrapped(entity):
             entity_id = self._get_entity_id(entity)
@@ -1452,7 +1452,7 @@ class VisualizationInstrument:
                     # Get blocks using this resource
                     blocks_using_resource = []
                     for block_name, block in self.model.blocks.items():
-                        from blocks.process_block import ProcessBlock, MultiProcessBlock
+                        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
                         if isinstance(block, ProcessBlock) and block.resource == resource:
                             blocks_using_resource.append(block_name)
                         elif isinstance(block, MultiProcessBlock) and resource in block.resource_requirements:

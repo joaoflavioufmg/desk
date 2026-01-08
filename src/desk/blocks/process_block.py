@@ -1,8 +1,8 @@
 # =====================================================================
 # FILE: blocks/process_block.py
 # =====================================================================
-from core.base_block import BaseBlock
-from core.entity import Entity, EventLogger
+from desk.core.base_block import BaseBlock
+from desk.core.entity import Entity, EventLogger
 from typing import Dict, Callable, Optional
 import simpy
 

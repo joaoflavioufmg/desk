@@ -374,7 +374,7 @@ def example_usage():
     """Example showing how to use ModelVariableTracker."""
     
     # Assuming you have a model
-    from core.simulation_model import SimulationModel
+    from desk.core.simulation_model import SimulationModel
     model = SimulationModel()
     
     # Create tracker

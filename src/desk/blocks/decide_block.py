@@ -1,8 +1,8 @@
 # =====================================================================
 # FILE: blocks/decide_block.py (GENERIC CONDITIONS VERSION)
 # =====================================================================
-from core.base_block import BaseBlock
-from core.entity import Entity, EventLogger
+from desk.core.base_block import BaseBlock
+from desk.core.entity import Entity, EventLogger
 from typing import Optional, Callable, Dict, Any
 import simpy
 import random

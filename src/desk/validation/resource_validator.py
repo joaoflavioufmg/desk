@@ -137,7 +137,7 @@ class ResourceValidator:
     
     def _validate_resource_units(self):
         """Validate that resource units don't exceed capacity."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         for block_name, block in self.model.blocks.items():
             if isinstance(block, ProcessBlock):
@@ -221,7 +221,7 @@ class ResourceValidator:
     
     def _validate_resource_references(self):
         """Check that all referenced resources exist."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         registered_resources = set(self.model.resources.values())
         
@@ -247,7 +247,7 @@ class ResourceValidator:
     
     def _validate_resource_types(self):
         """Validate resource types (Regular vs Priority vs Preemptive)."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         for block_name, block in self.model.blocks.items():
             if isinstance(block, (ProcessBlock, MultiProcessBlock)):
@@ -283,7 +283,7 @@ class ResourceValidator:
     
     def _validate_multi_resource_blocks(self):
         """Validate blocks that require multiple resources simultaneously."""
-        from blocks.process_block import MultiProcessBlock
+        from desk.blocks.process_block import MultiProcessBlock
         
         for block_name, block in self.model.blocks.items():
             if isinstance(block, MultiProcessBlock):
@@ -307,7 +307,7 @@ class ResourceValidator:
         
         This is a simplified check - full deadlock detection is complex.
         """
-        from blocks.process_block import MultiProcessBlock
+        from desk.blocks.process_block import MultiProcessBlock
         
         block_resources = set(block.resource_requirements.keys())
         
@@ -329,7 +329,7 @@ class ResourceValidator:
     
     def _has_priority_generator(self) -> bool:
         """Check if any CreateBlock has priority generator."""
-        from blocks.create_block import CreateBlock
+        from desk.blocks.create_block import CreateBlock
         
         for block in self.model.blocks.values():
             if isinstance(block, CreateBlock):
@@ -383,7 +383,7 @@ class ResourceValidator:
     
     def print_resource_summary(self):
         """Print summary of all resources and their usage."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         print("\n" + "=" * 70)
         print("RESOURCE CONFIGURATION SUMMARY")

@@ -229,7 +229,7 @@ class FactorialExperiment:
         
         ###############################################################
         # Import here to avoid circular dependencies
-        from analytics.metrics import MetricsCollector       
+        from desk.analytics.metrics import MetricsCollector       
         ###############################################################
         # Entity metrics: Compute metrics using MetricsCollector
         metrics_collector = MetricsCollector(model)

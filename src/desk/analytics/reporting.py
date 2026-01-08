@@ -1,7 +1,7 @@
 # =====================================================================
 # FILE: analytics/reporting.py
 # =====================================================================
-from .metrics import MetricsCollector
+from desk.analytics.metrics import MetricsCollector
 from typing import Dict
 
 # =====================================================================
@@ -21,7 +21,7 @@ class SimulationReporter:
     def _get_wip_tracker(self):
         """Lazy load WIP tracker."""
         if self.wip_tracker is None:
-            from analytics.wip_metrics import WIPTracker
+            from desk.analytics.wip_metrics import WIPTracker
             self.wip_tracker = WIPTracker(self.model)
         return self.wip_tracker
     
@@ -153,7 +153,7 @@ class SimulationReporter:
     def _print_resource_metrics(self):
         """Print per-resource metrics with analysis."""
 
-        from validation.resource_validator import ResourceValidator        
+        from desk.validation.resource_validator import ResourceValidator        
         validator = ResourceValidator(self.model)
         validator.print_resource_summary()
 

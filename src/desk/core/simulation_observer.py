@@ -163,10 +163,10 @@ class SimulationObserver:
         
     def _wrap_blocks_if_needed(self):
         """Wrap blocks to intercept events (only once per block)."""
-        from blocks.create_block import CreateBlock
-        from blocks.dispose_block import DisposeBlock
-        from blocks.decide_block import DecideBlock
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.create_block import CreateBlock
+        from desk.blocks.dispose_block import DisposeBlock
+        from desk.blocks.decide_block import DecideBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         for block_name, block in self.model.blocks.items():
             if block_name in self._wrapped_blocks:

@@ -107,9 +107,9 @@ class ReplicationFramework:
             Dictionary of KPIs for this replication
         """
         # Import here to avoid circular dependencies
-        from analytics.metrics import MetricsCollector
-        from analytics.financial import FinancialAnalyzer  # NEW
-        from analytics.wip_metrics import WIPTracker  # NEW
+        from desk.analytics.metrics import MetricsCollector
+        from desk.analytics.financial import FinancialAnalyzer  # NEW
+        from desk.analytics.wip_metrics import WIPTracker  # NEW
         
         metrics_collector = MetricsCollector(model)
         financial_analyzer = FinancialAnalyzer(model)  # NEW

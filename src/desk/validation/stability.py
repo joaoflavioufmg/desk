@@ -109,7 +109,7 @@ class StabilityAnalyzer:
     
     def _group_process_blocks_by_resource(self) -> Dict[str, List]:
         """Group process blocks by the resources they use."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         resource_process_blocks = {}
         
