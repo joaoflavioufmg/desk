@@ -1,10 +1,10 @@
 # tests/test_analytics/test_financial.py
 import pytest
 import simpy
-from analytics.financial import FinancialAnalyzer
-from core.simulation_model import SimulationModel
-from blocks.dispose_block import DisposeBlock
-from core.entity import Entity
+from desk.analytics.financial import FinancialAnalyzer
+from desk.core.simulation_model import SimulationModel
+from desk.blocks.dispose_block import DisposeBlock
+from desk.core.entity import Entity
 
 
 class TestFinancialAnalyzer:
