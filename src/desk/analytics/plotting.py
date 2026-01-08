@@ -21,7 +21,7 @@ class SimulationPlotter:
     def _get_wip_tracker(self):
         """Lazy load WIP tracker."""
         if self.wip_tracker is None:
-            from analytics.wip_metrics import WIPTracker
+            from desk.analytics.wip_metrics import WIPTracker
             self.wip_tracker = WIPTracker(self.model)
         return self.wip_tracker
     
@@ -38,7 +38,7 @@ class SimulationPlotter:
     def _get_metrics(self):
         """Lazy load metrics collector."""
         if self.metrics is None:
-            from analytics.metrics import MetricsCollector
+            from desk.analytics.metrics import MetricsCollector
             self.metrics = MetricsCollector(self.model)
         return self.metrics
     
@@ -92,7 +92,7 @@ class SimulationPlotter:
     def _plot_single_resource(self, ax, resource_name: str, blocks: List,
                              show_warm_up: bool, moving_avg_window: int):
         """Plot utilization for a single resource."""
-        from blocks.process_block import ProcessBlock, MultiProcessBlock
+        from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
         # Combine and deduplicate data
         all_data = []

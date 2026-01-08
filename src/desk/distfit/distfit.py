@@ -21,6 +21,7 @@ import logging
 import argparse
 import sys
 
+
 import numpy as np
 import pandas as pd
 import scipy.stats as st
@@ -393,16 +394,16 @@ Top 3 Distributions by P-value:
 def create_argument_parser() -> argparse.ArgumentParser:
     """Create and configure the command line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Fit probability distributions to empirical data",
+        description="DESK – Distribution Fitting Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  desk-distfit -d data.txt                                    # Basic usage
-  desk-distfit -d data.txt -a 0.01                            # Custom significance level
-  desk-distfit -d data.txt -b 100                             # Custom bins
-  desk-distfit -d data.txt --no-plot                          # Skip plotting
-  desk-distfit -d data.txt --distributions norm expon gamma   # Test specific distributions
-  desk-distfit -d data.txt -o results.txt --format json       # Save results to file
+  desk-distfit -d input_data/foo.txt                                    # Basic usage
+  desk-distfit -d input_data/foo.txt -a 0.01                            # Custom significance level
+  desk-distfit -d input_data/foo.txt -b 100                             # Custom bins
+  desk-distfit -d input_data/foo.txt --no-plot                          # Skip plotting
+  desk-distfit -d input_data/foo.txt --distributions norm expon gamma   # Test specific distributions
+  desk-distfit -d input_data/foo.txt -o results.txt --format json       # Save results to file
         """
     )
     
@@ -561,9 +562,12 @@ def run_cli(args: argparse.Namespace) -> int:
         # Create fitter instance
         fitter = DistributionFitter(alpha=args.alpha, bins=args.bins)
         
-        # Load data
-        logger.info(f"Loading data from {args.data}")
-        fitter.load_data(args.data)
+        # Load data        
+        # Resolve data path exactly like desk-sim
+        data_path = resolve_data_path(args.data)
+
+        logger.info(f"Loading data from {data_path}")
+        fitter.load_data(data_path)
         
         # Display data statistics
         print(f"\nData Statistics:")
@@ -615,6 +619,27 @@ def run_cli(args: argparse.Namespace) -> int:
             traceback.print_exc()
         return 1
 
+def resolve_data_path(data_arg: str) -> Path:
+    """
+    Resolve data file path the same way desk-sim resolves models.
+    """
+    path = Path(data_arg).expanduser()
+
+    # 1️⃣ Absolute path
+    if path.is_absolute() and path.exists():
+        return path.resolve()
+
+    # 2️⃣ Relative to current working directory
+    cwd_path = Path.cwd() / path
+    if cwd_path.exists():
+        return cwd_path.resolve()
+
+    raise FileNotFoundError(
+        f"Data file not found: {data_arg}\n"
+        f"Tried:\n"
+        f"  - {cwd_path}\n"
+        f"  - {path.resolve()}"
+    )
 
 def main():
     """Main entry point for both CLI and direct usage."""

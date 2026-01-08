@@ -317,7 +317,7 @@ def run_replications():
 # ================================================================
 # Factorial Analysis
 # ================================================================
-def hospital_factorial_analysis():
+def factorial_analysis():
     """Example of factorial analysis with hospital simulation."""
 
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -325,7 +325,7 @@ def hospital_factorial_analysis():
     YEARS = 525600
     
     # Define simulation function wrapper
-    def hospital_simulation_wrapper(arrival_rate=4, num_doctors=4, num_nurses=3,
+    def simulation_wrapper(arrival_rate=4, num_doctors=4, num_nurses=3,
                                     seed=None, until=None, warm_up_period=0, verbose=False, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
@@ -342,7 +342,7 @@ def hospital_factorial_analysis():
     
     # Create factorial analysis
     factorial = FactorialExperiment(
-        simulation_function=hospital_simulation_wrapper,
+        simulation_function=simulation_wrapper,
         base_seed=12345
     )
     
@@ -586,9 +586,23 @@ def main():
 
 
 
+# if __name__ == "__main__":
+#     model, logger = main()
+#     # run_replications()
+#     # factorial = hospital_factorial_analysis()    
+#     # run_visualization(build_model, simulation_time=500)
 
-if __name__ == "__main__":
-    model, logger = main()
-    # run_replications()
-    # factorial = hospital_factorial_analysis()    
-    # run_visualization(build_model, simulation_time=500)
+def run_single_replication():
+    return main()
+
+
+def run_replications_cli():
+    run_replications()
+
+
+def run_factorial_cli():
+    return factorial_analysis()
+
+
+def run_visualization_cli(simulation_time=500):
+    return run_visualization(build_model, simulation_time=simulation_time)

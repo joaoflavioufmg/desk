@@ -62,7 +62,7 @@ from desk.visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex2_model(final_simulation_time=None, event_logger=None, verbose=True,
+def build_model(final_simulation_time=None, event_logger=None, verbose=True,
                         entity_filter=None, resource_filter=None,
                         event_type_filter=None, time_range=None):  
     """Build a simulation model with refactored structure.
@@ -292,7 +292,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex2_model(config.duration, event_logger, verbose=False)
+    model = build_model(config.duration, event_logger, verbose=False)
 
     # Validate once on first run
     # if seed == 12345:
@@ -337,7 +337,7 @@ def run_replications():
 # ================================================================
 # Factorial Analysis
 # ================================================================
-def ex2_factorial_analysis():
+def factorial_analysis():
     """Factorial analysis."""
 
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -353,7 +353,7 @@ def ex2_factorial_analysis():
     )
     
     # Define simulation function wrapper
-    def ex2_simulation_wrapper(arrival_rate=10, num_garcons=1, num_copos=70,
+    def simulation_wrapper(arrival_rate=10, num_garcons=1, num_copos=70,
                                     seed=None, until=None, warm_up_period=0, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
@@ -364,13 +364,13 @@ def ex2_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex2_model(config.duration,  verbose=False)
+        model = build_model(config.duration,  verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
     # Create factorial analysis
     factorial = FactorialExperiment(
-        simulation_function=ex2_simulation_wrapper,
+        simulation_function=simulation_wrapper,
         base_seed=12345
     )
     
@@ -451,7 +451,7 @@ def main():
     # Build model
     print("Building ex2 model...")
     verbose = config.duration <= 2*HOURS
-    model = build_ex2_model(config.duration, event_logger, verbose=verbose)
+    model = build_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -602,8 +602,23 @@ def main():
     return model, event_logger
 
 
-if __name__ == "__main__":
-    model, logger = main()
-    # run_replications()
-    # factorial = ex2_factorial_analysis()
-    # run_visualization(build_ex2_model, simulation_time=8*60)
+# if __name__ == "__main__":
+#     model, logger = main()
+#     # run_replications()
+#     # factorial = ex2_factorial_analysis()
+#     # run_visualization(build_ex2_model, simulation_time=8*60)
+
+def run_single_replication():
+    return main()
+
+
+def run_replications_cli():
+    run_replications()
+
+
+def run_factorial_cli():
+    return factorial_analysis()
+
+
+def run_visualization_cli(simulation_time=8*60):
+    return run_visualization(build_model, simulation_time=simulation_time)
