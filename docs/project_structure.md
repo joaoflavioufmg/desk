@@ -5,7 +5,10 @@ desk/
 │
 ├── __init__.py
 |
-├── input.py                   # DistFit CLI tool
+├── distfit/
+│   ├── __init__.py
+│   ├── distfit.py             # DistFit CLI tool
+|   └── data1.txt              # Input data (data1.txt...data26.txt) 
 │
 ├── core/
 │   ├── __init__.py

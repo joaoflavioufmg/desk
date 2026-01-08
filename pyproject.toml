@@ -43,7 +43,9 @@ dependencies = [
 ]
 
 [project.scripts]
+desk-sim = "desk.__main__:main"
 desk-distfit = "distfit.distfit:main"
+
 
 [project.optional-dependencies]
 dev = [

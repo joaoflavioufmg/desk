@@ -42,7 +42,7 @@ from visualization.interface import run_visualization
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_model(final_simulation_time=None, event_logger=None, verbose=True,
+def build_hospital_model(final_simulation_time=None, event_logger=None, verbose=True,
                         entity_filter=None, resource_filter=None,
                         event_type_filter=None, time_range=None): 
     """Build the simulation model with refactored structure.
@@ -267,8 +267,8 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    # model = build_model(event_logger)
-    model = build_model(config.duration, event_logger, verbose=False)
+    # model = build_hospital_model(event_logger)
+    model = build_hospital_model(config.duration, event_logger, verbose=False)
 
     # # Validate once on first run
     # if seed == 12345:
@@ -332,11 +332,11 @@ def hospital_factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        # from hospital import build_model()
+        # from hospital import build_hospital_model()
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_model(verbose=False)
+        model = build_hospital_model(verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -424,8 +424,8 @@ def main():
     )
     config.validate()
     
-    # model = build_model(event_logger)
-    model = build_model(config.duration, event_logger, verbose=True)
+    # model = build_hospital_model(event_logger)
+    model = build_hospital_model(config.duration, event_logger, verbose=True)
     
     
     
@@ -588,7 +588,7 @@ def main():
 
 
 if __name__ == "__main__":
-    model, logger = main()
-    # run_replications()
+    # model, logger = main()
+    run_replications()
     # factorial = hospital_factorial_analysis()    
-    # run_visualization(build_model, simulation_time=500)
+    # run_visualization(build_hospital_model, simulation_time=500)
