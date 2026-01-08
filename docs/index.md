@@ -102,7 +102,7 @@ pip install -e .
 
 # Then test:
 desk-distfit -h
-desk-distfit -d distfit/data.txt
+desk-distfit -d input_data/foo.txt
 ```
 
 
@@ -206,22 +206,19 @@ Fit probability distributions to empirical data:
 
 ```bash
 # Basic usage
-desk-distfit -d distfit/data.txt
+desk-distfit -d input_data/foo.txt
 
 # Custom significance level
-desk-distfit -d distfit/data.txt -a 0.01
+desk-distfit -d input_data/foo.txt -a 0.01
 
 # Test specific distributions
-desk-distfit -d distfit/data.txt --distributions norm expon gamma
+desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 
 # Save results
-desk-distfit -d distfit/data.txt -o results.txt --format json
+desk-distfit -d input_data/foo.txt -o results.txt --format json
 
 # Skip plotting
-desk-distfit -d distfit/data.txt --no-plot
-
-# Or run as a python module, from desk/ 
-py -m distfit.distfit -d distfit/data1.txt
+desk-distfit -d input_data/foo.txt --no-plot
 ```
 
 **Output includes:**
@@ -368,14 +365,16 @@ factorial_analysis()
 
 ```text
 DESK/
-├── config/                    # Simulation setting
-├── core/                      # Core simulation engine
-├── blocks/                    # Simulation building blocks
-├── analytics/                 # Metrics, plots, reports
-├── stats/                     # Replication & factorial design
-├── validation/                # Stability and warm-up analysis
-├── visualization/             # Real-time visualization
-├── distfit/distfit.py         # DistFit CLI tool
+├── src/                       # Source code of DESK
+|   ├── config/                # Simulation setting
+|   ├── core/                  # Core simulation engine
+|   ├── blocks/                # Simulation building blocks
+|   ├── analytics/             # Metrics, plots, reports
+|   ├── stats/                 # Replication & factorial design
+|   ├── validation/            # Stability and warm-up analysis
+|   ├── visualization/         # Real-time visualization
+|   ├── distfit/distfit.py     # DistFit CLI tool
+├── input_data/
 ├── examples/
 ├── 1) hospital.py             # Hospital example
 ├── 2) 2.py                    # Restaurant example
@@ -401,28 +400,77 @@ DESK/
 ---
 ## 🎓 Running examples
 
-For each example, activate the line for each activity: (1) replication, (2) full simulation, (3) factorial analysis and (4) visualization
+For each example, you can run: (1) replication, (2) full simulation, (3) factorial analysis and (4) visualization.
 
-1) One replication 
-
-![Replication analysis ](figs/hospital1.png) 
-
-2) Full simulation (run replications)
-
-![Full simulation ](figs/hospital2.png)
-
-3) Factorial analysis
-
-![Factorial analysis ](figs/hospital3.png)
-
-4) Visualization
-
-![Visualization ](figs/hospital4.png)
----
+DESK examples are executed **directly from the command line**, using explicit execution modes.
 
 
 ---
 
+### 🔍 List available modes
+
+To see which execution modes are implemented by a given model. 
+
+Example:
+
+```bash
+desk-sim -m examples/hospital.py --list-modes
+```
+
+
+```text
+Available DESK execution modes:
+
+  --mode single         → run a single replication
+  --mode replications   → run the full simulation
+  --mode factorial      → run a factorial analysis
+  --mode visualization  → run simulation interface
+```
+
+---
+
+### ▶️ Running a single replication
+
+Runs **one complete replication run**, with full tracing, reporting, plots, and diagnostics.
+
+```bash
+desk-sim -m examples/hospital.py --mode single
+```
+
+
+---
+
+### 🔁 Running full simulation (multiple replications)
+
+Runs **multiple independent replications**, aggregates results, and computes confidence intervals and statistical analysis.
+
+```bash
+desk-sim -m examples/hospital.py --mode replications
+```
+
+
+---
+
+### 🧪 Factorial analysis
+
+Runs a **factorial experiment**, varying model parameters and analyzing main and interaction effects.
+
+```bash
+desk-sim -m examples/hospital.py --mode factorial
+```
+
+---
+
+### 📊 Interactive visualization
+
+Runs the model using the **DESK visualization interface**, enabling interactive inspection of system dynamics.
+
+```bash
+desk-sim -m examples/hospital.py --mode visualization
+```
+
+
+---
 ## 🔬 Validation & Verification
 
 DESK includes:
