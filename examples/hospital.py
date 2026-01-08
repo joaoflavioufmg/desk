@@ -588,7 +588,7 @@ def main():
 
 
 if __name__ == "__main__":
-    model, logger = main()
-    # run_replications()
+    # model, logger = main()
+    run_replications()
     # factorial = hospital_factorial_analysis()    
     # run_visualization(build_hospital_model, simulation_time=500)
