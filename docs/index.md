@@ -491,6 +491,8 @@ DESK includes:
 * BupaR
 * processanimateR
 
+The resulting event-log .csv file is stored in result/ folder, e.g., `hospital_event_log.csv` file, to produce the animation below. The R code of the example (`hospital_bupar.R`) is available in r_animation/ folder.
+
 ---
 ![ProcessAnimateR](docs/figs/hospital-processanimateR.gif)
 
