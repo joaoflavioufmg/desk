@@ -492,6 +492,10 @@ DESK includes:
 * processanimateR
 
 ---
+![ProcessAnimateR](docs/figs/hospital-processanimateR.gif)
+
+
+---
 ## DESK Distribution Fitting Tool (Desk-DistFit)
  
 Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distributions to empirical data using statistical tests. This tool helps identify the best-fitting probability distribution from a set of common distributions and provides Python code for generating random numbers from the fitted distribution. It can be used with the Discrete Event Simulation Kit (DESK).
