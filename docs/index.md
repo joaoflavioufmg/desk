@@ -81,9 +81,9 @@ DESK is suitable for **applied decision support, teaching, and research**.
   - WIP evolution
   - System time distributions
   - Activity-level metrics
-- **BupaR Integration**: Process mining and animation in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
+- **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
 
-- **Automated Reports**: Results with diagnostics and recommendations
+- **Automated Reports**: Simulation results with diagnostics and recommendations
 ---
 
 ## 🚀 Quick Start
@@ -490,6 +490,8 @@ DESK includes:
 * R >= 4.0
 * BupaR
 * processanimateR
+
+The resulting event-log .csv file is stored in result/ folder, e.g., `hospital_event_log.csv` file, to produce the animation below. The R code of the example (`hospital_bupar.R`) is available in r_animation/ folder.
 
 ---
 ![ProcessAnimateR](docs/figs/hospital-processanimateR.gif)
