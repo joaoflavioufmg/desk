@@ -107,7 +107,7 @@ desk-sim -h
 desk-sim -m examples/hospital.py --mode visualization
 
 desk-distfit -h
-desk-distfit -d input_data/foo.txt
+desk-distfit -d input_data/data10.txt
 ```
 
 
@@ -115,7 +115,7 @@ desk-distfit -d input_data/foo.txt
 
 ## 🚀 Basic Example (A single replication)
 
-Patients arrive at an emmergency department in a hospital. They are evaluated in a triagem system and dispatched to additional hospital departments. The conceptual models is presented* below. 
+Patients arrive at a hospital emergency department, where they are assessed through a triage system and then directed to the appropriate hospital units. The conceptual model is presented* below. 
 
 ---
 **DESK adopts BPMN (.bpmn) as an open, tool-independent notation for representing activity-cycle and process-interaction models. Although BPMN is not a simulation-native language, its standardized semantics and widespread support make it a suitable representation for discrete-event simulation models.*
@@ -127,14 +127,15 @@ Models in `.bpmn` format can be created and shared using the
 ![Basic example BPMN](figs/basic.svg)
 ---
 
-Create a `ex.py` file and Copy/Paste the Part1 code below.
+Create a `basic.py` file and Copy/Paste the Part1 code below.
 
-Following, run: `desk-sim -m ex.py --mode single`
+Following, run: `desk-sim -m basic.py --mode single`
 
 ```python
 # ==============================================================
 # Part 1: Basic simulation model: Nurses on emergency triage (hospital)
 # ==============================================================
+
 def build_model(until=None, event_logger=None, verbose=True): 
     
     import random
@@ -144,13 +145,8 @@ def build_model(until=None, event_logger=None, verbose=True):
     from desk.blocks.process_block import ProcessBlock
     from desk.blocks.dispose_block import DisposeBlock
     
-    HOURS = 60  # Time conversion factor (base time: minutes)
-    DAYS = 1440
-    YEARS = 525600
-    
     # Create model
-    model = SimulationModel()
-    event_logger = EventLogger()
+    model = SimulationModel(verbose=verbose)
 
     # Add resources
     nurses = model.add_resource("Nurses", capacity=3)
@@ -180,16 +176,26 @@ def build_model(until=None, event_logger=None, verbose=True):
     # Connect flow
     arrivals.connect_to(triage)
     triage.connect_to(discharge)
-    
+       
     return model
     
     
 # Run a simulation replication
 def main():
-    model = build_model()
+    from desk.core.entity import EventLogger
+    
+    HOURS = 60  # Time conversion factor (base time: minutes)
+    DAYS = 1440
+    YEARS = 525600
+    
+    # Create event logger
+    event_logger = EventLogger()
+    
+    model = build_model(event_logger=event_logger, verbose=False)
+    
     model.run_simulation(
-        until=480,          # 8 hours
-        warm_up_period=60,  # 1 hour
+        until=8*HOURS,          # 8 hours
+        warm_up_period=1*HOURS,  # 1 hour
         seed=123
     )
 
@@ -201,9 +207,11 @@ def main():
     reporter._print_resource_metrics()
     reporter._print_entity_counts()
     reporter._print_block_statistics()
+    
+    return model, event_logger
 
 # ===========================================
-# Simulation kit
+# Simulation Kit
 # ===========================================
 
 # Run a simulation replication
@@ -227,13 +235,12 @@ def run_visualization_cli(simulation_time=500):
 ## 📊 Simulation Analysis (Replications)
 
 
-Now, Copy/Paste the Part2 code below and add to the `ex.py` file.
+Now, Copy/Paste the Part2 code below and add to the `basic.py` file.
 
-Following, run: `desk-sim -m ex.py --mode replications`
+Following, run: `desk-sim -m basic.py --mode replications`
 
 ```python
-# ... (after) Report results codes...
-
+# ... (after) "return model, event_logger"...
 # ==============================================================
 # Part 2: Additional code: Full simulation (replications framework)
 # ==============================================================
@@ -287,13 +294,13 @@ def run_replications():
 ```
 ## 🧪 Experimental Design (Factorial)
 
-Now, Copy/Paste the Part3 code below and add to the `ex.py` file.
+Now, Copy/Paste the Part3 code below and add to the `basic.py` file.
 
-Following, run: `desk-sim -m ex.py --mode factorial`
+Following, run: `desk-sim -m basic.py --mode factorial`
 
 
 ```python
-# ... after "Access results"...
+# ... after "print(df.describe())"...
 # ==============================================================
 # Part 3: Additional code: Factorial experiment
 # ==============================================================
@@ -362,6 +369,28 @@ def factorial_analysis():
     factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_nurses')
      
     return factorial
+
+# ... keep the original (Simulation Kit) code
+# ===========================================
+# Simulation Kit
+# ===========================================
+```
+
+## 🔁 Run Interface (Visualization)
+
+Finally, Copy/Paste the Part4 code below and add to the `basic.py` file.
+
+Following, run: `desk-sim -m basic.py --mode visualization`
+
+Actually, this can be the first part in a simulation study.
+
+
+```python
+# ... after "return factorial"...
+# ==============================================================
+# Part 4: Additional code: Interface - visualization
+# ==============================================================
+from desk.visualization.interface import run_visualization
 
 # ... keep the original (Simulation Kit) code
 # ===========================================
