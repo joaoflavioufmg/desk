@@ -36,7 +36,7 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - **Event Tracing**: Event logging with filtering and replay
 - **Visualization**: Graphical interface sincronized with event log printing
 
-![Visualization](docs/figs/hospital-step.gif)
+![Visualization](figs/hospital-step.gif)
 
 ---
 
@@ -47,7 +47,7 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - Kolmogorov–Smirnov goodness-of-fit tests
 - Multiple output formats: table, JSON, CSV
 
-![DistFit](docs/figs/dist.png)
+![DistFit](figs/dist.png)
 
 ---
 
@@ -58,7 +58,7 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - **Replication Framework**: (Simulation) Automated multi-run experiments with confidence intervals
 - **Factorial Experiments**: Full factorial design with interaction analysis
 
-![Use](docs/figs/use.png)
+![Use](figs/use.png)
 ---
 
 ### Performance Metrics
@@ -68,13 +68,13 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - **Financial Analysis**: Cost and revenue per activity
 
 
-![WIP](docs/figs/wip.png)
+![WIP](figs/wip.png)
 ---
 
 ### Visualization & Reporting
 - **Real-Time Visualization**: Process animation during simulation
 
-![Visualization](docs/figs/hospital.gif)
+![Visualization](figs/hospital.gif)
 
 - **Statistical Plots**:
   - Resource utilization over time
@@ -121,7 +121,7 @@ Models in `.bpmn` format can be created and shared using the
 
 
 ---
-![Basic example BPMN](docs/figs/basic.svg)
+![Basic example BPMN](figs/basic.svg)
 ---
 
 ```python
@@ -494,7 +494,7 @@ DESK includes:
 The resulting event-log .csv file is stored in result/ folder, e.g., `hospital_event_log.csv` file, to produce the animation below. The R code of the example (`hospital_bupar.R`) is available in r_animation/ folder.
 
 ---
-![ProcessAnimateR](docs/figs/hospital-processanimateR.gif)
+![ProcessAnimateR](figs/hospital-processanimateR.gif)
 
 
 ---
@@ -512,32 +512,6 @@ Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distribut
 - **Python Code Generation**: Automatically generates Python code for the best-fitting distribution
 - **Robust Error Handling**: Comprehensive error handling and logging
 
-## Installation
-
-### Prerequisites
-
-- Python 3.10 or higher
-
-### Quick Install
-
-```bash
-# Clone the repository
-git clone https://github.com/joaoflavioufmg/desk.git
-cd desk
-```
-
-
-2. Install dependencies:
-```bash
-pip install .
-# or
-pip install -e .
-```
-
-3. Run the tool for info (help):
-```bash
-desk-distfit -h
-```
 
 ## Usage
 
@@ -765,35 +739,13 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 - **Independence**: Assumes data points are independent
 - **Stationarity**: Assumes data comes from a stationary process
 
-### Common Issues
 
-1. **"File not found" error**
-   ```bash
-   # Check file path and existence
-   ls -la your_data.txt
-   ```
-
-2. **"No module named" errors**
-   ```bash
-   # Install missing packages
-   pip install numpy pandas scipy matplotlib
-   ```
-
-3. **Empty or invalid data**
-   - Ensure file contains numeric values
-   - Check for proper encoding (UTF-8)
-   - Remove headers or non-numeric content
-
-4. **Plotting errors**
-   ```bash
-   # Use --no-plot flag to skip visualization
-   desk-distfit -d foo.txt --no-plot
-   ```
 
 ### Getting Help
 
 ```bash
 # Show detailed help
+desk-sim -h
 desk-distfit -h
 
 # Enable verbose output for debugging
