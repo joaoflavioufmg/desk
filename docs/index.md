@@ -6,17 +6,17 @@
 [![Documentation Status](https://readthedocs.org/projects/desk-sim/badge/?version=latest)](https://desk-sim.readthedocs.io/en/latest/?badge=latest)
 
 
-A comprehensive Python framework for **Discrete Event Simulation** with advanced analysis, visualization, and experimental design capabilities.
+A comprehensive Python framework for **Discrete Event Simulation** [1,2] with advanced analysis, visualization, and experimental design capabilities.
 
 ---
 
 ## 📋 Overview
 
-**DESK (Discrete Event Simulation Kit)** is a professional-grade simulation framework built on top of **SimPy**, designed for modeling complex systems such as hospitals, call centers, manufacturing, and service operations.
+**DESK (Discrete Event Simulation Kit)** is a professional-grade simulation framework built on top of **SimPy** [3], designed for modeling complex systems such as hospitals, call centers, manufacturing, and service operations.
 
-DESK addresses the gap of structured experimental design and replication automation in discrete-event simulation workflows.
+DESK addresses the gap of structured experimental design [4] and replication automation in discrete-event simulation [1,2] workflows.
 
-The framework emphasizes:
+The open-source framework [5] emphasizes:
 - modularity,
 - reusability,
 - transparency (visualization and event logs),
@@ -48,6 +48,8 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - Multiple output formats: table, JSON, CSV
 
 ![DistFit](figs/dist.png)
+
+See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfit) for further details.
 
 ---
 
@@ -111,20 +113,28 @@ desk-distfit -d input_data/foo.txt
 
 # DESK — Discrete Event Simulation Kit
 
-## 🚀 Basic Example
+## 🚀 Basic Example (A single replication)
+
+Patients arrive at an emmergency department in a hospital. They are evaluated in a triagem system and dispatched to additional hospital departments. The conceptual models is presented* below. 
 
 ---
-*DESK adopts BPMN (.bpmn) as an open, tool-independent notation for representing activity-cycle and process-interaction models. Although BPMN is not a simulation-native language, its standardized semantics and widespread support make it a suitable representation for discrete-event simulation models.*
+**DESK adopts BPMN (.bpmn) as an open, tool-independent notation for representing activity-cycle and process-interaction models. Although BPMN is not a simulation-native language, its standardized semantics and widespread support make it a suitable representation for discrete-event simulation models.*
 
 Models in `.bpmn` format can be created and shared using the
 [BPMN Web Modeler (bpmn.io)](https://demo.bpmn.io/).
-
 
 ---
 ![Basic example BPMN](figs/basic.svg)
 ---
 
+Create a `ex.py` file and Copy/Paste the Part1 code below.
+
+Following, run: `desk-sim -m ex.py --mode single`
+
 ```python
+# ==============================================================
+# Part 1: Basic simulation model: Nurses on emergency triage (hospital)
+# ==============================================================
 def build_model(until=None, event_logger=None, verbose=True): 
     
     import random
@@ -143,7 +153,7 @@ def build_model(until=None, event_logger=None, verbose=True):
     event_logger = EventLogger()
 
     # Add resources
-    nurses = model.add_resource("Nurses", capacity=3, resource_type="priority")
+    nurses = model.add_resource("Nurses", capacity=3)
 
     # Define blocks
     arrivals = CreateBlock(
@@ -175,72 +185,59 @@ def build_model(until=None, event_logger=None, verbose=True):
     
     
 # Run a simulation replication
-model = build_model()
-model.run_simulation(
-    until=480,          # 8 hours
-    warm_up_period=60,  # 1 hour
-    seed=123
-)
+def main():
+    model = build_model()
+    model.run_simulation(
+        until=480,          # 8 hours
+        warm_up_period=60,  # 1 hour
+        seed=123
+    )
 
-# Report results
-from desk.analytics.reporting import SimulationReporter
-reporter = SimulationReporter(model)
-reporter.print_results()
-reporter._print_activity_metrics()
-reporter._print_resource_metrics()
-reporter._print_entity_counts()
-reporter._print_block_statistics()
+    # Report results
+    from desk.analytics.reporting import SimulationReporter
+    reporter = SimulationReporter(model)
+    reporter.print_results()
+    reporter._print_activity_metrics()
+    reporter._print_resource_metrics()
+    reporter._print_entity_counts()
+    reporter._print_block_statistics()
+
+# ===========================================
+# Simulation kit
+# ===========================================
+
+# Run a simulation replication
+def run_single_replication():
+    return main()
+
+# Run a full simulation    
+def run_replications_cli():
+    run_replications()
+
+# Run a factorial analysis
+def run_factorial_cli():
+    return factorial_analysis()
+
+# Run the simulation with interface 
+def run_visualization_cli(simulation_time=500):
+    return run_visualization(build_model, simulation_time=simulation_time)
 ```
 
 ---
-
-## 📊 Input Analysis with Desk-DistFit
-
-*How were the input models used in the previous example, such as `random.expovariate(1/10)` or `random.uniform(5, 10)`, derived from empirical data?*
-
-Within DESK, `desk-distfit` addresses this question by performing *statistical input analysis*, identifying the probability distribution that best fits observed data and replacing heuristic assumptions with data-driven, statistically validated simulation inputs.
-
-`desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
-
-*DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*
-
-Fit probability distributions to empirical data:
-
-```bash
-# Basic usage
-desk-distfit -d input_data/foo.txt
-
-# Custom significance level
-desk-distfit -d input_data/foo.txt -a 0.01
-
-# Test specific distributions
-desk-distfit -d input_data/foo.txt --distributions norm expon gamma
-
-# Save results
-desk-distfit -d input_data/foo.txt -o results.txt --format json
-
-# Skip plotting
-desk-distfit -d input_data/foo.txt --no-plot
-```
-
-**Output includes:**
-
-* Goodness-of-fit statistics
-* Best-fit distribution
-* Parameter estimates
-* Ready-to-use Python code for DESK models, such as the texts `random.expovariate(1/10)` or `random.uniform(5, 10)`.
+## 📊 Simulation Analysis (Replications)
 
 
-See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfit) for further details.
+Now, Copy/Paste the Part2 code below and add to the `ex.py` file.
 
-
----
-
-## 🧪 Experimental Design
-
-### Replication Analysis
+Following, run: `desk-sim -m ex.py --mode replications`
 
 ```python
+# ... (after) Report results codes...
+
+# ==============================================================
+# Part 2: Additional code: Full simulation (replications framework)
+# ==============================================================
+
 # Define simulation function wrapper
 def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
@@ -282,13 +279,24 @@ def run_replications():
     df = replication_framework.get_results_dataframe()
     print(df.describe())
    
-# Run a full simulation    
-run_replications()
-```
+# ... keep the original (Simulation Kit) code
+# ===========================================
+# Simulation Kit
+# ===========================================
 
-### Factorial Experiments
+```
+## 🧪 Experimental Design (Factorial)
+
+Now, Copy/Paste the Part3 code below and add to the `ex.py` file.
+
+Following, run: `desk-sim -m ex.py --mode factorial`
+
 
 ```python
+# ... after "Access results"...
+# ==============================================================
+# Part 3: Additional code: Factorial experiment
+# ==============================================================
 def factorial_analysis():
     """Factorial analysis with simulation."""
     
@@ -355,8 +363,10 @@ def factorial_analysis():
      
     return factorial
 
-# Run factorial analysis
-factorial_analysis()
+# ... keep the original (Simulation Kit) code
+# ===========================================
+# Simulation Kit
+# ===========================================
 ```
 
 ---
@@ -499,8 +509,18 @@ The resulting event-log .csv file is stored in result/ folder, e.g., `hospital_e
 
 ---
 ## DESK Distribution Fitting Tool (Desk-DistFit)
- 
-Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distributions to empirical data using statistical tests. This tool helps identify the best-fitting probability distribution from a set of common distributions and provides Python code for generating random numbers from the fitted distribution. It can be used with the Discrete Event Simulation Kit (DESK).
+
+### 📊 Input Analysis with Desk-DistFit
+
+*How were the input models used in the previous example, such as `random.expovariate(1/10)` or `random.uniform(5, 10)`, derived from empirical data?*
+
+Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distributions to empirical data using statistical tests. Inspired by previous works [6,7], this tool helps identify the best-fitting probability distribution from a set of common distributions and provides Python code for generating random numbers from the fitted distribution to DESK models. 
+
+Within DESK, `desk-distfit` addresses this question by performing *statistical input analysis*, identifying the probability distribution that best fits observed data and replacing generic assumptions with data-driven, statistically validated simulation inputs.
+
+`desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
+
+*DESK adopts a verb-oriented command-line interface, where simulation tasks are expressed as structured actions (`desk-distfit`), ensuring consistency, reproducibility, and ease of learning across the framework.*
 
 ## Features
 
@@ -512,14 +532,39 @@ Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distribut
 - **Python Code Generation**: Automatically generates Python code for the best-fitting distribution
 - **Robust Error Handling**: Comprehensive error handling and logging
 
+**Output includes:**
+
+* Goodness-of-fit statistics
+* Best-fit distribution
+* Parameter estimates
+* Ready-to-use Python code for DESK models, such as the texts `random.expovariate(1/10)` or `random.uniform(5, 10)`.
 
 ## Usage
 
 ### Basic Usage
 
+Fit probability distributions to empirical data:
+
 ```bash
-desk-distfit -d folder/foo.txt
+# Basic usage
+desk-distfit -d input_data/foo.txt
+
+# Custom significance level
+desk-distfit -d input_data/foo.txt -a 0.01
+
+# Test specific distributions
+desk-distfit -d input_data/foo.txt --distributions norm expon gamma
+
+# Save results
+desk-distfit -d input_data/foo.txt -o results.txt --format json
+
+# Skip plotting
+desk-distfit -d input_data/foo.txt --no-plot
+
+# Help
+desk-distfit -h
 ```
+
 
 ### Command-Line Options
 
@@ -724,7 +769,7 @@ print(report)
 
 ## Statistical Method
 
-The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
+The tool uses the **Kolmogorov-Smirnov test** [8] to assess goodness-of-fit:
 
 1. **Null Hypothesis (H₀)**: The data follows the tested distribution
 2. **Alternative Hypothesis (H₁)**: The data does not follow the tested distribution
@@ -740,8 +785,7 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 - **Stationarity**: Assumes data comes from a stationary process
 
 
-
-### Getting Help
+### Getting Help (DESK and DESK-DistFit)
 
 ```bash
 # Show detailed help
@@ -763,6 +807,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install development dependencies
+cd desk
 pip install .
 
 # Run tests
@@ -770,14 +815,26 @@ pytest
 ```
 
 ## References
+[1] Banks, J. (2005). Discrete event system simulation. Pearson Education India.
 
-1. Massey Jr, F. J. (1951). The Kolmogorov-Smirnov test for goodness of fit. Journal of the American statistical Association, 46(253), 68-78.
-2. Scipy.stats documentation: https://docs.scipy.org/doc/scipy/reference/stats.html
-3. Distribution fitting with Python: https://medium.com/@amirarsalan.rajabi/distribution-fitting-with-python-scipy-bb70a42c0aed
+[2] Law, A. M., Kelton, W. D., & Kelton, W. D. (2007). Simulation modeling and analysis (Vol. 3). New York: Mcgraw-hill. ISBN10: 0073401323 | ISBN13: 9780073401324 https://www.mheducation.com/highered/product/simulation-modeling-and-analysis-law.html?viewOption=instructor
+
+[3] Matloff, N. (2008). Introduction to discrete-event simulation and the simpy language. Davis, CA. Dept of Computer Science. University of California at Davis. Retrieved on August, 2(2009), 1-33. https://heather.cs.ucdavis.edu/matloff/public_html/156/PLN/DESimIntro.pdf
+
+[4] Kleijnen, J. P. (2015, September). Design and analysis of simulation experiments. In International workshop on simulation (pp. 3-22). Cham: Springer International Publishing. https://doi.org/10.1007/978-3-319-76035-3_1
+
+[5] Stodden, Victoria, Marcia McNutt, David H. Bailey, et al. 2016. “Enhancing Reproducibility for Computational Methods.” Science 354 (6317). https://doi.org/10.1126/science.aah6168.
+
+[6] Distribution fitting with Python: https://medium.com/@amirarsalan.rajabi/distribution-fitting-with-python-scipy-bb70a42c0aed
+
+[7] https://fitter.readthedocs.io/en/latest/
+
+[8] Massey Jr, F. J. (1951). The Kolmogorov-Smirnov test for goodness of fit. Journal of the American statistical Association, 46(253), 68-78.
 
 ## Changelog
 
 ### Version 1.1.2
+- Complete rewrite DESK CLI interface
 - Complete rewrite DESK-DistFit CLI interface
 
 
