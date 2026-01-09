@@ -20,9 +20,9 @@ The framework emphasizes:
 - modularity,
 - reusability,
 - transparency (visualization and event logs),
-- and rigorous statistical analysis.
+- and statistical analysis.
 
-DESK is suitable for **teaching, research, and applied decision support**.
+DESK is suitable for **applied decision support, teaching, and research**.
 
 ---
 
@@ -33,7 +33,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Advanced Resource Management**: Regular, priority-based, and preemptive resources
 - **Entity Attributes & State Variables**: Dynamic assignment and modification
 - **Priority Scheduling**: Activity-level and entity-level priority control
-- **Event Tracing**: Comprehensive event logging with filtering and replay
+- **Event Tracing**: Event logging with filtering and replay
 - **Visualization**: Graphical interface sincronized with event log printing
 
 ![Visualization](docs/figs/hospital-step.gif)
@@ -45,7 +45,6 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - Supports 9+ distributions:
   - uniform, triangular, exponential, normal, lognormal, beta, gamma, Weibull
 - Kolmogorov–Smirnov goodness-of-fit tests
-- Automatic Python `random` code generation
 - Multiple output formats: table, JSON, CSV
 
 ![DistFit](docs/figs/dist.png)
@@ -53,10 +52,11 @@ DESK is suitable for **teaching, research, and applied decision support**.
 ---
 
 ### Experimental Design & Analysis
-- **Replication Framework**: Automated multi-run experiments with confidence intervals
-- **Factorial Experiments**: Full factorial design with interaction analysis
+- **Stability Analysis**: Preliminar capacity analysis on utilization (ρ < 1)
+- **Little’s Law verification**: Automatic analysis on stability (**L = λW**). *The average number of items in the system (L) is the average arrival rate (λ) multiplied by the average time an item spends in the system (W)* 
 - **Warm-Up Analysis**: Automated transient detection
-- **Stability Analysis**: Capacity analysis on utilization (ρ < 1)
+- **Replication Framework**: (Simulation) Automated multi-run experiments with confidence intervals
+- **Factorial Experiments**: Full factorial design with interaction analysis
 
 ![Use](docs/figs/use.png)
 ---
@@ -66,13 +66,16 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Resource Metrics**: Utilization, queue length, busy/idle time
 - **WIP Tracking**: Time-weighted work-in-process analysis
 - **Financial Analysis**: Cost and revenue per activity
-- **Little’s Law Verification**: Automatic analysis on stability: The average number of items in the system (L) equals the average arrival rate (λ) multiplied by the average time an item spends in the system (W): L = λW
+
 
 ![WIP](docs/figs/wip.png)
 ---
 
 ### Visualization & Reporting
 - **Real-Time Visualization**: Process animation during simulation
+
+![Visualization](docs/figs/hospital.gif)
+
 - **Statistical Plots**:
   - Resource utilization over time
   - WIP evolution
@@ -81,9 +84,6 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **BupaR Integration**: Process mining and animation in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
 
 - **Automated Reports**: Results with diagnostics and recommendations
-
-![Visualization](docs/figs/hospital.gif)
-
 ---
 
 ## 🚀 Quick Start
@@ -101,6 +101,9 @@ pip install .
 pip install -e .
 
 # Then test:
+desk-sim -h
+desk-sim -m examples/hospital.py --mode visualization
+
 desk-distfit -h
 desk-distfit -d input_data/foo.txt
 ```
@@ -119,18 +122,17 @@ Models in `.bpmn` format can be created and shared using the
 
 ---
 ![Basic example BPMN](docs/figs/basic.svg)
-
 ---
 
 ```python
 def build_model(until=None, event_logger=None, verbose=True): 
     
     import random
-    from core.simulation_model import SimulationModel
-    from core.entity import EventLogger
-    from blocks.create_block import CreateBlock
-    from blocks.process_block import ProcessBlock
-    from blocks.dispose_block import DisposeBlock
+    from desk.core.simulation_model import SimulationModel
+    from desk.core.entity import EventLogger
+    from desk.blocks.create_block import CreateBlock
+    from desk.blocks.process_block import ProcessBlock
+    from desk.blocks.dispose_block import DisposeBlock
     
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -181,7 +183,7 @@ model.run_simulation(
 )
 
 # Report results
-from analytics.reporting import SimulationReporter
+from desk.analytics.reporting import SimulationReporter
 reporter = SimulationReporter(model)
 reporter.print_results()
 reporter._print_activity_metrics()
@@ -194,9 +196,9 @@ reporter._print_block_statistics()
 
 ## 📊 Input Analysis with Desk-DistFit
 
-*How were the input models used in the previous example—such as `random.expovariate(1/10)` or `random.uniform(5, 10)`—derived from empirical data?*
+*How were the input models used in the previous example, such as `random.expovariate(1/10)` or `random.uniform(5, 10)`, derived from empirical data?*
 
-Within DESK, `desk-distfit` addresses this question by performing statistical input analysis, identifying the probability distribution that best fits observed data and replacing heuristic assumptions with data-driven, statistically validated simulation inputs.
+Within DESK, `desk-distfit` addresses this question by performing *statistical input analysis*, identifying the probability distribution that best fits observed data and replacing heuristic assumptions with data-driven, statistically validated simulation inputs.
 
 `desk-distfit` is the official DESK input-analysis CLI for statistically fitting probability distributions to empirical data. 
 
@@ -226,7 +228,7 @@ desk-distfit -d input_data/foo.txt --no-plot
 * Goodness-of-fit statistics
 * Best-fit distribution
 * Parameter estimates
-* Ready-to-use Python code
+* Ready-to-use Python code for DESK models, such as the texts `random.expovariate(1/10)` or `random.uniform(5, 10)`.
 
 
 See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfit) for further details.
@@ -243,7 +245,7 @@ See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfi
 def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
     
-    from core.entity import EventLogger
+    from desk.core.entity import EventLogger
     event_logger = EventLogger()
 
     # Create a fresh model
@@ -259,7 +261,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     return model
 
 def run_replications():
-    from stats.replication import ReplicationFramework
+    from desk.stats.replication import ReplicationFramework
     
     replication_framework = ReplicationFramework(
         simulation_function=simulation_wrapper,
@@ -279,7 +281,6 @@ def run_replications():
     # Access results
     df = replication_framework.get_results_dataframe()
     print(df.describe())
-
    
 # Run a full simulation    
 run_replications()
@@ -291,7 +292,7 @@ run_replications()
 def factorial_analysis():
     """Factorial analysis with simulation."""
     
-    from stats.factorial import FactorialExperiment
+    from desk.stats.factorial import FactorialExperiment
 
     HOURS = 60  # Time conversion factor (base time: minutes)
     DAYS = 1440
@@ -302,7 +303,7 @@ def factorial_analysis():
                                 seed=None, until=None, warm_up_period=0, **kwargs):
         """Wrapper that adapts parameters for factorial analysis."""
 
-        from core.entity import EventLogger
+        from desk.core.entity import EventLogger
         event_logger = EventLogger()
 
         # Create a fresh model
@@ -336,8 +337,7 @@ def factorial_analysis():
         parameter_path='Resource.nurses.capacity',
         levels=[1, 2, 3],
         description='Number of nurses'
-    )
-    
+    )    
     
     # Run experiment
     factorial.run_factorial_experiment(
@@ -387,13 +387,13 @@ DESK/
 ## 🎓 Example Models
 
 1) **Hospital Emergency Department**
-  Triage, multiple resources, priority routing, financial tracking
+  Triage, multiple resources, priority routing, financial tracking (`hospital.py`)
 
 2) **Restaurant Service**
-  Multi-resource activities, dynamic attributes, financials
+  Multi-resource activities, dynamic attributes, financials (`2.py`)
 
 3) **Call Center with Lost Calls**
-  Trunk capacity, blocking, retrials, custom KPIs
+  Trunk capacity, blocking, retrials, custom KPIs (`3.py`, `3a.py`, `3b.py`)
 
 
 
@@ -409,9 +409,7 @@ DESK examples are executed **directly from the command line**, using explicit ex
 
 ### 🔍 List available modes
 
-To see which execution modes are implemented by a given model. 
-
-Example:
+To list the execution modes for a given model, e.g., `hospital.py`, type:
 
 ```bash
 desk-sim -m examples/hospital.py --list-modes
@@ -419,7 +417,7 @@ desk-sim -m examples/hospital.py --list-modes
 
 
 ```text
-Available DESK execution modes:
+DESK execution modes:
 
   --mode single         → run a single replication
   --mode replications   → run the full simulation
@@ -429,6 +427,14 @@ Available DESK execution modes:
 
 ---
 
+### 🔁 Interactive visualization
+
+Runs the model using the **DESK visualization interface**, enabling interactive inspection of the evolving system.
+
+```bash
+desk-sim -m examples/hospital.py --mode visualization
+```
+
 ### ▶️ Running a single replication
 
 Runs **one complete replication run**, with full tracing, reporting, plots, and diagnostics.
@@ -437,17 +443,15 @@ Runs **one complete replication run**, with full tracing, reporting, plots, and 
 desk-sim -m examples/hospital.py --mode single
 ```
 
-
 ---
 
-### 🔁 Running full simulation (multiple replications)
+### 📊 Running the full simulation (multiple replications)
 
 Runs **multiple independent replications**, aggregates results, and computes confidence intervals and statistical analysis.
 
 ```bash
 desk-sim -m examples/hospital.py --mode replications
 ```
-
 
 ---
 
@@ -459,16 +463,6 @@ Runs a **factorial experiment**, varying model parameters and analyzing main and
 desk-sim -m examples/hospital.py --mode factorial
 ```
 
----
-
-### 📊 Interactive visualization
-
-Runs the model using the **DESK visualization interface**, enabling interactive inspection of system dynamics.
-
-```bash
-desk-sim -m examples/hospital.py --mode visualization
-```
-
 
 ---
 ## 🔬 Validation & Verification
@@ -476,8 +470,8 @@ desk-sim -m examples/hospital.py --mode visualization
 DESK includes:
 
 * Stability checker (utilization ρ < 1)
-* Resource consistency validation
 * Little’s Law analysis
+* Resource consistency validation
 * Automated warm-up suggestion
 
 ---
@@ -509,7 +503,7 @@ Desk DistFit (`desk-distfit`) is a Python tool for fitting probability distribut
 - **Command-Line Interface**: Easy-to-use CLI with comprehensive options
 - **Multiple Output Formats**: Results can be saved as table, CSV, or JSON
 - **Visualization**: Generates comparative plots of fitted distributions
-- **Python Code Generation**: Automatically generates Python `random` module code for the best-fitting distribution
+- **Python Code Generation**: Automatically generates Python code for the best-fitting distribution
 - **Robust Error Handling**: Comprehensive error handling and logging
 
 ## Installation
@@ -544,7 +538,7 @@ desk-distfit -h
 ### Basic Usage
 
 ```bash
-desk-distfit -d your_data_file.txt
+desk-distfit -d folder/foo.txt
 ```
 
 ### Command-Line Options
@@ -566,31 +560,31 @@ desk-distfit -d your_data_file.txt
 
 ```bash
 # Basic analysis
-desk-distfit -d data.txt
+desk-distfit -d input_data/foo.txt
 
 # Custom significance level
-desk-distfit -d data.txt -a 0.01
+desk-distfit -d input_data/foo.txt -a 0.01
 
 # Test specific distributions only
-desk-distfit -d data.txt --distributions norm expon gamma
+desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 
 # Save results to file
-desk-distfit -d data.txt -o results.txt
+desk-distfit -d input_data/foo.txt -o results.txt
 
 # Generate CSV output
-desk-distfit -d data.txt -o results.csv --format csv
+desk-distfit -d input_data/foo.txt -o results.csv --format csv
 
 # Skip plotting (useful for batch processing)
-desk-distfit -d data.txt --no-plot
+desk-distfit -d input_data/foo.txt --no-plot
 
 # Show all fitted distributions in plot
-desk-distfit -d data.txt --show-all
+desk-distfit -d input_data/foo.txt --show-all
 
 # Verbose output for debugging
-desk-distfit -d data.txt -v
+desk-distfit -d input_data/foo.txt -v
 
 # Complete example with multiple options
-desk-distfit -d data.txt -a 0.01 -b 100 --show-all -o results.json --format json -v
+desk-distfit -d input_data/foo.txt -a 0.01 -b 100 --show-all -o results.json --format json -v
 ```
 
 ## Input Data Format
@@ -634,7 +628,7 @@ The tool provides:
 2. **Distribution fitting results** with p-values and significance indicators
 3. **Parameter details** for all fitted distributions
 4. **Summary report** with best-fitting distribution
-5. **Python code** for generating random numbers
+5. **Python code** for generating random numbers for DESK model.
 
 ### Example Output
 
@@ -715,13 +709,13 @@ gamma,0.789100,0.052300,Yes,random.gammavariate(1.024,0.496)
 You can also use the tool as a Python module:
 
 ```python
-from distfit import DistributionFitter
+from desk.distfit import DistributionFitter
 
 # Create fitter instance
 fitter = DistributionFitter(alpha=0.05, bins=50)
 
 # Load data
-fitter.load_data("your_data.txt")
+fitter.load_data("foo.txt")
 
 # Or set data directly
 import numpy as np
@@ -787,7 +781,7 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 4. **Plotting errors**
    ```bash
    # Use --no-plot flag to skip visualization
-   python input.py -d data.txt --no-plot
+   desk-distfit -d foo.txt --no-plot
    ```
 
 ### Getting Help
@@ -797,7 +791,7 @@ The tool uses the **Kolmogorov-Smirnov test** to assess goodness-of-fit:
 desk-distfit -h
 
 # Enable verbose output for debugging
-desk-distfit -d data.txt -v
+desk-distfit -d input_data/foo.txt -v
 ```
 
 ### Development Setup
@@ -805,7 +799,6 @@ desk-distfit -d data.txt -v
 ```bash
 # Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
-cd desk/
 
 # Create virtual environment
 python -m venv venv
