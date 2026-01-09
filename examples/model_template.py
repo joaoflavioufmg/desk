@@ -20,30 +20,30 @@
 # =====================================================================
 import random
 import sys
-from stats.factorial import FactorialExperiment
-from stats.replication import ReplicationFramework    
-from analytics.financial import FinancialAnalyzer
-from validation.resource_validator import ResourceValidator
-from core.simulation_model import SimulationModel
-from core.simulation_observer import SimulationObserver
-from core.entity import EventLogger
-from blocks.create_block import CreateBlock
-from blocks.process_block import ProcessBlock, MultiProcessBlock
-from blocks.decide_block import DecideBlock
-from blocks.dispose_block import DisposeBlock
-from analytics.metrics import MetricsCollector
-from analytics.reporting import SimulationReporter
-from analytics.plotting import SimulationPlotter
-from validation.stability import StabilityAnalyzer
-from validation.warmup import WarmUpAnalyzer
-from config.simulation_config import SimulationConfig
-from visualization.interface import run_visualization
+from desk.stats.factorial import FactorialExperiment
+from desk.stats.replication import ReplicationFramework    
+from desk.analytics.financial import FinancialAnalyzer
+from desk.validation.resource_validator import ResourceValidator
+from desk.core.simulation_model import SimulationModel
+from desk.core.simulation_observer import SimulationObserver
+from desk.core.entity import EventLogger
+from desk.blocks.create_block import CreateBlock
+from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
+from desk.blocks.decide_block import DecideBlock
+from desk.blocks.dispose_block import DisposeBlock
+from desk.analytics.metrics import MetricsCollector
+from desk.analytics.reporting import SimulationReporter
+from desk.analytics.plotting import SimulationPlotter
+from desk.validation.stability import StabilityAnalyzer
+from desk.validation.warmup import WarmUpAnalyzer
+from desk.config.simulation_config import SimulationConfig
+from desk.visualization.interface import run_visualization
 
 
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
-def build_ex_model(final_simulation_time=None, event_logger=None, verbose=True,
+def build_model(final_simulation_time=None, event_logger=None, verbose=True,
                         entity_filter=None, resource_filter=None,
                         event_type_filter=None, time_range=None): 
     """Build the simulation model with refactored structure.
@@ -339,7 +339,7 @@ def build_ex_model(final_simulation_time=None, event_logger=None, verbose=True,
 def simulation_wrapper(seed=None, until=None, warm_up_period=None):
     """Wrapper function for replication framework."""
     
-    from core.entity import EventLogger    
+    from desk.core.entity import EventLogger    
     event_logger = EventLogger()
 
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -354,7 +354,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
         check_stability=True
     )
 
-    model = build_ex_model(config.duration, event_logger, verbose=False)
+    model = build_model(config.duration, event_logger, verbose=False)
 
     # Validate once on first run
     # if seed == 12345:
@@ -399,7 +399,7 @@ def run_replications():
 # ================================================================
 # Factorial Analysis
 # ================================================================
-def ex_factorial_analysis():
+def factorial_analysis():
     """Example of factorial analysis with hospital simulation."""
 
     HOURS = 60  # Time conversion factor (base time: minutes)
@@ -425,7 +425,7 @@ def ex_factorial_analysis():
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
-        model = build_ex_model(config.duration, verbose=False)
+        model = build_model(config.duration, verbose=False)
         model.run_simulation(validate_resources=False, until=until, seed=seed, warm_up_period=warm_up_period)
         return model
     
@@ -512,9 +512,9 @@ def main():
     event_logger = EventLogger()
     
     # Build model
-    print("Building ex model...")
+    print("Building model...")
     verbose = config.duration <= 10*HOURS    
-    model = build_ex_model(config.duration, event_logger, verbose=verbose)
+    model = build_model(config.duration, event_logger, verbose=verbose)
     
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
@@ -686,8 +686,24 @@ def main():
     return model, event_logger
 
 
-if __name__ == "__main__":
-    model, logger = main()
-    # run_replications()
-    # factorial = ex_factorial_analysis()
-    # run_visualization(build_ex_model, simulation_time=8*60)
+# if __name__ == "__main__":
+#     model, logger = main()
+#     # run_replications()
+#     # factorial = factorial_analysis()
+#     # run_visualization(build_model, simulation_time=8*60)
+
+
+def run_single_replication():
+    return main()
+
+
+def run_replications_cli():
+    run_replications()
+
+
+def run_factorial_cli():
+    return factorial_analysis()
+
+
+def run_visualization_cli(simulation_time=60):
+    return run_visualization(build_model, simulation_time=simulation_time)    
