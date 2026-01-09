@@ -81,7 +81,7 @@ DESK is suitable for **applied decision support, teaching, and research**.
   - WIP evolution
   - System time distributions
   - Activity-level metrics
-- **BupaR Integration**: Process mining and animation in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
+- **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
 
 - **Automated Reports**: Results with diagnostics and recommendations
 ---
