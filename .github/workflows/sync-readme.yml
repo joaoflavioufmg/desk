@@ -2,10 +2,10 @@ name: Sync README to MkDocs index
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - README.md
+      - figs/**
 
 permissions:
   contents: write
@@ -15,22 +15,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Sync README.md → docs/index.md
-        run: |
-          mkdir -p docs
-          cp README.md docs/index.md
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Sync README and figures
+        run: python scripts/sync_readme.py
 
       - name: Commit changes if needed
         run: |
           if git diff --quiet; then
-            echo "No changes to commit"
+            echo "No changes"
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add docs/index.md
-            git commit -m "docs: sync README.md to docs/index.md"
+            git add docs/index.md docs/figs
+            git commit -m "docs: sync README → MkDocs"
             git push
           fi

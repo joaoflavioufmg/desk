@@ -1,26 +1,27 @@
 from pathlib import Path
 import shutil
 
-root = Path(__file__).resolve().parents[1]
-readme = root / "README.md"
-docs = root / "docs"
-index = docs / "index.md"
+ROOT = Path(__file__).resolve().parents[1]
+README = ROOT / "README.md"
+DOCS = ROOT / "docs"
+INDEX = DOCS / "index.md"
+FIGS = ROOT / "figs"
+DOCS_FIGS = DOCS / "figs"
 
-docs.mkdir(exist_ok=True)
+DOCS.mkdir(exist_ok=True)
 
-shutil.copyfile(readme, index)
-shutil.copytree("figs", "docs/figs", dirs_exist_ok=True)
+# Read README
+text = README.read_text(encoding="utf-8")
 
-
-text = Path("README.md").read_text(encoding="utf-8")
-
-# Remove illegal MkDocs paths
+# Fix paths for MkDocs
 text = text.replace("docs/figs/", "figs/")
 text = text.replace("/docs/figs/", "figs/")
 
-Path("docs/index.md").write_text(text, encoding="utf-8")
+# Write index.md
+INDEX.write_text(text, encoding="utf-8")
 
 # Copy figures
-shutil.copytree("figs", "docs/figs", dirs_exist_ok=True)
+if FIGS.exists():
+    shutil.copytree(FIGS, DOCS_FIGS, dirs_exist_ok=True)
 
-print("README.md synced to docs/index.md")
+print("README synced to docs/index.md and figs copied.")
