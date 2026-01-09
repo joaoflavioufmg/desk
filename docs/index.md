@@ -36,7 +36,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Event Tracing**: Comprehensive event logging with filtering and replay
 - **Visualization**: Graphical interface sincronized with event log printing
 
-![Visualization](figs/hospital-step.gif)
+![Visualization](docs/figs/hospital-step.gif)
 
 ---
 
@@ -48,7 +48,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - Automatic Python `random` code generation
 - Multiple output formats: table, JSON, CSV
 
-![DistFit](figs/dist.png)
+![DistFit](docs/figs/dist.png)
 
 ---
 
@@ -58,7 +58,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Warm-Up Analysis**: Automated transient detection
 - **Stability Analysis**: Capacity analysis on utilization (ρ < 1)
 
-![Use](figs/use.png)
+![Use](docs/figs/use.png)
 ---
 
 ### Performance Metrics
@@ -68,7 +68,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 - **Financial Analysis**: Cost and revenue per activity
 - **Little’s Law Verification**: Automatic analysis on stability: The average number of items in the system (L) equals the average arrival rate (λ) multiplied by the average time an item spends in the system (W): L = λW
 
-![WIP](figs/wip.png)
+![WIP](docs/figs/wip.png)
 ---
 
 ### Visualization & Reporting
@@ -82,7 +82,7 @@ DESK is suitable for **teaching, research, and applied decision support**.
 
 - **Automated Reports**: Results with diagnostics and recommendations
 
-![Visualization](figs/hospital.gif)
+![Visualization](docs/figs/hospital.gif)
 
 ---
 
@@ -118,7 +118,7 @@ Models in `.bpmn` format can be created and shared using the
 
 
 ---
-![Basic example BPMN](figs/basic.svg)
+![Basic example BPMN](docs/figs/basic.svg)
 
 ---
 
@@ -825,6 +825,10 @@ pytest
 3. Distribution fitting with Python: https://medium.com/@amirarsalan.rajabi/distribution-fitting-with-python-scipy-bb70a42c0aed
 
 ## Changelog
+
+### Version 1.1.2
+- Complete rewrite DESK-DistFit CLI interface
+
 
 ### Version 1.1.0
 - Complete rewrite with object-oriented design
