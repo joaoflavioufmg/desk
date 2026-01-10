@@ -905,7 +905,7 @@ Attribution 4.0 (CC BY 4.0).
 
 **Author:** Prof. João Flávio de Freitas Almeida <joao.flavio@dep.ufmg.br>
 
-**Program:** PPGEP — UFMG (Brazil)
+**Graduate Program:** PPGEP — UFMG (Brazil)
 
 **Course:** Simulating Logistics Systems
 
