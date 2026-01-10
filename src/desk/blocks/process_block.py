@@ -6,9 +6,7 @@ from desk.core.entity import Entity, EventLogger
 from typing import Dict, Callable, Optional
 import simpy
 
-# =====================================================================
-# FILE: blocks/process_block.py
-# =====================================================================
+
 class ProcessBlock(BaseBlock):
     """
     PROCESS block - performs delay operation with optional resource seizure.
@@ -100,7 +98,7 @@ class ProcessBlock(BaseBlock):
         """Process entity with resource seizure (traditional queue behavior)."""
         self._monitor_resource()
 
-        # 🔄 RETRY LOOP - handles preemption during acquisition OR service
+        # RETRY LOOP - handles preemption during acquisition OR service
         while True:
             queue_start = self.env.now
 
@@ -124,30 +122,29 @@ class ProcessBlock(BaseBlock):
 
             acquired = []
             try:
-                # NEW: Trace queue entry
+                # Trace queue entry
                 queue_length = len(self.resource.queue)
                 self._trace('queue', entity, self.resource_name, 
                            f"waiting, queue_length={queue_length}")
 
-                # ⚠️ ACQUISITION - can be preempted here too!
+                # ACQUISITION - can be preempted here too!
                 yield simpy.AllOf(self.env, requests)
                 acquired = requests
 
-                self._monitor_resource()
-                # self.log_start(entity, self.resource_name)
+                self._monitor_resource()                
 
                 # Record queue time
                 queue_time = self.env.now - queue_start
                 self.total_queue_time += queue_time
                 entity.add_attribute(f"{self.name}_queue_time", queue_time)
 
-                # ⚠️ SERVICE - can be preempted here
+                # SERVICE - can be preempted here
                 if hasattr(self.env, 'model') and hasattr(self.env.model, 'safe_delay_time'):
                     delay = self.env.model.safe_delay_time(self.delay_time)
                 else:
                     delay = max(0.0, self.delay_time())
 
-                # NEW: Trace service start
+                # Trace service start
                 utilization = self.resource.count / self.resource.capacity
                 self._trace('service_start', entity, self.resource_name,
                            f"service_time={delay:.2f}, queue_time={queue_time:.2f}")
@@ -156,30 +153,19 @@ class ProcessBlock(BaseBlock):
 
                 yield self.env.timeout(delay)
                 
-                # ✅ SUCCESS - completed without interruption
+                # SUCCESS - completed without interruption
                 self.entities_processed += 1
                 self.total_delay_time += delay
-                entity.add_attribute(f"{self.name}_service_time", delay)
+                entity.add_attribute(f"{self.name}_service_time", delay)                
                 
-                # self._apply_attributes(entity)
-                # ✅ MODIFIED: Capture assigned attributes
+                # Capture assigned attributes
                 assigned_attrs = self._apply_attributes(entity)
-                # self._modify_attributes(entity)  # NEW: Apply dynamic modifications
-                modified_attrs = self._modify_attributes(entity)
+                modified_attrs = self._modify_attributes(entity)                
+               
                 
-                # # NEW: Trace service end
-                # utilization = self.resource.count / self.resource.capacity
-                # self._trace('service_end', entity, self.resource_name,
-                #            f"use={utilization:.0%}")
-                
-                # ✅ MODIFIED: Include attributes in trace
+                # Include attributes in trace
                 utilization = self.resource.count / self.resource.capacity
-                details = f"use={utilization:.0%}"
-
-                # # Add attribute info if any were assigned
-                # if assigned_attrs:
-                #     attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
-                #     details += f", Attrib: {', '.join(attr_strs)}"
+                details = f"use={utilization:.0%}"                
 
                 # Collect all attribute changes
                 attr_changes = []
@@ -211,11 +197,11 @@ class ProcessBlock(BaseBlock):
                 break  # Exit retry loop - we're done!
                 
             except simpy.Interrupt as interrupt:
-                # NEW: Trace preemption
+                # Trace preemption
                 self._trace('interrupt', entity, self.resource_name,
                            f"preempted by higher priority")
 
-                # 🚨 PREEMPTED (during acquisition or service)
+                # PREEMPTED (during acquisition or service)
                 if self.event_logger:
                     # Determine if interrupted during service or acquisition
                     lifecycle = 'interrupt' if acquired else 'interrupt_queue'
@@ -234,7 +220,7 @@ class ProcessBlock(BaseBlock):
                 continue
 
             finally:
-                # 🔓 Always release all acquired units
+                # Always release all acquired units
                 for req in acquired:
                     try:
                         self.resource.release(req)
@@ -244,8 +230,7 @@ class ProcessBlock(BaseBlock):
 
         self._monitor_resource()
 
-        # Continue to next block
-        # yield from self.send_to_next(entity)
+        # Continue to next block        
         self.env.process(self.send_to_next(entity))
         yield self.env.timeout(0)
 
@@ -331,7 +316,7 @@ class MultiProcessBlock(BaseBlock):
             acquired_resources = []
             try:
                 
-                # ✅ FIX 1: Trace queue entry BEFORE acquiring resources
+                # Trace queue entry BEFORE acquiring resources
                 # Build combined resource string
                 resources_str = ", ".join([self.resource_names.get(r, "Unknown") 
                                           for r, _ in requests])
@@ -359,7 +344,7 @@ class MultiProcessBlock(BaseBlock):
                 
                 # Process (delay) - all resources are now held (use safe delay time)
                 # #############################################################
-                # Para Evitar erros de dados negativos no modelo
+                # To avoid negative data errors in the model
                 # #############################################################
                 if hasattr(self.env, 'model') and hasattr(self.env.model, 'safe_delay_time'):
                     # If the model has the safe_delay_time method, use it
@@ -368,7 +353,7 @@ class MultiProcessBlock(BaseBlock):
                     # Fallback: ensure non-negative manually
                     delay = max(0.0, self.delay_time())
 
-                # ✅ FIX 2: Trace service start AFTER acquiring all resources
+                # Trace service start AFTER acquiring all resources
                 # Calculate average utilization across all resources
                 avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
                 
@@ -380,7 +365,7 @@ class MultiProcessBlock(BaseBlock):
                 try:    
                     yield self.env.timeout(delay)
                 except simpy.Interrupt:
-                    # ✅ FIX 3: Trace preemption/interrupt
+                    # Trace preemption/interrupt
                     self._trace('interrupt', entity, resources_str,
                                f"preempted by higher priority")
 
@@ -403,26 +388,16 @@ class MultiProcessBlock(BaseBlock):
                 entity.add_attribute(f"{self.name}_service_time", delay)
 
                 
-                # self._apply_attributes(entity) # NEW: Apply configured attributes (e.g., cost, revenue)                
-                # ✅ MODIFIED: Capture assigned and modified attributes
-                assigned_attrs = self._apply_attributes(entity) # Apply configured attributes (e.g., cost, revenue)
-                # self._modify_attributes(entity)  # NEW: Apply dynamic modifications                
-                modified_attrs = self._modify_attributes(entity)
+                # Capture assigned and modified attributes
+                assigned_attrs = self._apply_attributes(entity) # Apply configured attributes (e.g., cost, revenue)                              
+                modified_attrs = self._modify_attributes(entity) # Apply dynamic modifications  
                 
-                # ✅ FIX 4: Trace service end AFTER service completion
+                # Trace service end AFTER service completion
                 # Calculate average utilization across all resources
                 avg_utilization = sum(r.count / r.capacity for r, _ in acquired_resources) / len(acquired_resources)
                 
-                # ✅ MODIFIED: Include attributes in trace
-                details = f"use={avg_utilization:.0%}"
-                
-                # self._trace('service_end', entity, resources_str,
-                #            f"use={avg_utilization:.0%}")
-
-                # # Add attribute info if any were assigned
-                # if assigned_attrs:
-                #     attr_strs = [f"{name}={value}" for name, value in assigned_attrs]
-                #     details += f", Attrib: {', '.join(attr_strs)}"
+                # Include attributes in trace
+                details = f"use={avg_utilization:.0%}"  
 
                 # Collect all attribute changes
                 attr_changes = []

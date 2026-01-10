@@ -6,9 +6,6 @@ from typing import Dict, List
 import simpy
 
 
-# =====================================================================
-# FILE: validation/stability.py
-# =====================================================================
 class StabilityAnalyzer:
     """Analyzes system stability and capacity."""
     
@@ -25,25 +22,25 @@ class StabilityAnalyzer:
         Returns:
             Stability index (>1.0 = stable, <1.0 = unstable)
         """
-        print("\n🔍 VERIFICACAO DE ESTABILIDADE DO SISTEMA:")
+        print("\n🔍 SYSTEM STABILITY CHECK:")
         print("=" * 50)
         
         # Calculate arrival rate
         total_arrival_rate = self._calculate_arrival_rate(sample_size)
-        print(f"📊 Taxa total de chegada estimada: "
-              f"{total_arrival_rate * 60:.1f} entidades/hora")
+        print(f"📊 Estimated total arrival rate: "
+              f"{total_arrival_rate * 60:.1f} entities/hour")
         
         # Find bottleneck resource
         bottleneck_rate, bottleneck_resource = self._find_bottleneck(sample_size)
         system_capacity = bottleneck_rate
         
-        print(f"📊 CAPACIDADE DO SISTEMA (gargalo em {bottleneck_resource}): "
-              f"{system_capacity * 60:.1f} entidades/hora")
+        print(f"📊 SYSTEM CAPACITY (bottleneck at {bottleneck_resource}): "
+              f"{system_capacity * 60:.1f} entities/hour")
         
         # Calculate stability index
         stability = (system_capacity / total_arrival_rate 
                     if total_arrival_rate > 0 else float('inf'))
-        print(f"🎯 INDICE DE ESTABILIDADE: {stability:.2f}")
+        print(f"🎯 STABILITY INDEX: {stability:.2f}")
         
         self._print_stability_assessment(stability)
         print("=" * 50)
@@ -60,8 +57,8 @@ class StabilityAnalyzer:
             avg_interarrival = statistics.mean(samples)
             arrival_rate = 1 / avg_interarrival if avg_interarrival > 0 else 0
             total_arrival_rate += arrival_rate
-            print(f"Taxa de chegada ({create_block.name}): "
-                  f"{arrival_rate:.2f} entidades/min "
+            print(f"Arrival rate ({create_block.name}): "
+                  f"{arrival_rate:.2f} entities/min "
                   f"({arrival_rate*60:.1f}/h)")
         
         return total_arrival_rate
@@ -142,7 +139,6 @@ class StabilityAnalyzer:
     def _calculate_resource_rate(self, process_blocks: List, 
                                  sample_size: int) -> float:
         """Calculate effective service rate for a resource."""
-        # from blocks.process_block import MultiProcessBlock
         
         slowest_rate = float('inf')
         
@@ -172,12 +168,12 @@ class StabilityAnalyzer:
     def _print_stability_assessment(self, stability: float):
         """Print assessment of stability index."""
         if stability > 1.2:
-            print("✅ Sistema SUPER dimensionado (capacidade >> demanda)")
+            print("✅ Oversized system (capacity >> demand)")
         elif stability > 1.05:
-            print("✅ Sistema estavel (capacidade > demanda)")
+            print("✅ Stable system (capacity > demand)")
         elif stability > 0.95:
-            print("⚠️ Sistema NO LIMITE (capacidade ≈ demanda) - cuidado!")
+            print("⚠️ System AT MAXIMUM CAPACITY (capacity ≈ demand) - caution!")
         elif stability > 0.8:
-            print("🚨 Sistema INSTAVEL (demanda > capacidade)")
+            print("🚨 UNSTABLE system (demand > capacity)")
         else:
-            print("💥 COLAPSO IMINENTE (demanda >> capacidade)")
+            print("💥 IMMINENT COLLAPSE (demand >> capacity)")

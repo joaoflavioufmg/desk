@@ -60,7 +60,7 @@ class TestResourceValidator:
         
         assert not is_valid
         assert len(validator.errors) > 0
-        assert "OVERALLOCATION" in validator.errors[0]
+        assert "OVER ALLOCATION" in validator.errors[0]
     
     def test_overallocation_raises_exception(self):
         """Test that overallocation raises exception when requested."""

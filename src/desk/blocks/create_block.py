@@ -6,9 +6,7 @@ from desk.core.entity import Entity, EventLogger
 from typing import Optional, Callable
 import simpy
 
-# =====================================================================
-# FILE: blocks/create_block.py
-# =====================================================================
+
 class CreateBlock(BaseBlock):
     """CREATE block - generates entities into the system."""
     
@@ -52,17 +50,11 @@ class CreateBlock(BaseBlock):
             
             self.entities_created += 1
             entity.route_history.append(self.name)
-
-            # # ✅ ADD THIS LINE: Apply configured attributes to the entity
-            # self._apply_attributes(entity)
-
-            # # NEW: Trace entity generation
-            # self._trace('arrival', entity, details=f"entity created, priority={entity.priority}")
-
-            # ✅ MODIFIED: Capture assigned attributes at creation
+            
+            # Capture assigned attributes at creation
             assigned_attrs = self._apply_attributes(entity)
 
-            # ✅ MODIFIED: Include initial attributes in trace
+            # Include initial attributes in trace
             details = f"entity created, priority={entity.priority}"
 
             if assigned_attrs:

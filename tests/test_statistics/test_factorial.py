@@ -271,8 +271,8 @@ class TestFactorialExperiment:
         factorial.print_summary()
         
         captured = capsys.readouterr()
-        assert "RESUMO DA ANÁLISE FATORIAL" in captured.out
-        assert "FATORES TESTADOS" in captured.out
+        assert "SUMMARY OF FACTORIAL ANALYSIS" in captured.out
+        assert "TESTED FACTORS" in captured.out
     
     def test_export_results(self, tmp_path):
         """Test exporting factorial results."""

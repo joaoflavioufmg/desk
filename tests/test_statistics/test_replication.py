@@ -277,8 +277,8 @@ class TestReplicationFramework:
         framework.print_statistical_summary()
         
         captured = capsys.readouterr()
-        assert "RESULTADOS ESTATISTICOS" in captured.out
-        assert "REPLICACOES" in captured.out
+        assert "STATISTICAL RESULTS" in captured.out
+        assert "REPLICATIONS" in captured.out
     
     def test_resource_utilization_metrics(self):
         """Test that resource utilization is captured."""

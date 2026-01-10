@@ -14,9 +14,6 @@ from typing import Dict, Any
 import matplotlib.pyplot as plt
 
 
-# =====================================================================
-# FILE: analytics/financial.py
-# =====================================================================
 class FinancialAnalyzer:
     """Analyzes financial metrics from simulation results."""
     
@@ -54,7 +51,6 @@ class FinancialAnalyzer:
                     total_revenue += value
                 
                 if '_cost' in key.lower() and isinstance(value, (int, float)):                    
-                    # activity_name = key.replace('_cost', '')
                     # extract activity name from "BlockName_cost"
                     activity_name = key.replace('_cost', '').split('_')[0] if '_' in key else key
                     # print(f"[DEBUG ACTIVITY_NAME] {activity_name}")                    

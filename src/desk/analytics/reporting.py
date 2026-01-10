@@ -4,16 +4,14 @@
 from desk.analytics.metrics import MetricsCollector
 from typing import Dict
 
-# =====================================================================
-# FILE: analytics/reporting.py
-# =====================================================================
+
 class SimulationReporter:
     """Generates formatted reports from simulation results."""
     
     def __init__(self, model):
         self.model = model
         self.metrics = MetricsCollector(model)
-        self.wip_tracker = None  # NEW: Lazy loaded
+        self.wip_tracker = None  # Lazy loaded
         self.HOURS = 60  # Time conversion (base: minutes)
         self.DAYS = 1440
         self.YEARS = 525600
@@ -87,12 +85,12 @@ class SimulationReporter:
         """Print comprehensive simulation results INCLUDING WIP."""
         print("=" * 60)
         duration_hours = self.model.env.now / self.HOURS
-        print(f"📊 RESULTADOS DA SIMULACAO (⏳ Duracao: {duration_hours:.0f} horas)")
+        print(f"📊 SIMULATION RESULTS (⏳ Duration: {duration_hours:.0f} hours)")
         
         if self.model.warm_up_period > 0:
             effective_time = self.model.env.now - self.model.warm_up_period
-            print(f"WARM-UP: {self.model.warm_up_period/self.HOURS:.0f} horas | "
-                  f"PERIODO DE ESTATISTICAS: {effective_time/self.HOURS:.0f} horas")
+            print(f"WARM-UP: {self.model.warm_up_period/self.HOURS:.0f} hours | "
+                  f"STATISTICS PERIOD: {effective_time/self.HOURS:.0f} hours")
         print("=" * 60)
         
         self._print_stability_results()
@@ -107,47 +105,47 @@ class SimulationReporter:
     def _print_stability_results(self):
         """Print stability analysis if available."""
         if self.model.stability_result is not None:
-            print(f"\nINDICE DE ESTABILIDADE: {self.model.stability_result:.2f}")
+            print(f"\nSTABILITY INDEX: {self.model.stability_result:.2f}")
             if self.model.stability_result > 1.2:
-                print("STATUS: Sistema SUPER dimensionado")
+                print("STATUS: Oversized system")
             elif self.model.stability_result > 1.05:
-                print("STATUS: Sistema estavel")
+                print("STATUS: Stable system")
             elif self.model.stability_result > 0.95:
-                print("STATUS: Sistema NO LIMITE")
+                print("STATUS: System close to LIMIT")
             elif self.model.stability_result > 0.8:
-                print("STATUS: Sistema INSTAVEL")
+                print("STATUS: System UNSTABLE")
             else:
-                print("STATUS: COLAPSO IMINENTE")
+                print("STATUS: IMMINENT COLLAPSE")
     
     def _print_system_metrics(self):
         """Print overall system metrics."""
         entity_summary = self.metrics.get_entity_metrics_summary()
         system_time = entity_summary.get('tempo_medio_sistema', 0)
         
-        print(f"\n⏰ Tempo medio no sistema: {system_time/self.HOURS:.2f} horas")
-        print(f"👥 Total de entidades processadas: {self.model.entity_count}")
+        print(f"\n⏰ Average time in the system: {system_time/self.HOURS:.2f} horas")
+        print(f"👥 Total number of entities processed: {self.model.entity_count}")
         print(f"⚙️  Throughput: {self.model.overall_throughput*self.HOURS:.2f} "
-              f"entidades/hora")
-        print(f"📋 Recursos ativos: {list(self.model.resources.keys())}")
+              f"entities/hour")
+        print(f"📋 Active resources: {list(self.model.resources.keys())}")
         
         if self.model.warm_up_period > 0:
-            print(f"\nNOTA: Estatisticas baseadas apenas no periodo pos warm-up")
-            print(f"   (t > {self.model.warm_up_period/self.HOURS:.1f} horas)")
+            print(f"\nNOTE: Statistics based only on the post-warm-up period")
+            print(f"   (t > {self.model.warm_up_period/self.HOURS:.1f} hours)")
     
     def _print_activity_metrics(self):
         """Print per-activity metrics."""
         entity_summary = self.metrics.get_entity_metrics_summary()
-        activities = entity_summary.get('atividades', {})
+        activities = entity_summary.get('ativities', {})
         
         if activities:
-            print("\n📈 METRICAS DAS ENTIDADES POR ATIVIDADE:")
+            print("\n📈 ENTITY METRICS BY ACTIVITY:")
             for activity_name, metrics in activities.items():
                 print(f"  {activity_name}:")
-                print(f"    Tempo medio em fila: "
+                print(f"    Average wait time in queue: "
                       f"{metrics['tempo_medio_fila']:.2f}")
-                print(f"    Tempo medio de atendimento: "
+                print(f"    Average service time: "
                       f"{metrics['tempo_medio_atendimento']:.2f}")
-                print(f"    Tempo medio no sistema: "
+                print(f"    Average time in the system: "
                       f"{metrics['tempo_medio_sistema']:.2f}")
      
     def _print_resource_metrics(self):
@@ -160,34 +158,34 @@ class SimulationReporter:
         resource_summary = self.metrics.get_resource_metrics_summary()
         
         if resource_summary:
-            print("\n📈 METRICAS POR RECURSO:")
+            print("\n📈 METRICS BY RESOURCE:")
             for resource_name, metrics in resource_summary.items():
                 capacity = self.model.resources[resource_name].capacity
                 util = metrics['taxa_utilizacao']
                 
-                print(f"  {resource_name} (capacidade: {capacity}):")
-                print(f"    Taxa de utilizacao: {util:.2f}")
-                print(f"    Tempo ocupado: {metrics['tempo_ocupado']:.2f} "
+                print(f"  {resource_name} (capacity: {capacity}):")
+                print(f"    Utilization rate: {util:.2f}")
+                print(f"    Time Busy: {metrics['tempo_ocupado']:.2f} "
                       f"({metrics['percentual_ocupacao']:.1f}%)")
-                print(f"    Tempo ocioso: {metrics['tempo_ocioso']:.2f} "
+                print(f"    Time Idle: {metrics['tempo_ocioso']:.2f} "
                       f"({metrics['percentual_ociosidade']:.1f}%)")
-                print(f"    Maximo em fila: {metrics['maximo_fila']}")
-                print(f"    Maximo em atendimento: {metrics['maximo_atendimento']}")
-                print(f"    Numero medio em fila: "
+                print(f"    Maximum in queue: {metrics['maximo_fila']}")
+                print(f"    Maximum in service: {metrics['maximo_atendimento']}")
+                print(f"    Average number in queue: "
                       f"{metrics['numero_medio_fila']:.2f}")
-                print(f"    Numero medio em atendimento: "
+                print(f"    Average number in service: "
                       f"{metrics['numero_medio_atendimento']:.2f}")
                 
                 # Analysis
-                print(f"    Analise (💡): ", end="")
+                print(f"    Analysis (💡): ", end="")
                 if util > 0.85:
-                    print(f"Sistema sobrecarregado ({util:.1%})! "
-                          f"Considere aumentar capacidade.")
+                    print(f"Overloaded system ({util:.1%})! "
+                          f"Consider expanding capacity.")
                 elif util < 0.25:
-                    print(f"Sistema ocioso ({util:.1%})! "
-                          f"Considere ajustar capacidade.")
+                    print(f"Idle system ({util:.1%})! "
+                          f"Consider adjusting capacity.")
                 else:
-                    print("Sistema operando dentro dos parametros esperados.")
+                    print("System operating within expected parameters.")
                 print()
     
     def _print_entity_counts(self):
@@ -201,23 +199,23 @@ class SimulationReporter:
             for block in self.model.dispose_blocks
         )
         
-        print(f"\nEntidades criadas: {total_created}")
-        print(f"Entidades que sairam: {total_disposed}")
-        print(f"Entidades no sistema: {total_created - total_disposed}")
+        print(f"\nEntities created: {total_created}")
+        print(f"Entities disposed: {total_disposed}")
+        print(f"Entities in the system: {total_created - total_disposed}")
     
     def _print_block_statistics(self):
         """Print statistics for individual blocks."""
-        print("\nESTATISTICAS DOS BLOCOS:")
+        print("\nBLOCK STATISTICS:")
         for block_name, block in self.model.blocks.items():
             print(f"\n{block_name} ({type(block).__name__}):")
             
             if hasattr(block, 'entities_processed'):
-                print(f"  Entidades processadas: {block.entities_processed}")
+                print(f"  Entities processed: {block.entities_processed}")
                 if block.entities_processed > 0:
                     avg_delay = block.total_delay_time / block.entities_processed
                     avg_queue = block.total_queue_time / block.entities_processed
-                    print(f"  Tempo medio em atendimento: {avg_delay:.2f}")
-                    print(f"  Tempo medio em fila: {avg_queue:.2f}")
+                    print(f"  Average time in service: {avg_delay:.2f}")
+                    print(f"  Average time in queue: {avg_queue:.2f}")
             
             if hasattr(block, 'decision_counts'):
-                print(f"  Numero de decisoes: {block.decision_counts}")
+                print(f"  Decision counts: {block.decision_counts}")

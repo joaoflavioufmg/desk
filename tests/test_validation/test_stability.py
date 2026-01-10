@@ -190,15 +190,15 @@ class TestStabilityAnalyzer:
         # Test different stability levels
         analyzer._print_stability_assessment(1.3)  # Super dimensioned
         captured = capsys.readouterr()
-        assert "SUPER dimensionado" in captured.out
+        assert "Oversized" in captured.out
         
         analyzer._print_stability_assessment(1.1)  # Stable
         captured = capsys.readouterr()
-        assert "estavel" in captured.out
+        assert "Stable" in captured.out
         
         analyzer._print_stability_assessment(0.5)  # Unstable
         captured = capsys.readouterr()
-        assert "COLAPSO" in captured.out or "INSTAVEL" in captured.out
+        assert "COLLAPSE" in captured.out or "UNSTABLE" in captured.out
     
     def test_group_process_blocks_by_resource(self):
         """Test grouping process blocks by resource."""

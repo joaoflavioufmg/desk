@@ -345,27 +345,6 @@ class ModelVariableTracker:
         print(f"Model variables exported to {filename}")
 
 
-# =====================================================================
-# INTEGRATION: Add to SimulationModel class
-# =====================================================================
-# Add this to SimulationModel.__init__():
-#
-#     self.variable_tracker = ModelVariableTracker(self)
-#
-# Add this method to SimulationModel:
-#
-    # def add_model_variable(self, name: str, initial_value: Any = 0,
-    #                       description: str = "", unit: str = "",
-    #                       calculate_fn: Optional[Callable] = None):
-    #     """Add a custom model variable to track."""
-    #     self.variable_tracker.add_variable(
-    #         name, initial_value, description, unit, calculate_fn
-    #     )
-
-    # def update_model_variable(self, name: str, value: Any = None):
-    #     """Update a model variable."""
-    #     self.variable_tracker.update(name, value=value)
-
 
 # =====================================================================
 # USAGE EXAMPLES
@@ -421,29 +400,3 @@ def example_usage():
     tracker.plot_variable('percentual_falhas')
     tracker.plot_all_variables()
     tracker.export_to_csv()
-
-
-# =====================================================================
-# EXAMPLE: Integration in ProcessBlock
-# =====================================================================
-"""
-In your ProcessBlock, you can update model variables like this:
-
-class ProcessBlock(BaseBlock):
-    def process_entity(self, entity: Entity):
-        # ... existing code ...
-        
-        # Check if entity failed some condition
-        if some_failure_condition:
-            # Increment failure counter
-            if hasattr(self.env, 'model') and hasattr(self.env.model, 'variable_tracker'):
-                tracker = self.env.model.variable_tracker
-                
-                current_failures = tracker.get_current('num_falhas')
-                tracker.update('num_falhas', self.env.now, current_failures + 1)
-                
-                # Auto-update percentage
-                tracker.update('percentual_falhas')
-        
-        # ... continue processing ...
-"""

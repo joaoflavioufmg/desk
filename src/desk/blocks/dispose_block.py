@@ -5,9 +5,7 @@ from desk.core.base_block import BaseBlock
 from desk.core.entity import Entity, EventLogger
 import simpy
 
-# =====================================================================
-# FILE: blocks/dispose_block.py
-# =====================================================================
+
 class DisposeBlock(BaseBlock):
     """DISPOSE block - removes entities from system and collects statistics."""
     
@@ -26,10 +24,7 @@ class DisposeBlock(BaseBlock):
         entity.add_attribute("system_time", system_time)
         entity.add_attribute("disposal_time", self.env.now)
 
-        # # NEW: Apply configured attributes (e.g., revenue)
-        # self._apply_attributes(entity)
-
-        # ✅ MODIFIED: Capture assigned attributes (e.g., revenue)
+        # Capture assigned attributes (e.g., revenue)
         assigned_attrs = self._apply_attributes(entity)
 
         self.disposed_entities.append(entity)  # Always keep for plotting
@@ -38,12 +33,9 @@ class DisposeBlock(BaseBlock):
         if self.env.now >= getattr(self.env, 'warm_up_period', 0):
             self.total_system_time += system_time
             self.entities_disposed += 1
+        
 
-        # # NEW: Trace departure
-        # self._trace('departure', entity, 
-        #            details=f"total_time_in_system={system_time:.2f}")
-
-        # ✅ MODIFIED: Include attributes in departure trace
+        # Include attributes in departure trace
         details = f"total_time_in_system={system_time:.2f}"
 
         # Add attribute info if any were assigned

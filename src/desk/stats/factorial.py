@@ -79,7 +79,7 @@ class FactorialExperiment:
             description=description
         )
         self.factors.append(factor)
-        print(f"✅ Fator adicionado: {factor_name} ({len(levels)} niveis)")
+        print(f"✅ Factor added: {factor_name} ({len(levels)} levels)")
     
     def run_factorial_experiment(self, n_replications: int = 1,
                                  simulation_time: Optional[float] = None,
@@ -95,7 +95,7 @@ class FactorialExperiment:
             verbose: Print progress messages
         """
         if not self.factors:
-            print("❌ Nenhum fator definido! Use add_factor() primeiro.")
+            print("❌ No factor defined! Use add_factor() first.")
             return
         
         # Generate all combinations
@@ -118,7 +118,7 @@ class FactorialExperiment:
             }
             
             if verbose:
-                print(f"\n📊 Configuração {combo_idx + 1}/{len(combinations)}: {config}")
+                print(f"\n📊 Settings {combo_idx + 1}/{len(combinations)}: {config}")
             
             # Run replications for this combination
             for rep in range(n_replications):
@@ -126,7 +126,7 @@ class FactorialExperiment:
                 seed = self.base_seed + combo_idx * 1000 + rep
                 
                 if verbose and n_replications > 1:
-                    print(f"  Replicacao {rep + 1}/{n_replications} (seed: {seed})")
+                    print(f"  Replication {rep + 1}/{n_replications} (seed: {seed})")
                 
                 try:
                     # Run simulation with current configuration
@@ -142,26 +142,26 @@ class FactorialExperiment:
                         self._print_progress(start_time, run_count, total_runs)
                 
                 except Exception as e:
-                    print(f"  ❌ Erro na execução: {e}")
+                    print(f"  ❌ Runtime error: {e}")
                     continue
         
         self._print_completion_summary(start_time, total_runs)
         
         # Convert to DataFrame
         self.results_df = pd.DataFrame(self.results)
-        print(f"📊 {len(self.results)} resultados coletados")
+        print(f"📊 {len(self.results)} collected results")
     
     def _print_experiment_header(self, combinations: List, n_replications: int,
                                  total_runs: int):
         """Print experiment setup information."""
-        print("\n🔬 EXPERIMENTO FATORIAL")
+        print("\n🔬 FACTORIAL EXPERIMENT")
         print("=" * 60)
-        print(f"Fatores: {len(self.factors)}")
+        print(f"Factors: {len(self.factors)}")
         for factor in self.factors:
-            print(f"  - {factor.factor_name}: {len(factor.levels)} niveis")
-        print(f"Combinacoes: {len(combinations)}")
-        print(f"Replicacoes por combinacao: {n_replications}")
-        print(f"Total de execucoes: {total_runs}")
+            print(f"  - {factor.factor_name}: {len(factor.levels)} levels")
+        print(f"Combinations: {len(combinations)}")
+        print(f"Replications per combination: {n_replications}")
+        print(f"Total runs: {total_runs}")
         print("=" * 60)
     
     def _print_progress(self, start_time: float, run_count: int, total_runs: int):
@@ -169,14 +169,14 @@ class FactorialExperiment:
         elapsed = time.time() - start_time
         avg_time = elapsed / run_count
         remaining = (total_runs - run_count) * avg_time
-        print(f"  Progresso: {run_count}/{total_runs} | "
-              f"Tempo restante: {remaining/60:.1f} min")
+        print(f"  Progress: {run_count}/{total_runs} | "
+              f"Remaining time: {remaining/60:.1f} min")
     
     def _print_completion_summary(self, start_time: float, total_runs: int):
         """Print experiment completion summary."""
         total_time = time.time() - start_time
-        print(f"\n✅ EXPERIMENTO CONCLUÍDO em {total_time/60:.1f} minutos")
-        print(f"⏱️  Tempo médio por execução: {total_time/total_runs:.1f} segundos")
+        print(f"\n✅ EXPERIMENT COMPLETED in {total_time/60:.1f} minutes")
+        print(f"⏱️  Average time per run: {total_time/total_runs:.1f} seconds")
     
     def _run_simulation_with_config(self, config: Dict, seed: int,
                                      simulation_time: Optional[float],
@@ -258,7 +258,7 @@ class FactorialExperiment:
             DataFrame with mean and std for each metric by factor combination
         """
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Run the experiment first!")
             return None
         
         # Group by factor values
@@ -278,14 +278,14 @@ class FactorialExperiment:
     def plot_correlation_matrix(self):
         """Plot correlation matrix of key metrics with compact legend."""
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Run the experiment first!")
             return
         
         # Filter columns and create labels
         selected_cols, col_labels = self._prepare_correlation_data()
         
         if not selected_cols:
-            print("❌ Nenhuma coluna relevante encontrada!")
+            print("❌ No relevant columns found!")
             return
         
         # Calculate correlation
@@ -301,9 +301,9 @@ class FactorialExperiment:
         sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='coolwarm',
                    center=0, square=True, linewidths=0.5,
                    xticklabels=short_labels, yticklabels=short_labels,
-                   ax=ax, cbar_kws={'label': 'Correlacao'})
+                   ax=ax, cbar_kws={'label': 'Correlation'})
         
-        ax.set_title('Matriz de Correlacao (Metricas Principais)',
+        ax.set_title('Correlation Matrix (Key Metrics)',
                     fontsize=14, fontweight='bold', pad=15)
         
         # Create and position legend
@@ -317,7 +317,7 @@ class FactorialExperiment:
         plt.subplots_adjust(left=0.1, right=0.75)
         plt.show()
         
-        print(f"\nMatriz de correlacao gerada com {len(selected_cols)} variaveis")
+        print(f"\nCorrelation matrix generated with {len(selected_cols)} variables")
         
         return corr_matrix
     
@@ -359,22 +359,22 @@ class FactorialExperiment:
                                    col_labels: Dict[str, str]) -> str:
         """Create legend text for correlation plot."""
         factor_names = [f.factor_name for f in self.factors]
-        legend_lines = ["LEGENDA:", "", "Fatores:"]
+        legend_lines = ["CAPTION:", "", "Factors:"]
         
         for col in filtered_df.columns:
             if any(col.startswith(fname) for fname in factor_names):
                 legend_lines.append(f"  {col_labels[col]}: {col}")
         
         legend_lines.append("")
-        legend_lines.append("Atividades:")
+        legend_lines.append("Activities:")
         for col in filtered_df.columns:
             if 'queue_time' in col or 'service_time' in col:
                 short_name = col.replace('_queue_time', '').replace('_service_time', '')
-                metric_type = 'Fila' if 'queue' in col else 'Atend'
+                metric_type = 'Queue' if 'queue' in col else 'Service'
                 legend_lines.append(f"  {col_labels[col]}: {short_name} ({metric_type})")
         
         legend_lines.append("")
-        legend_lines.append("Recursos:")
+        legend_lines.append("Resources:")
         for col in filtered_df.columns:
             if '_utilization' in col:
                 resource_name = col.replace('_utilization', '')
@@ -390,11 +390,11 @@ class FactorialExperiment:
             response_variable: Name of the response variable to plot
         """
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Conduct the experiment first!")
             return
         
         if response_variable not in self.results_df.columns:
-            print(f"❌ Variável '{response_variable}' não encontrada!")
+            print(f"❌ Variables '{response_variable}' not found!")
             return
         
         n_factors = len(self.factors)
@@ -417,12 +417,12 @@ class FactorialExperiment:
             
             ax.set_xlabel(factor.factor_name, fontsize=11, fontweight='bold')
             ax.set_ylabel(response_variable, fontsize=11, fontweight='bold')
-            ax.set_title(f'Efeito de {factor.factor_name}', fontsize=12)
+            ax.set_title(f'{factor.factor_name} effect', fontsize=12)
             ax.set_xticks(x_pos)
             ax.set_xticklabels(grouped.index, rotation=45)
             ax.grid(True, alpha=0.3)
         
-        plt.suptitle(f'Efeitos Principais em {response_variable}',
+        plt.suptitle(f'Main Effects in {response_variable}',
                     fontsize=14, fontweight='bold')
         plt.tight_layout()
         plt.show()
@@ -438,11 +438,11 @@ class FactorialExperiment:
             factor2_name: Second factor name
         """
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Conduct the experiment first!")
             return
         
         if response_variable not in self.results_df.columns:
-            print(f"❌ Variável '{response_variable}' não encontrada!")
+            print(f"❌ Variables '{response_variable}' not found!")
             return
         
         # Group by both factors
@@ -463,7 +463,7 @@ class FactorialExperiment:
         
         ax.set_xlabel(factor1_name, fontsize=12, fontweight='bold')
         ax.set_ylabel(response_variable, fontsize=12, fontweight='bold')
-        ax.set_title(f'Interacao entre {factor1_name} e {factor2_name}',
+        ax.set_title(f'Interaction between {factor1_name} and {factor2_name}',
                     fontsize=14, fontweight='bold')
         ax.legend(title=factor2_name, framealpha=0.9)
         ax.grid(True, alpha=0.3)
@@ -474,11 +474,11 @@ class FactorialExperiment:
     def print_summary(self):
         """Print comprehensive summary of factorial analysis."""
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Conduct the experiment first!")
             return
         
         print("\n" + "=" * 70)
-        print("📊 RESUMO DA ANÁLISE FATORIAL")
+        print("📊 SUMMARY OF FACTORIAL ANALYSIS")
         print("=" * 70)
         
         self._print_factor_summary()
@@ -488,7 +488,7 @@ class FactorialExperiment:
     
     def _print_factor_summary(self):
         """Print summary of factors tested."""
-        print("\n🔬 FATORES TESTADOS:")
+        print("\n🔬 TESTED FACTORS:")
         for factor in self.factors:
             print(f"  - {factor.factor_name}: {factor.levels}")
             if factor.description:
@@ -534,19 +534,19 @@ class FactorialExperiment:
             worst_val = worst_row[metric]
             
             if 'utilization' in metric:
-                print(f"    Melhor: {best_config} -> {best_val*100:.1f}%")
-                print(f"    Pior: {worst_config} -> {worst_val*100:.1f}%")
+                print(f"    Best: {best_config} -> {best_val*100:.1f}%")
+                print(f"    Worst: {worst_config} -> {worst_val*100:.1f}%")
             else:
-                print(f"    Melhor: {best_config} -> {best_val:.2f}")
-                print(f"    Pior: {worst_config} -> {worst_val:.2f}")
+                print(f"    Best: {best_config} -> {best_val:.2f}")
+                print(f"    Worst: {worst_config} -> {worst_val:.2f}")
     
     def _print_descriptive_statistics(self):
         """Print descriptive statistics for key metrics."""
-        print("\n📈 ESTATÍSTICAS DESCRITIVAS (Métricas Principais):")
+        print("\n📈 DESCRIPTIVE STATISTICS (Key Metrics):")
         print("-" * 70)
         
         # Activity times
-        print("\n🕐 TEMPOS DE ATIVIDADES:")
+        print("\n🕐 ACTIVITY TIMES:")
         activity_cols = [col for col in self.results_df.columns
                         if 'queue_time' in col or 'service_time' in col]
         if activity_cols:
@@ -554,22 +554,22 @@ class FactorialExperiment:
             print(activity_df.describe().T[['mean', 'std', 'min', 'max']].to_string())
         
         # Resource utilization
-        print("\n🏭 UTILIZAÇÃO DE RECURSOS:")
+        print("\n🏭 USE OF RESOURCES:")
         util_cols = [col for col in self.results_df.columns if '_utilization' in col]
         if util_cols:
             util_df = self.results_df[util_cols]
             util_display = util_df.describe().T[['mean', 'std', 'min', 'max']] * 100
             print(util_display.to_string())
-            print("(valores em %)")
+            print("(values in %)")
     
     def _print_general_analysis(self):
         """Print general analysis summary."""
-        print("\n💡 ANÁLISE GERAL:")
+        print("\n💡 GENERAL ANALYSIS:")
         n_combinations = len(self.results_df['combination_id'].unique())
         n_reps = len(self.results_df[self.results_df['combination_id']==0])
-        print(f"   Total de configurações testadas: {n_combinations}")
-        print(f"   Replicações por configuração: {n_reps}")
-        print(f"   Total de execuções: {len(self.results_df)}")
+        print(f"   Total number of configurations tested: {n_combinations}")
+        print(f"   Replications per configuration: {n_reps}")
+        print(f"   Total executions: {len(self.results_df)}")
     
     def export_results(self, filename: str = "results/factorial_results.csv",
                       export_filtered: bool = False):
@@ -581,20 +581,20 @@ class FactorialExperiment:
             export_filtered: If True, export only key metrics; if False, export all
         """
         if self.results_df is None:
-            print("❌ Execute o experimento primeiro!")
+            print("❌ Conduct the experiment first!")
             return
         
         if export_filtered:
             export_df = self._get_filtered_results()
-            print(f"📁 Resultados FILTRADOS exportados para {filename}")
-            print(f"   Colunas exportadas: {len(export_df.columns)}")
+            print(f"📁 FILTERED results exported to {filename}")
+            print(f"   Exported columns: {len(export_df.columns)}")
         else:
             export_df = self.results_df
-            print(f"📁 Resultados COMPLETOS exportados para {filename}")
-            print(f"   Colunas exportadas: {len(export_df.columns)}")
+            print(f"📁 FULL results exported to {filename}")
+            print(f"   Exported columns: {len(export_df.columns)}")
         
         export_df.to_csv(filename, index=False)
-        print(f"   Total de linhas: {len(export_df)}")
+        print(f"   Total entries: {len(export_df)}")
     
     def _get_filtered_results(self) -> pd.DataFrame:
         """Get filtered DataFrame with only key metrics."""

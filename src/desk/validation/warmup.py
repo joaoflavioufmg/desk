@@ -5,9 +5,6 @@ import numpy as np
 from typing import List, Tuple
 
 
-# =====================================================================
-# FILE: validation/warmup.py
-# =====================================================================
 class WarmUpAnalyzer:
     """Analyzes warm-up period requirements."""
     
@@ -18,7 +15,7 @@ class WarmUpAnalyzer:
         """Analyze data to suggest adequate warm-up period."""
         from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
         
-        print("\n🔍 ANALISE DE WARM-UP:")
+        print("\n🔍 WARM-UP ANALYSIS:")
         print("=" * 50)
         
         resource_blocks = self._group_blocks_by_resource()
@@ -42,22 +39,23 @@ class WarmUpAnalyzer:
             
             print(f"📋 {resource_name}:")
             if stabilization_time:
-                print(f"   Estabilizacao detectada em: t={stabilization_time:.1f}")
-                print(f"   Warm-up sugerido: {stabilization_time * 1.2:.1f} "
-                      f"(20% de margem)")
+                print(f"   Stabilization detected at: t={stabilization_time:.1f}")
+                print(f"   Warm-up suggested: {stabilization_time * 1.2:.1f} "
+                      f"(20% margin)")
             else:
-                print("   Sistema pode nao ter estabilizado completamente")
+                print("   System may not be completely stabilized")
             
             # Calculate final utilization
             final_utilizations = utilizations[-min(100, len(utilizations)//4):]
             avg_final_util = np.mean(final_utilizations) * 100
-            print(f"   Utilizacao final media: {avg_final_util:.1f}%")
+            print(f"   Final average usage: {avg_final_util:.1f}%")
         
-        print("\nRECOMENDACOES:")
-        print("• Observe os graficos para identificar quando a utilizacao se estabiliza")
-        print("• O periodo de warm-up deve ser pelo menos ate o ponto de estabilizacao")
-        print("• Use 20-30% de margem adicional sobre o tempo de estabilizacao")
-        print("• Sistemas complexos podem precisar de warm-up mais longo")
+        
+        print("\nRECOMMENDATIONS:")
+        print("• Please note the charts to identify when usage stabilizes")
+        print("• The warm-up period should last at least until the stabilization point")
+        print("• Use a 20-30% additional margin on the stabilization time")
+        print("• Complex systems may require a longer warm-up period")
         print("=" * 50)
     
     def _group_blocks_by_resource(self) -> dict:

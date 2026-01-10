@@ -93,7 +93,7 @@ class EventTracer:
             if resource_name is None:
                 return False
 
-            # ✅ FIX: Handle multi-resource activities (comma-separated resources)
+            # Handle multi-resource activities (comma-separated resources)
             # Split resource_name by comma and check if ANY match the filter
             resource_names_in_event = [r.strip() for r in resource_name.split(',')]
             
@@ -172,8 +172,7 @@ class EventTracer:
         # Print event
         icon = self.ICONS.get(event_type.lower(), '•')        
         event_name = f"{icon} {event_type.upper()}"
-        # resource_str = resource_name if resource_name else ""
-        # ✅ FIX: Format resource string with usage/capacity
+        # Format resource string with usage/capacity
         resource_str = self._format_resource_string(resource_name) if resource_name else ""
         
         print(f"{time:>7.2f}  | {event_name:<22} | {entity_id:<15} | {resource_str:<30} | {details}")
@@ -290,8 +289,6 @@ class EventTracer:
                 icon = self.ICONS.get(event['event_type'].lower(), '•')
                 event_name = f"{icon} {event['event_type'].upper()}"
                 resource_str = event['resource_name'] if event['resource_name'] else ""
-                # ✅ FIX: Format resource string with usage/capacity
-                # resource_str = self._format_resource_string(event['resource_name']) if event['resource_name'] else ""
                 
                 print(f"{event['time']:>7.2f}  | {event_name:<22} | "
                       f"{event['entity_id']:<15} | {resource_str:<30} | {event['details']}")
@@ -376,7 +373,7 @@ class EventTracer:
         
         print("-" * 80)
         print(f"\nJOURNEY SUMMARY:")
-        # ✅ NEW: Check if journey is incomplete
+        # Check if journey is incomplete
         has_departure = any(e['event_type'] == 'departure' for e in journey)
         if total_time == 0 or not has_departure:
             print(f"  ⚠️  WARNING: Incomplete journey (entity still in system at simulation end)")
@@ -384,7 +381,7 @@ class EventTracer:
         print(f"  Number of events: {len(journey)}")
         print(f"  Resources used: {', '.join(sorted(resources_used)) if resources_used else 'None'}")
         
-        # ✅ FIX: Prevent division by zero
+        # Prevent division by zero
         if queue_times:
             queue_total = sum(queue_times)
             queue_pct = (queue_total / total_time * 100) if total_time > 0 else 0.0

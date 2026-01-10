@@ -6,9 +6,7 @@ import math
 from typing import Dict, Any, List, Tuple, Callable
 import numpy as np
 
-# =====================================================================
-# FILE: analytics/metrics.py
-# =====================================================================
+
 class MetricsCollector:
     """Collects and calculates metrics from a completed simulation."""
     

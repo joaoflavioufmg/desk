@@ -5,11 +5,6 @@ from typing import Dict, Any, List, Optional, Union, Callable, Set
 import simpy
 import sys
 
-# from .base_block import BaseBlock
-# from .event_tracer import EventTracer
-# from blocks.create_block import CreateBlock
-# from blocks.dispose_block import DisposeBlock
-# from .model_variables import ModelVariableTracker
 from desk.core.base_block import BaseBlock
 from desk.core.event_tracer import EventTracer
 from desk.blocks.create_block import CreateBlock
@@ -17,9 +12,6 @@ from desk.blocks.dispose_block import DisposeBlock
 from desk.core.model_variables import ModelVariableTracker
 
 
-# =====================================================================
-# FILE: core/simulation_model.py
-# =====================================================================
 class SimulationModel:
     """
     Core simulation model orchestration.
@@ -55,7 +47,6 @@ class SimulationModel:
         self.env = simpy.Environment()
         self.env.model = self  # For safe_delay_time access
         self.blocks: Dict[str, 'BaseBlock'] = {}
-        # self.resources: Dict[str, Union[simpy.Resource, simpy.PriorityResource]] = {}
         self.resources: Dict[str, Union[
             simpy.Resource, 
             simpy.PriorityResource, 
@@ -66,7 +57,7 @@ class SimulationModel:
         self.warm_up_period: float = 0.0
         self.is_warm_up_complete: bool = False
         self.variable_tracker = ModelVariableTracker(self)
-        self.verbose = verbose  # NEW
+        self.verbose = verbose  
         if verbose:
             self.event_tracer = EventTracer(
                 self.env,
@@ -130,8 +121,6 @@ class SimulationModel:
     
     def add_block(self, block: 'BaseBlock'):
         """Add a block to the model."""
-        # from blocks.create_block import CreateBlock
-        # from blocks.dispose_block import DisposeBlock
         
         self.blocks[block.name] = block
         
@@ -170,7 +159,7 @@ class SimulationModel:
         delay = delay_function()
         return max(0.0, delay)
     
-    def run_simulation(self, validate_resources: bool = True,  # NEW parameter
+    def run_simulation(self, validate_resources: bool = True,  
                       until: Optional[float] = None, 
                       seed: Optional[int] = None,
                       warm_up_period: float = 0.0,
@@ -206,11 +195,11 @@ class SimulationModel:
             self.stability_result = analyzer.check_system_stability()
             
             if self.stability_result >= 1.0:
-                print("✅ Sistema estavel detectado, executando simulacao completa...")
+                print("✅ Stable system detected, running full simulation...")
             else:
-                print("🚨 Sistema instavel detectado! Executando mesmo assim...")
+                print("🚨 Unstable system detected! Running anyway...")
 
-        # NEW: Print trace header
+        # Print trace header
         if self.verbose and self.event_tracer:
             self.event_tracer.print_header()
         
@@ -235,17 +224,17 @@ class SimulationModel:
         
         if not has_time_limit and not has_entity_limit:
             print("\n" + "=" * 70)
-            print("ERRO CRITICO: SIMULACAO SEM CONDICAO DE PARADA DEFINIDA!")
+            print("CRITICAL ERROR: SIMULATION WITHOUT DEFINED STOP CONDITION!")
             print("=" * 70)
-            print("A simulacao nao possui criterio de termino e executaria infinitamente.")
-            print("\nVoce DEVE especificar pelo menos UMA das seguintes condicoes:")
-            print("  1. Tempo de simulacao: run_simulation(until=<tempo>)")
-            print("  2. Numero maximo de chegadas: CreateBlock(..., max_arrivals=<n>)")
-            print("\nExemplos validos:")
+            print("The simulation has no termination criteria and would run indefinitely.")
+            print("\nYou MUST specify at least ONE of the following conditions:")
+            print("  1. Simulation time: run_simulation(until=<time>)")
+            print("  2. Maximum number of arrivals: CreateBlock(..., max_arrivals=<n>)")
+            print("\nValid examples:")
             print("  • model.run_simulation(until=1000)")
             print("  • CreateBlock(..., max_arrivals=500)")
             print("  • Ambos: until=1000 E max_arrivals=500")
-            print("\nEXECUCAO ABORTADA para prevenir loop infinito.")
+            print("\nABORTED EXECUTION to prevent infinite loop.")
             print("=" * 70)
             sys.exit(1)
         
@@ -254,10 +243,10 @@ class SimulationModel:
                 cb.max_arrivals for cb in self.create_blocks
                 if hasattr(cb, 'max_arrivals') and cb.max_arrivals is not None
             )
-            print(f"\nAVISO: Simulacao limitada apenas por numero de entidades "
+            print(f"\nWARNING: Simulation limited only by number of entities "
                   f"({max_entities}).")
-            print("Tempo de execucao pode ser muito longo se sistema congestionado.")
-            print("Recomenda-se tambem definir limite de tempo com until=<valor>\n")
+            print("Execution time may be very long if the system is congested..")
+            print("It is also recommended to set a time limit with until=<value>.\n")
     
     def _warm_up_monitor(self):
         """Monitor warm-up period completion."""

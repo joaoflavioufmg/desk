@@ -498,18 +498,7 @@ class SimulationVisualizer:
         ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
         ttk.Label(parent, text="Resources", font=("Arial", 10, "bold")).pack(anchor=tk.W)
 
-        # for res_name in sorted(self.structure['resources'].keys()):
-        #     res_frame = ttk.Frame(parent)
-        #     res_frame.pack(fill=tk.X, pady=2)
-        #     ttk.Label(res_frame, text=f"{res_name}:", width=10).pack(side=tk.LEFT)
-        #     ttk.Label(res_frame, text="Util:").pack(side=tk.LEFT, padx=2)
-        #     util_key = f"{res_name}_util"
-        #     self.stats_labels[util_key] = ttk.Label(res_frame, text="0.00%", width=8)
-        #     self.stats_labels[util_key].pack(side=tk.LEFT)
-        #     ttk.Label(res_frame, text="Queue:").pack(side=tk.LEFT, padx=2)
-        #     queue_key = f"{res_name}_queue"
-        #     self.stats_labels[queue_key] = ttk.Label(res_frame, text="0", width=5)
-        #     self.stats_labels[queue_key].pack(side=tk.LEFT)
+        
         for res_name in sorted(self.structure['resources'].keys()):
             resource = self.model.resources[res_name]
             capacity = resource.capacity  # <-- directly from simpy.Resource
@@ -549,11 +538,7 @@ class SimulationVisualizer:
             y1 = y - block_height / 2
             x2 = x + block_width / 2
             y2 = y + block_height / 2
-
-            # rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill=color)
-            # text = self.canvas.create_text(x, y, text=name, width=block_width - 10, justify=tk.CENTER)
-            # self.block_widgets[name] = (rect, text)
-            # self.block_centers[name] = (x, y)
+            
 
             # Draw diamond for DECIDE blocks
             if info['is_decision']:
@@ -618,7 +603,6 @@ class SimulationVisualizer:
         items = [
             ("CREATE (Source)", "lightgreen"),
             ("DISPOSE (Sink)", "lightpink"),
-            # ("DECIDE (Decision)", "lightyellow"),
             ("DECIDE (Decision) ◆", "lightyellow"),
             ("PROCESS (Activity)", "lightblue")
         ]
@@ -682,10 +666,8 @@ class SimulationVisualizer:
         self.stats['current_wip'] -= 1
         self._update_stats_display()
 
-    # (2) REMOVE: The old simulation thread function
-    # def _start_simulation_thread(self): ...
 
-    # (1) ADD: New function to initialize SimPy generators
+    # New function to initialize SimPy generators
     def _initialize_simulation(self):
         """Initializes the SimPy generators."""
         try:
@@ -698,7 +680,7 @@ class SimulationVisualizer:
             messagebox.showerror("Initialization Error", str(e))
             self.is_running = False
 
-    # (1) ADD: New function to drive the simulation from the GUI thread
+    #  New function to drive the simulation from the GUI thread
     def _simulation_tick(self):
         """Advances the simulation by one step or time interval."""
         
@@ -722,17 +704,13 @@ class SimulationVisualizer:
             self.root.after(100, self._simulation_tick) # Keep the loop alive but inactive
             return
 
-        # 3. Determine how far to run
-        # self.animation_speed is 'seconds per step' (e.g., 0.02)
-        # self.speed_multiplier is (e.g., 1.0, 2.0, 10.0)
         
         # The 'delay_ms' for the GUI update is based on animation_speed
         delay_ms = max(1, int(self.animation_speed * 1000)) 
         
-        # How much *simulation time* should pass per tick?
-        # Let's define a 'tick_duration' in sim time.
-        # This should be proportional to the speed multiplier.
-        # Let's say 1 tick = 0.1 sim time units at 1x speed.
+        # How much *simulation time* per tick        
+        # This is proportional to the speed multiplier.
+        # 1 tick = 0.1 sim time units at 1x speed.
         sim_step = 0.1 * self.speed_multiplier
         
         # If speed is MAX (50.0), run for a larger chunk.
@@ -749,7 +727,7 @@ class SimulationVisualizer:
         if self.speed_multiplier < 5.0:
              run_until = min(run_until, next_event_time + 0.00001)
 
-        # 4. Run the simulation for that interval
+        # Run the simulation for that interval
         try:
             self.model.env.run(until=run_until)
         except Exception as e:
@@ -760,7 +738,7 @@ class SimulationVisualizer:
             self.status_label.config(text="Error", foreground="red")
             return
 
-        # 5. Reschedule the next tick
+        # Reschedule the next tick
         # The delay_ms controls the *visual* refresh rate.
         self.root.after(delay_ms, self._simulation_tick)
 
@@ -775,7 +753,7 @@ class SimulationVisualizer:
         self.root.bind('0', lambda e: self._set_speed(0.5))
         self.root.bind('<Right>', lambda e: self._step_forward())
 
-    # (3) MODIFY: Step button logic
+    # Step button logic
     def _step_forward(self):
         """Advance simulation by one event."""
         if self.step_pause_timer:
@@ -815,7 +793,7 @@ class SimulationVisualizer:
             self.is_running = False
             self.status_label.config(text="Error", foreground="red")
     
-    # (3) MODIFY: Play/Pause button logic
+    # Play/Pause button logic
     def _toggle_play_pause(self):
         """Toggle between play and pause."""
         if self.step_pause_timer:
@@ -857,7 +835,7 @@ class SimulationVisualizer:
         """Set simulation speed multiplier."""
         self.speed_multiplier = multiplier
         
-        # (3) MODIFY: Adjust animation speed based on multiplier
+        # Adjust animation speed based on multiplier
         # A higher multiplier should make the animation *faster* (smaller delay)
         base_animation_speed = 0.02 # seconds per step
         self.animation_speed = base_animation_speed / (multiplier**0.5) # Use sqrt for less extreme speedup
@@ -875,7 +853,7 @@ class SimulationVisualizer:
         else:
             self.speed_label.config(foreground="blue")
     
-    # (3) MODIFY: Reset logic
+    # Reset logic
     def _reset_simulation(self):
         """Reset simulation to initial state."""
         # Clear entities
@@ -885,7 +863,7 @@ class SimulationVisualizer:
         
         self.entities_on_canvas.clear()
         
-        # (1) ADD: Clear queue/service slots
+        # Clear queue/service slots
         self.entity_queue_slots.clear()
         self.entity_service_slots.clear()
         
@@ -896,7 +874,7 @@ class SimulationVisualizer:
             'current_wip': 0,
             'simulation_time': 0.0
         }
-        # (1) ADD: Clear derived stats
+        # Clear derived stats
         for key in list(self.stats_labels.keys()):
              if key.endswith('_util'):
                  self.stats_labels[key].config(text="0.00%")
@@ -925,10 +903,10 @@ class SimulationVisualizer:
         self._draw_connections()
         self._draw_legend()
         
-        # (1) ADD: Re-initialize the SimPy generators
+        # Re-initialize the SimPy generators
         self._initialize_simulation()
             
-        # (1) ADD: Reset playback state
+        # Reset playback state
         self.is_paused = True
         self.is_running = True # It's "running" in the sense that it's ready
         self.play_button.config(text="▶ Play")
@@ -1029,7 +1007,7 @@ class SimulationVisualizer:
         
         steps_to_move = max(1, int(self.steps_per_move / len(path_segments)))
         
-        # (3) MODIFY: Handle "MAX" speed (no animation)
+        # Handle "MAX" speed (no animation)
         if self.speed_multiplier >= 50.0:
             steps_to_move = 1
         
@@ -1045,7 +1023,7 @@ class SimulationVisualizer:
             try:
                 self.canvas.move(circle, step_dx, step_dy)
                 self.canvas.move(text, step_dx, step_dy)
-                # (3) MODIFY: Only call canvas.update() if at max speed
+                # Only call canvas.update() if at max speed
                 if self.speed_multiplier >= 50.0:
                     self.canvas.update()
             except tk.TclError:
@@ -1053,7 +1031,7 @@ class SimulationVisualizer:
             
             delay_ms = max(1, int(self.animation_speed * 1000))
             
-            # (3) MODIFY: At MAX speed, don't use root.after, just loop
+            # At MAX speed, don't use root.after, just loop
             if self.speed_multiplier >= 50.0:
                 animation_loop(step + 1)
             else:
@@ -1148,7 +1126,7 @@ class SimulationVisualizer:
                 else:
                     label.config(text=str(int(value)))
             
-            # FIX: Calculate queue count from VISUAL queues
+            # Calculate queue count from VISUAL queues
             elif key.endswith('_queue'):
                 res_name = key.replace('_queue', '')
                 blocks_for_this_resource = self.resource_to_blocks_map.get(res_name, [])
@@ -1171,7 +1149,7 @@ class SimulationVisualizer:
                     total_queue_count += queue_len
                     # DEBUG: Print to console
                     if queue_len > 0:
-                        # (3) MODIFY: Comment out debug print
+                        # Comment out debug print
                         # print(f"[DEBUG] {res_name} @ {block_name}: {queue_len} in queue")
                         pass
                 
@@ -1184,7 +1162,7 @@ class SimulationVisualizer:
         self.status_label.config(text="Paused", foreground="orange")
         self.step_pause_timer = None
 
-    # (3) MODIFY: Run method
+    # Run method
     def run(self):
         """Start the visualizer (blocks until window closed)."""
 
@@ -1193,7 +1171,7 @@ class SimulationVisualizer:
         print("-" * 120)
         
         self.setup_gui()
-        self._initialize_simulation() # (1) ADD: Initialize generators
+        self._initialize_simulation() # Initialize generators
         self.root.mainloop()
 
 
@@ -1230,8 +1208,7 @@ class VisualizationInstrument:
             elif isinstance(block, DisposeBlock):
                 block.process_entity = self._wrap_dispose(original_process, block)
             elif isinstance(block, (ProcessBlock, MultiProcessBlock)):
-                # block.process_entity = self._wrap_process(original_process, block)
-                # ✅ NEW: Special handling for ProcessBlocks
+                # Special handling for ProcessBlocks
                 block.process_entity = self._wrap_process_with_resource_check(
                     original_process, block
                 )
@@ -1243,7 +1220,7 @@ class VisualizationInstrument:
             original_log_complete = block.log_complete
             block.log_complete = self._wrap_log_complete(original_log_complete, block.name)
 
-    # ✅ NEW METHOD: Resource-aware process wrapping
+    # Resource-aware process wrapping
     def _wrap_process_with_resource_check(self, original_func, block):
         """
         Wrap ProcessBlock with resource availability checking.
@@ -1258,7 +1235,7 @@ class VisualizationInstrument:
             entity_id = self._get_entity_id(entity)
             from_block, old_state = self.entity_locations.get(entity_id, (None, 'service'))
             
-            # ✅ CHECK: Determine if entity should queue or go directly to service
+            # CHECK: Determine if entity should queue or go directly to service
             should_queue = False
             
             if isinstance(block, ProcessBlock) and block.resource:
@@ -1280,7 +1257,7 @@ class VisualizationInstrument:
                 
                 should_queue = not all_available
             
-            # ✅ SET STATE: Based on resource availability
+            # SET STATE: Based on resource availability
             new_state = 'queue' if should_queue else 'service'
             
             self.entity_locations[entity_id] = (block.name, new_state)
@@ -1309,9 +1286,9 @@ class VisualizationInstrument:
         """Wrap CreateBlock generator to track entity creation."""
         def new_wrapped_generator():
             for item in original_gen_func():
-                if hasattr(block, 'entities_created') and block.entities_created > 1: # ✅ Changed > 0 to > 1
-                    entity_num = block.entities_created - 1 # This is AFTER increment
-                    entity_id = f"{block.entity_prefix}_{entity_num}" # ✅ FIX: Remove -1
+                if hasattr(block, 'entities_created') and block.entities_created > 1: 
+                    entity_num = block.entities_created - 1 
+                    entity_id = f"{block.entity_prefix}_{entity_num}" 
                     
                     if entity_id not in self.entity_locations:
                         self.event_queue.put(VisualizationEvent(
@@ -1356,7 +1333,7 @@ class VisualizationInstrument:
             if new_state == 'queue':
                 self._send_stats_update()
             
-            # (3) MODIFY: Add a small timeout to allow GUI to update
+            # Add a small timeout to allow GUI to update
             # This helps visualization feel more "real-time"
             yield self.model.env.timeout(0.001) 
             yield from original_func(entity)
@@ -1367,7 +1344,7 @@ class VisualizationInstrument:
         """
         Wrap log_start to move entity from queue to service.
         
-        ✅ FIXED: This is called when resource is actually SEIZED.
+        This is called when resource is actually SEIZED.
         If entity was in queue, it now moves to service.
         """
         def wrapped(entity, resource_name=None):
@@ -1378,7 +1355,7 @@ class VisualizationInstrument:
                 entity_id, (block_name, 'queue')
             )
             
-            # ✅ ONLY send event if entity was actually in queue
+            # ONLY send event if entity was actually in queue
             if current_state == 'queue':
                 self.entity_locations[entity_id] = (block_name, 'service')
                 
@@ -1422,7 +1399,7 @@ class VisualizationInstrument:
                 }
             ))
             
-            # (3) MODIFY: Add a small timeout
+            # Add a small timeout
             yield self.model.env.timeout(0.001)
             yield from original_func(entity)
             
@@ -1439,7 +1416,7 @@ class VisualizationInstrument:
         return wrapped
     
     def _get_entity_id(self, entity) -> str:
-        # (3) MODIFY: Use the entity.id attribute directly
+        # Use the entity.id attribute directly
         return entity.id
     
     def _send_stats_update(self):
@@ -1472,7 +1449,6 @@ class VisualizationInstrument:
             timestamp=self.model.env.now,
             data=stats_data
         ))
-
 
 
 # =============================================================================
@@ -1513,9 +1489,7 @@ class ZoomableCanvas(tk.Canvas):
         self.pan_start = (event.x, event.y)
         self.move("all", dx, dy)
 
-# =============================================================================
-# Example Usage
-# =============================================================================
+
 def run_visualization(model_builder, simulation_time: float = 100):
     """
     Run simulation with visualization.
@@ -1528,22 +1502,3 @@ def run_visualization(model_builder, simulation_time: float = 100):
     visualizer._simulation_time_limit = simulation_time
     visualizer.run()
 
-
-if __name__ == "__main__":
-    print("=" * 70)
-    print("🎮 FIXED SIMULATION VISUALIZER")
-    print("=" * 70)
-    
-    print("\n✅ FIXES APPLIED:")
-    print("  1. Connectors now exit/enter blocks from OUTSIDE")
-    print("  2. Entities flow smoothly along connector paths")
-    print("  3. Queue statistics match visual queue counts")
-    print("  4. (NEW) Play/Step buttons now drive simulation incrementally")
-    
-    print("\n📊 USAGE:")
-    print("  from interface import run_visualization")
-    print("  from all_blocks import build_hospital_model")
-    print()
-    print("  run_visualization(build_hospital_model, simulation_time=500)")
-    
-    print("\n" + "=" * 70)

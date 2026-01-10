@@ -16,9 +16,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# =====================================================================
-# FILE: analytics/wip_metrics.py
-# =====================================================================
 class WIPTracker:
     """
     Tracks Work-in-Process (WIP) metrics during simulation.
@@ -68,42 +65,6 @@ class WIPTracker:
             'wip_timeline': wip_timeline
         }
     
-    # def _build_wip_timeline(self) -> List[Tuple[float, int]]:
-    #     """
-    #     Build WIP timeline from entity creation and disposal events.
-        
-    #     Returns:
-    #         List of (time, wip_count) tuples
-    #     """
-    #     events = []
-        
-    #     # Add creation events (+1 to WIP)
-    #     for create_block in self.model.create_blocks:
-    #         # Entities are created at specific times based on inter-arrival
-    #         # We need to reconstruct this from disposed entities
-    #         pass
-        
-    #     # Add disposal events (-1 from WIP)
-    #     for dispose_block in self.model.dispose_blocks:
-    #         for entity in dispose_block.disposed_entities:
-    #             creation_time = entity.creation_time
-    #             disposal_time = entity.get_attribute('disposal_time', self.model.env.now)
-                
-    #             events.append((creation_time, +1))  # Entity enters system
-    #             events.append((disposal_time, -1))  # Entity exits system
-        
-    #     # Sort events by time
-    #     events.sort(key=lambda x: x[0])
-        
-    #     # Build timeline
-    #     timeline = []
-    #     current_wip = 0
-        
-    #     for time, change in events:
-    #         current_wip += change
-    #         timeline.append((time, current_wip))
-        
-    #     return timeline
 
     def _build_wip_timeline(self) -> List[Tuple[float, int]]:
         """
@@ -220,37 +181,6 @@ class WIPTracker:
             'wip_timeline': []
         }
     
-    # def get_system_time_summary(self) -> Dict[str, Any]:
-    #     """
-    #     Calculate total time in system statistics.
-        
-    #     Returns:
-    #         Dictionary with system time metrics
-    #     """
-    #     if not self.model.dispose_blocks:
-    #         return self._empty_system_time_summary()
-        
-    #     # Get post-warm-up entities
-    #     post_warmup_entities = [
-    #         e for dispose_block in self.model.dispose_blocks
-    #         for e in dispose_block.disposed_entities
-    #         if e.get_attribute('disposal_time', 0) >= self.model.warm_up_period
-    #     ]
-        
-    #     if not post_warmup_entities:
-    #         return self._empty_system_time_summary()
-        
-    #     # Calculate system times
-    #     system_times = [e.get_attribute('system_time', 0) for e in post_warmup_entities]
-        
-    #     return {
-    #         'average_system_time': np.mean(system_times),
-    #         'std_system_time': np.std(system_times),
-    #         'min_system_time': np.min(system_times),
-    #         'max_system_time': np.max(system_times),
-    #         'median_system_time': np.median(system_times),
-    #         'num_entities': len(system_times)
-    #     }
 
     def get_system_time_summary(self) -> Dict[str, Any]:
         """
@@ -325,50 +255,6 @@ class WIPTracker:
             'num_entities': 0
         }
     
-    # def plot_wip_over_time(self):
-    #     """Plot WIP evolution over time."""
-    #     wip_summary = self.get_wip_summary()
-    #     timeline = wip_summary['wip_timeline']
-        
-    #     if not timeline:
-    #         print("No WIP data available to plot.")
-    #         return
-
-    #     # --- START MODIFICATION ---
-    #     final_time = self.model.env.now        
-    #     # 1. Ensure the timeline extends to the end of the simulation for plotting
-    #     if timeline[-1][0] < final_time:
-    #         # Append a point at the final time with the final WIP count
-    #         final_wip_count = timeline[-1][1]
-    #         timeline.append((final_time, final_wip_count))
-    #     # --- END MODIFICATION ---
-        
-    #     times = [t for t, _ in timeline]
-    #     wips = [w for _, w in timeline]
-        
-    #     fig, ax = plt.subplots(figsize=(12, 6))
-        
-    #     # Plot as step function
-    #     ax.step(times, wips, where='post', linewidth=2, color='steelblue', label='WIP')
-        
-    #     # Add average line
-    #     ax.axhline(y=wip_summary['average_wip'], color='red', linestyle='--', 
-    #               linewidth=2, label=f"Average WIP: {wip_summary['average_wip']:.2f}")
-        
-    #     # Mark warm-up period
-    #     if self.model.warm_up_period > 0:
-    #         ax.axvline(x=self.model.warm_up_period, color='orange', linestyle='--',
-    #                   linewidth=2, label=f"Warm-up end (t={self.model.warm_up_period})")
-    #         ax.axvspan(0, self.model.warm_up_period, alpha=0.2, color='orange')
-        
-    #     ax.set_xlabel('Simulation Time', fontsize=12, fontweight='bold')
-    #     ax.set_ylabel('Work in Process (WIP)', fontsize=12, fontweight='bold')
-    #     ax.set_title('Work in Process Over Time', fontsize=14, fontweight='bold')
-    #     ax.legend(loc='best', framealpha=0.9)
-    #     ax.grid(True, alpha=0.3)
-        
-    #     plt.tight_layout()
-    #     plt.show()
 
     def plot_wip_over_time(self):
         """Plot WIP evolution over time."""
@@ -398,7 +284,7 @@ class WIPTracker:
                       linewidth=2, label=f"Warm-up end (t={self.model.warm_up_period})")
             ax.axvspan(0, self.model.warm_up_period, alpha=0.2, color='orange')
         
-        # ✅ NEW: Annotate final WIP if > 0
+        # Annotate final WIP if > 0
         final_wip = wip_summary['final_wip']
         if final_wip >= 0:
             ax.annotate(
@@ -461,47 +347,3 @@ class WIPTracker:
         
         plt.tight_layout()
         plt.show()
-
-
-
-# # =====================================================================
-# # USAGE EXAMPLE
-# # =====================================================================
-
-# def example_usage():
-#     """Example showing how to use WIP tracking."""
-#     from core.simulation_model import SimulationModel
-#     from analytics.reporting import SimulationReporter
-#     from analytics.wip_metrics import WIPTracker
-    
-#     # Build and run model
-#     model = SimulationModel()
-#     # ... configure model ...
-#     model.run_simulation(until=1000, warm_up_period=100)
-    
-#     # Option 1: Use WIPTracker directly
-#     wip_tracker = WIPTracker(model)
-#     wip_summary = wip_tracker.get_wip_summary()
-#     print(f"Average WIP: {wip_summary['average_wip']:.2f}")
-    
-#     system_time_summary = wip_tracker.get_system_time_summary()
-#     print(f"Average System Time: {system_time_summary['average_system_time']:.2f}")
-    
-#     # Plot WIP
-#     wip_tracker.plot_wip_over_time()
-#     wip_tracker.plot_system_time_distribution()
-    
-#     # Option 2: Use integrated reporter
-#     reporter = SimulationReporter(model)
-#     reporter.print_results_with_wip()  # Includes WIP metrics
-
-
-# if __name__ == "__main__":
-#     print("WIP and System Time Tracking Module")
-#     print("="*60)
-#     print("\nThis module provides:")
-#     print("  1. Time-weighted average WIP calculation")
-#     print("  2. System time statistics (avg, std, min, max, median)")
-#     print("  3. Little's Law verification")
-#     print("  4. WIP over time visualization")
-#     print("  5. System time distribution plots")

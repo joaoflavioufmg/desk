@@ -20,9 +20,6 @@ import time
 import math
 
 
-# =====================================================================
-# FILE: statistics/replication.py
-# =====================================================================
 class ReplicationFramework:
     """
     Framework for running multiple simulation replications with statistical analysis.
@@ -53,7 +50,7 @@ class ReplicationFramework:
             base_seed: Base seed for reproducibility
             **simulation_kwargs: Additional arguments to pass to simulation function
         """
-        print(f"EXECUTANDO {self.n_replications} REPLICACOES...")
+        print(f"EXECUTING {self.n_replications} REPLICATIONS...")
         print("=" * 50)
         
         start_time = time.time()
@@ -62,7 +59,7 @@ class ReplicationFramework:
             # Set unique seed for each replication
             replication_seed = base_seed + replication * 1000
             
-            print(f"Replicacao {replication + 1}/{self.n_replications} (seed: {replication_seed})")
+            print(f"Replication {replication + 1}/{self.n_replications} (seed: {replication_seed})")
             
             # Run simulation
             model = self.simulation_function(seed=replication_seed, **simulation_kwargs)
@@ -76,12 +73,12 @@ class ReplicationFramework:
                 elapsed = time.time() - start_time
                 avg_time = elapsed / (replication + 1)
                 remaining = (self.n_replications - replication - 1) * avg_time
-                print(f"  Progresso: {replication + 1}/{self.n_replications} | "
-                      f"Tempo restante estimado: {remaining/60:.1f} min")
+                print(f"  Progress: {replication + 1}/{self.n_replications} | "
+                      f"Estimated time remaining: {remaining/60:.1f} min")
         
         total_time = time.time() - start_time
-        print(f"\nREPLICACOES CONCLUIDAS em {total_time/60:.1f} minutos")
-        print(f"Tempo medio por replicacao: {total_time/self.n_replications:.1f} segundos")
+        print(f"\nREPLICATIONS COMPLETED in {total_time/60:.1f} minutes")
+        print(f"Average time per replication: {total_time/self.n_replications:.1f} seconds")
         
         # Calculate summary statistics
         self._calculate_summary_statistics()
@@ -195,7 +192,7 @@ class ReplicationFramework:
         finite sample size and unknown population variance.
         """
         if not self.replication_results:
-            print("Nenhum resultado de replicacao disponivel!")
+            print("No replication results available!")
             return
         
         # Convert to DataFrame for easier manipulation
@@ -270,20 +267,20 @@ class ReplicationFramework:
     def print_statistical_summary(self):
         """Print comprehensive statistical summary with confidence intervals."""
         if not self.summary_statistics:
-            print("Estatisticas nao calculadas. Execute run_replications() primeiro.")
+            print("Statistics not computed. Run run_replications() first.")
             return
         
         print("=" * 80)
-        print(f"RESULTADOS ESTATISTICOS ({self.n_replications} REPLICACOES)")
+        print(f"STATISTICAL RESULTS ({self.n_replications} REPLICATIONS)")
         print("=" * 80)
         
         # System-level metrics
         self._print_section_metrics(
-            title="METRICAS DO SISTEMA",
+            title="SYSTEM METRICS",
             metrics=[
-                ('system_time_avg', 'Tempo medio no sistema'),
-                ('entities_processed', 'Entidades processadas'),
-                ('overall_throughput', 'Throughput (entidades/min)')
+                ('system_time_avg', 'Average time in the system'),
+                ('entities_processed', 'Entities processed'),
+                ('overall_throughput', 'Throughput (entities/min)')
             ]
         )
         
@@ -292,7 +289,7 @@ class ReplicationFramework:
                           if any(suffix in k for suffix in ['_queue_time', '_service_time', '_system_time'])]
         
         if activity_metrics:
-            print("\nMETRICAS DAS ATIVIDADES:")
+            print("\nACTIVITY METRICS:")
             print("-" * 40)
             for metric_key in sorted(activity_metrics):
                 stats_data = self.summary_statistics[metric_key]
@@ -304,12 +301,12 @@ class ReplicationFramework:
                              if '_utilization' in k]
         
         if utilization_metrics:
-            print("\nUTILIZACAO DE RECURSOS:")
+            print("\nUSE OF RESOURCES:")
             print("-" * 40)
             for metric_key in sorted(utilization_metrics):
                 stats_data = self.summary_statistics[metric_key]
                 resource_name = metric_key.replace('_utilization', '')
-                metric_name = f"Taxa de utilizacao - {resource_name}"
+                metric_name = f"Utilization rate - {resource_name}"
                 # Convert to percentage for display
                 stats_pct = self._convert_to_percentage(stats_data)
                 self._print_metric_statistics(metric_name, stats_pct, unit='%')
@@ -317,9 +314,9 @@ class ReplicationFramework:
         # Precision analysis
         self._print_precision_analysis()
         
-        print(f"\nNumero de replicacoes: {self.n_replications}")
-        print(f"Nivel de confianca: 95%")
-        print(f"Recomendacao: {self._get_replication_recommendation()}")
+        print(f"\nNumber of replications: {self.n_replications}")
+        print(f"Confidence level: 95%")
+        print(f"Recommendation: {self._get_replication_recommendation()}")
     
     def _print_section_metrics(self, title: str, metrics: List[tuple]):
         """Print a section of metrics."""
@@ -353,16 +350,16 @@ class ReplicationFramework:
         max_val = stats_data['max']
         
         print(f"{metric_name}:")
-        print(f"  Media: {format_val(mean)}{unit} +/- {format_val(half_width)}")
-        print(f"  IC 95%: [{format_val(ci_lower)}, {format_val(ci_upper)}]{unit}")
-        print(f"  Precisao: +/-{format_val(precision)}%")
-        print(f"  Desvio padrao: {format_val(std)}")
+        print(f"  Average: {format_val(mean)}{unit} +/- {format_val(half_width)}")
+        print(f"  CI 95%: [{format_val(ci_lower)}, {format_val(ci_upper)}]{unit}")
+        print(f"  Precision: +/-{format_val(precision)}%")
+        print(f"  Standard Deviation: {format_val(std)}")
         print(f"  Min-Max: [{format_val(min_val)}, {format_val(max_val)}]{unit}")
         print()
     
     def _print_precision_analysis(self):
         """Print precision analysis summary."""
-        print("\nANALISE DE PRECISAO:")
+        print("\nPRECISION ANALYSIS:")
         print("-" * 40)
         
         high_precision = []
@@ -383,37 +380,37 @@ class ReplicationFramework:
             else:
                 low_precision.append((metric_key, precision))
         
-        print(f"Alta precisao (<=5%): {len(high_precision)} metricas")
-        print(f"Media precisao (5-10%): {len(medium_precision)} metricas")
-        print(f"Baixa precisao (>10%): {len(low_precision)} metricas")
+        print(f"High precision (<=5%): {len(high_precision)} metrics")
+        print(f"Medium precision (5-10%): {len(medium_precision)} metrics")
+        print(f"Low precision (>10%): {len(low_precision)} metrics")
         
         if low_precision:
-            print("\nMetricas com baixa precisao (considere mais replicacoes):")
+            print("\nMetrics with low precision (consider more replications):")
             for metric, precision in sorted(low_precision, key=lambda x: x[1], reverse=True):
                 print(f"  {metric}: {precision:.1f}%")
     
     def _get_replication_recommendation(self) -> str:
         """Provide recommendation for number of replications."""
         if not self.summary_statistics:
-            return "Execute analise estatistica primeiro"
+            return "Perform statistical analysis first"
         
         valid_precisions = [stats_data['relative_precision']
                            for stats_data in self.summary_statistics.values()
                            if not np.isnan(stats_data['relative_precision'])]
         
         if not valid_precisions:
-            return "Dados insuficientes para recomendacao"
+            return "Insufficient data for recommendation"
         
         avg_precision = np.mean(valid_precisions)
         
         if avg_precision <= 5:
-            return "Precisao excelente - numero adequado de replicacoes"
+            return "Excellent accuracy - adequate number of replications"
         elif avg_precision <= 10:
-            return "Precisao boa - considere mais replicacoes para metricas criticas"
+            return "Good accuracy - consider more replications for critical metrics"
         elif avg_precision <= 20:
-            return "Precisao moderada - recomenda-se dobrar o numero de replicacoes"
+            return "Moderate precision - it is recommended to double the number of replications"
         else:
-            return "Precisao baixa - aumente significativamente o numero de replicacoes"
+            return "Low accuracy - significantly increase the number of replications"
     
     def plot_confidence_intervals(self, metrics_to_plot: Optional[List[str]] = None):
         """
@@ -423,7 +420,7 @@ class ReplicationFramework:
             metrics_to_plot: List of specific metrics to plot (None = all utilization metrics)
         """
         if not self.summary_statistics:
-            print("Estatisticas nao calculadas.")
+            print("Statistics not computed.")
             return
         
         # Get only resource utilization metrics
@@ -431,14 +428,14 @@ class ReplicationFramework:
                             if '_utilization' in k]
         
         if not utilization_metrics:
-            print("Nenhuma metrica de utilizacao de recursos encontrada.")
+            print("No resource usage metrics found.")
             return
         
         # Filter available metrics
         available_metrics = [m for m in utilization_metrics if m in self.summary_statistics]
         
         if not available_metrics:
-            print("Nenhuma metrica de utilizacao disponivel para plotar.")
+            print("No usage metrics available for plotting.")
             return
         
         # Create figure
@@ -487,9 +484,9 @@ class ReplicationFramework:
         # Customize the plot
         ax.set_yticks(y_pos)
         ax.set_yticklabels(labels, fontsize=11)
-        ax.set_xlabel('Taxa de Utilizacao (%)', fontsize=12, fontweight='bold')
-        ax.set_title(f'Utilizacao de Recursos - Intervalos de Confianca 95%\n'
-                    f'({self.n_replications} replicacoes)',
+        ax.set_xlabel('Utilization Rate (%)', fontsize=12, fontweight='bold')
+        ax.set_title(f'Resource Utilization - 95% Confidence Intervals\n'
+                    f'({self.n_replications} replications)',
                     fontsize=14, fontweight='bold', pad=20)
         
         # Set x-axis from 0% to 100%
@@ -497,13 +494,13 @@ class ReplicationFramework:
         
         # Add reference lines
         ax.axvline(x=85, color='red', linestyle='--', alpha=0.7, linewidth=1,
-                  label='85% (Limite Critico)')
+                  label='85% (Critical Limit)')
         ax.axvline(x=70, color='orange', linestyle='--', alpha=0.5, linewidth=1,
-                  label='70% (Alta Utilizacao)')
+                  label='70% (High Utilization)')
         ax.axvline(x=50, color='green', linestyle='--', alpha=0.5, linewidth=1,
-                  label='50% (Utilizacao Moderada)')
+                  label='50% (Moderate Utilization)')
         ax.axvline(x=25, color='blue', linestyle='--', alpha=0.3, linewidth=1,
-                  label='25% (Baixa Utilizacao)')
+                  label='25% (Low Utilization)')
         
         # Add grid
         ax.grid(axis='x', alpha=0.3, linestyle='-')
@@ -520,7 +517,7 @@ class ReplicationFramework:
     
     def _print_resource_analysis(self, metrics: List[str]):
         """Print detailed resource utilization analysis."""
-        print("\nANALISE DETALHADA DA UTILIZACAO DE RECURSOS:")
+        print("\nDETAILED ANALYSIS OF RESOURCE UTILIZATION:")
         print("=" * 55)
         
         for metric in metrics:
@@ -534,29 +531,29 @@ class ReplicationFramework:
             resource_name = metric.replace('_utilization', '').replace('_', ' ').title()
             
             print(f"\n{resource_name}:")
-            print(f"  Utilizacao media: {mean_util:.1f}% +/- {half_width:.1f}%")
-            print(f"  IC 95%: [{ci_lower:.1f}%, {ci_upper:.1f}%]")
-            print(f"  Precisao relativa: +/-{precision:.1f}%")
+            print(f"  Mean utilization: {mean_util:.1f}% +/- {half_width:.1f}%")
+            print(f"  CI 95%: [{ci_lower:.1f}%, {ci_upper:.1f}%]")
+            print(f"  Relative precision: +/-{precision:.1f}%")
             
             # Recommendations based on utilization level
             if mean_util >= 90:
-                print("  RECOMENDACAO: Recurso extremamente sobrecarregado!")
-                print("     Aumentar capacidade urgentemente")
+                print("  RECOMMENDATION: Resource extremely overloaded!")
+                print("     Urgently increase capacity")
             elif mean_util >= 85:
-                print("  RECOMENDACAO: Recurso sobrecarregado")
-                print("     Considerar aumentar capacidade")
+                print("  RECOMMENDATION: Resource overloaded")
+                print("     Consider increasing capacity")
             elif mean_util >= 70:
-                print("  RECOMENDACAO: Utilizacao alta")
-                print("     Monitorar e avaliar necessidade de recursos adicionais")
+                print("  RECOMMENDATION: High utilization")
+                print("     Monitor and assess the need for additional resources")
             elif mean_util >= 50:
-                print("  RECOMENDACAO: Utilizacao moderada e eficiente")
-                print("     Nivel ideal para maioria dos sistemas")
+                print("  RECOMMENDATION: Moderate and efficient use")
+                print("     Ideal level for most systems")
             elif mean_util >= 25:
-                print("  RECOMENDACAO: Utilizacao abaixo do ideal")
-                print("     Avaliar redimensionamento ou redistribuicao")
+                print("  RECOMMENDATION: Suboptimal usage")
+                print("     Evaluate resizing or redistribution")
             else:
-                print("  RECOMENDACAO: Recurso subutilizado")
-                print("     Considerar reducao de capacidade")
+                print("  RECOMMENDATION: Underutilized resource")
+                print("     Consider reducing capacity")
     
     def get_results_dataframe(self) -> pd.DataFrame:
         """
@@ -569,7 +566,6 @@ class ReplicationFramework:
         # print(df.columns)
         df.drop(['replication_id', 'simulation_time',
         'warm_up_period', 'overall_throughput'], axis=1, inplace=True)
-        # return pd.DataFrame(self.replication_results)
         return df
     
     def export_results(self, filename: str = "results/framework_results.csv"):
@@ -581,4 +577,4 @@ class ReplicationFramework:
         """
         df = self.get_results_dataframe()
         df.to_csv(filename, index=False)
-        print(f"Resultados exportados para {filename}")
+        print(f"Results exported to {filename}")

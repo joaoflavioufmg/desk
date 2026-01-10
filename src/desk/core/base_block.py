@@ -18,10 +18,10 @@ class BaseBlock(ABC):
         self.next_block: Optional['BaseBlock'] = None
         self.statistics = {}
         self.event_logger = event_logger
-        self.attributes_to_assign = {}  # NEW: Generic attribute assignment
-        self.attributes_to_modify = {}  # NEW: Dynamic attribute modifications
-        self.activity_priority = None  # NEW: Activity-specific priority
-        self.tracer = getattr(env.model, 'event_tracer', None)  # NEW: Get tracer from model
+        self.attributes_to_assign = {}  # Generic attribute assignment
+        self.attributes_to_modify = {}  # Dynamic attribute modifications
+        self.activity_priority = None  # Activity-specific priority
+        self.tracer = getattr(env.model, 'event_tracer', None)  # Get tracer from model
 
     def _trace(self, event_type: str, entity: Entity, resource_name: Optional[str] = None, 
                details: str = ""):
@@ -87,7 +87,7 @@ class BaseBlock(ABC):
     def _apply_attributes(self, entity: Entity):
         """Apply configured attributes to entity."""
 
-        assigned_attrs = []  # ✅ NEW: Track assigned attributes
+        assigned_attrs = []  # Track assigned attributes
 
         for attr_name, attr_value in self.attributes_to_assign.items():
             if callable(attr_value):
@@ -100,13 +100,12 @@ class BaseBlock(ABC):
             entity.add_attribute(f"{self.name}_{attr_name}", value)            
             # print(f"[DEBUG ATTRIBUTE 2]: {self.name}_{attr_name}: {value}")
 
-            # ✅ NEW: Record what was assigned
-            assigned_attrs.append((attr_name, value))            
+            # Record what was assigned
+            assigned_attrs.append((attr_name, value))
 
-            # ✅ Debug print
             # print(f"[DEBUG] {attr_name}: {value}")
 
-        return assigned_attrs  # ✅ NEW: Return list of (name, value) tuples
+        return assigned_attrs  # Return list of (name, value) tuples
 
     def _modify_attributes(self, entity: Entity):
         """
@@ -114,25 +113,26 @@ class BaseBlock(ABC):
         
         NEW: Modifies existing attributes based on configured functions.
         """
-        modified_attrs = []  # ✅ NEW: Track modifications
+        modified_attrs = []  # Track modifications
 
         for attr_name, modification_func in self.attributes_to_modify.items():
+            
             # Get current value (with default of 0)
             current_value = entity.get_attribute(attr_name, 0)
             
             # Apply modification function
             new_value = modification_func(current_value)
 
-            # ✅ Debug print
+            # Debug print
             # print(f"[DEBUG] {attr_name}: old={current_value} -> new={new_value}")
             
             # Update attribute
             entity.add_attribute(attr_name, new_value)
 
-            # ✅ NEW: Record what was modified (old -> new)
+            # Record what was modified (old -> new)
             modified_attrs.append((attr_name, current_value, new_value))
         
-        return modified_attrs  # ✅ NEW: Return list of (name, old_value, new_value) tuples
+        return modified_attrs  # Return list of (name, old_value, new_value) tuples
 
         
     def connect_to(self, next_block: 'BaseBlock'):
@@ -154,7 +154,7 @@ class BaseBlock(ABC):
                 lifecycle='start',
                 resource=resource_name,
                 priority=entity.priority,
-                activity_priority=self.activity_priority  # NEW: Log activity priority
+                activity_priority=self.activity_priority  # Log activity priority
             )
     
     def log_complete(self, entity: Entity, resource_name: str = None):
@@ -167,7 +167,7 @@ class BaseBlock(ABC):
                 lifecycle='complete',
                 resource=resource_name,
                 priority=entity.priority,
-                activity_priority=self.activity_priority  # NEW: Log activity priority
+                activity_priority=self.activity_priority  # Log activity priority
             )
         
     def send_to_next(self, entity: Entity):

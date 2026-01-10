@@ -39,8 +39,8 @@ class TestSimulationReporter:
         reporter.print_results()
         
         captured = capsys.readouterr()
-        assert "RESULTADOS DA SIMULACAO" in captured.out
-        assert "Duracao:" in captured.out
+        assert "SIMULATION RESULTS" in captured.out
+        assert "Duration:" in captured.out
     
     def test_wip_metrics_printed(self, capsys):
         """Test that WIP metrics are included in results."""

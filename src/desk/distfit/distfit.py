@@ -625,11 +625,11 @@ def resolve_data_path(data_arg: str) -> Path:
     """
     path = Path(data_arg).expanduser()
 
-    # 1️⃣ Absolute path
+    # Absolute path
     if path.is_absolute() and path.exists():
         return path.resolve()
 
-    # 2️⃣ Relative to current working directory
+    # Relative to current working directory
     cwd_path = Path.cwd() / path
     if cwd_path.exists():
         return cwd_path.resolve()

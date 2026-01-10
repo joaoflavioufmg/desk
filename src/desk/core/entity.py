@@ -6,9 +6,6 @@ from typing import Dict, Any, List
 import pandas as pd
 
 
-# =====================================================================
-# FILE: core/entity.py
-# =====================================================================
 @dataclass
 class Entity:
     """Represents an entity flowing through the simulation."""

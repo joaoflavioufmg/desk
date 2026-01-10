@@ -182,6 +182,6 @@ class TestWarmUpAnalyzer:
         analyzer.analyze_warm_up_period()
         
         captured = capsys.readouterr()
-        assert "ANALISE DE WARM-UP" in captured.out
+        assert "WARM-UP ANALYSIS" in captured.out
         # assert "service" in captured.out
-        assert "Observe" in captured.out
+        assert "Please note" in captured.out

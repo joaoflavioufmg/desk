@@ -4,19 +4,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import Optional, List
-# from blocks.process_block import ProcessBlock, MultiProcessBlock
 
 
-# =====================================================================
-# FILE: analytics/plotting.py
-# =====================================================================
 class SimulationPlotter:
     """Creates visualizations from simulation results."""
     
     def __init__(self, model):
         self.model = model
         self.metrics = None  # Lazy loaded
-        self.wip_tracker = None  # NEW
+        self.wip_tracker = None  
 
     def _get_wip_tracker(self):
         """Lazy load WIP tracker."""
@@ -53,13 +49,12 @@ class SimulationPlotter:
             resource: Specific resource to plot (None = all)
             moving_average_window: Window size for smoothing
         """
-        # from blocks.process_block import ProcessBlock, MultiProcessBlock
         
         # Group ProcessBlocks by resource
         resource_blocks = self._group_blocks_by_resource()
         
         if not resource_blocks:
-            print("Nenhum ProcessBlock encontrado para plotar")
+            print("No ProcessBlock found for plotting")
             return
         
         # Filter for specific resource if requested
@@ -67,7 +62,7 @@ class SimulationPlotter:
             if resource in resource_blocks:
                 resource_blocks = {resource: resource_blocks[resource]}
             else:
-                print(f"Recurso '{resource}' nao encontrado")
+                print(f"Resource '{resource}' not found")
                 return
         
         # Create subplots
@@ -77,7 +72,7 @@ class SimulationPlotter:
         if num_resources == 1:
             axes = [axes]
         
-        fig.suptitle('Uso de Recursos (determine o tempo ideal de Warm-up)', 
+        fig.suptitle('Resource Usage (determine the optimal warm-up time)', 
                      fontsize=14, fontweight='bold')
         
         for idx, (resource_name, blocks) in enumerate(resource_blocks.items()):
@@ -85,7 +80,7 @@ class SimulationPlotter:
             self._plot_single_resource(ax, resource_name, blocks, 
                                       show_warm_up, moving_average_window)
         
-        axes[-1].set_xlabel('Tempo de Simulacao')
+        axes[-1].set_xlabel('Simulation Time')
         plt.tight_layout()
         plt.show()
     
@@ -115,9 +110,9 @@ class SimulationPlotter:
                             seen_timestamps.add(timestamp)
         
         if not all_data:
-            ax.text(0.5, 0.5, 'Sem dados disponiveis', 
+            ax.text(0.5, 0.5, 'No data available', 
                    ha='center', va='center', transform=ax.transAxes)
-            ax.set_title(f'{resource_name} (capacidade: '
+            ax.set_title(f'{resource_name} (capacity: '
                         f'{self.model.resources[resource_name].capacity})')
             return
         
@@ -131,7 +126,7 @@ class SimulationPlotter:
         all_data = [point for point in all_data if point[0] <= max_time]
         
         if not all_data:
-            ax.text(0.5, 0.5, 'Dados filtrados estao vazios', 
+            ax.text(0.5, 0.5, 'Filtered data is empty', 
                    ha='center', va='center', transform=ax.transAxes)
             return
         
@@ -139,15 +134,13 @@ class SimulationPlotter:
         times, utilizations = self._create_step_function(
             all_data, resource_name, max_time)
 
-        # print(f"Times: {times}")
-        # print(f"Utilizations: {utilizations}")
         
         # Plot utilization
         ax.plot(times, utilizations, drawstyle='steps-post', 
                alpha=0.7, color='lightblue', linewidth=1.5, 
-               label='Utilizacao')
+               label='Use')
         
-        # ✅ NEW: Plot cumulative average (dark green)
+        # Plot cumulative average (dark green)
         if len(utilizations) >= 2:
             times_array = np.array(times)
             utils_array = np.array(utilizations)
@@ -156,7 +149,7 @@ class SimulationPlotter:
             cumulative_avg = np.cumsum(utils_array) / np.arange(1, len(utils_array) + 1)
             
             ax.plot(times_array, cumulative_avg, color='darkgreen', 
-                linewidth=2.5, label='Média Cumulativa (Warm-up)',
+                linewidth=2.5, label='Cumulative average (Warm-up)',
                 alpha=0.9, linestyle='-')
         
         # Plot moving average (dark blue - existing)
@@ -168,21 +161,21 @@ class SimulationPlotter:
                                     mode='valid')
             moving_avg_times = times_array[moving_avg_window-1:]
             ax.plot(moving_avg_times, moving_avg, color='darkblue', 
-                   linewidth=2, label=f'Media movel ({moving_avg_window} pontos)',
+                   linewidth=2, label=f'Moving average ({moving_avg_window} points)',
                    alpha=0.8)
         
         # Mark warm-up period
         if show_warm_up and self.model.warm_up_period > 0:
             ax.axvline(x=self.model.warm_up_period, color='red', 
                       linestyle='--', linewidth=2, 
-                      label=f'Fim do Warm-up (t={self.model.warm_up_period})')
+                      label=f'End of Warm-up (t={self.model.warm_up_period})')
             ax.axvspan(0, self.model.warm_up_period, alpha=0.2, 
-                      color='red', label='Periodo de Warm-up')
+                      color='red', label='Warm-up period')
         
         # Formatting
         capacity = self.model.resources[resource_name].capacity
-        ax.set_title(f'{resource_name} (capacidade: {capacity})')
-        ax.set_ylabel('Utilizacao (%)')
+        ax.set_title(f'{resource_name} (Capacity: {capacity})')
+        ax.set_ylabel('Use (%)')
         ax.set_ylim(0, 105)
         ax.set_xlim(0, max_time)
         ax.grid(True, alpha=0.3)
@@ -190,7 +183,7 @@ class SimulationPlotter:
         
         # Add utilization bands
         ax.axhline(y=85, color='orange', linestyle=':', alpha=0.7, 
-                  label='85% (Limite recomendado)')
+                  label='85% (Recommended limit)')
         ax.axhline(y=100, color='red', linestyle=':', alpha=0.7)
     
     def _create_step_function(self, data: List, resource_name: str, 
@@ -277,9 +270,9 @@ class SimulationPlotter:
         
         # Stacked bars
         bars1 = ax.bar(x_pos, queue_times, bar_width, 
-                      label='Tempo medio em fila', color='lightcoral', alpha=0.8)
+                      label='Average time in queue', color='lightcoral', alpha=0.8)
         bars2 = ax.bar(x_pos, service_times, bar_width, 
-                      bottom=queue_times, label='Tempo medio de atendimento', 
+                      bottom=queue_times, label='Average service time', 
                       color='lightblue', alpha=0.8)
         
         # Add labels
@@ -299,10 +292,10 @@ class SimulationPlotter:
                    ha='center', va='bottom', fontweight='bold', fontsize=11)
         
         # Formatting
-        ax.set_xlabel('Atividades', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Tempo (minutos)', fontsize=12, fontweight='bold')
-        ax.set_title('Metricas das Entidades por Atividade\n'
-                    '(Tempo medio em fila + Tempo medio de atendimento)', 
+        ax.set_xlabel('Activities', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Time (minutes)', fontsize=12, fontweight='bold')
+        ax.set_title('Entity metrics by Activity\n'
+                    '(Average time in queue + Average service time)', 
                     fontsize=14, fontweight='bold', pad=20)
         ax.set_xticks(x_pos)
         ax.set_xticklabels(activity_names, rotation=45, ha='right')
@@ -320,7 +313,7 @@ class SimulationPlotter:
     
     def _print_activity_efficiency_analysis(self, activities_data: dict):
         """Print efficiency analysis for activities."""
-        print("\nANALISE DE EFICIENCIA POR ATIVIDADE:")
+        print("\nEFFICIENCY ANALYSIS BY ACTIVITY:")
         print("=" * 45)
         
         for name, data in activities_data.items():
@@ -333,16 +326,16 @@ class SimulationPlotter:
                 service_pct = (st / total) * 100
                 
                 print(f"{name}:")
-                print(f"  Tempo total: {total:.1f} min")
-                print(f"  Fila: {qt:.1f} min ({queue_pct:.1f}%)")
-                print(f"  Atendimento: {st:.1f} min ({service_pct:.1f}%)")
+                print(f"  Total time: {total:.1f} min")
+                print(f"  Queue: {qt:.1f} min ({queue_pct:.1f}%)")
+                print(f"  Service: {st:.1f} min ({service_pct:.1f}%)")
                 
                 if queue_pct > 60:
-                    print(f"  🚨 ALERTA: {queue_pct:.1f}% do tempo e gasto em fila!")
+                    print(f"  🚨 ALERT: {queue_pct:.1f}% of time and waiting in queues!")
                 elif queue_pct > 30:
-                    print(f"  ⚠️  ATENCAO: {queue_pct:.1f}% do tempo e gasto em fila")
+                    print(f"  ⚠️  ATTENTION: {queue_pct:.1f}% of time and waiting in queues")
                 else:
-                    print(f"  ✅ Eficiente: apenas {queue_pct:.1f}% do tempo em fila")
+                    print(f"  ✅ Efficient: only {queue_pct:.1f}% of time in queues")
                 print()
     
     def plot_resources_utilization(self):
@@ -395,9 +388,9 @@ class SimulationPlotter:
                        color='white' if util > 50 else 'black')
         
         # Formatting
-        ax.set_xlabel('Recursos', fontsize=12, fontweight='bold')
-        ax.set_ylabel('Taxa de Utilizacao (%)', fontsize=12, fontweight='bold')
-        ax.set_title('Taxa de Utilizacao por Recurso', 
+        ax.set_xlabel('Resources', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Utilization Rate (%)', fontsize=12, fontweight='bold')
+        ax.set_title('Utilization Rate per Resource', 
                     fontsize=14, fontweight='bold', pad=20)
         ax.set_xticks(x_pos)
         ax.set_xticklabels(resource_names, rotation=45, ha='right')
@@ -405,11 +398,11 @@ class SimulationPlotter:
         
         # Reference lines
         ax.axhline(y=85, color='red', linestyle='--', alpha=0.7, 
-                  label='85% (Limite critico)')
+                  label='85% (Critical limit)')
         ax.axhline(y=70, color='orange', linestyle='--', alpha=0.5, 
-                  label='70% (Utilizacao alta)')
+                  label='70% (High usage)')
         ax.axhline(y=25, color='blue', linestyle='--', alpha=0.3, 
-                  label='25% (Subutilizacao)')
+                  label='25% (Under utilization)')
         
         ax.legend(loc='upper right', framealpha=0.9)
         ax.grid(axis='y', alpha=0.3, linestyle='--')
@@ -423,30 +416,30 @@ class SimulationPlotter:
         
     def _print_resource_utilization_analysis(self, resource_summary: dict):
         """Print detailed resource utilization analysis."""
-        print("\nANALISE DE UTILIZACAO DE RECURSOS:")
+        print("\nRESOURCE UTILIZATION ANALYSIS:")
         print("=" * 42)
         
         for name, metrics in resource_summary.items():
             util = metrics['taxa_utilizacao'] * 100
             cap = self.model.resources[name].capacity
             
-            print(f"{name} (Capacidade: {cap}):")
-            print(f"  Taxa de utilizacao: {util:.1f}%")
+            print(f"{name} (Capacity: {cap}):")
+            print(f"  Utilization rate: {util:.1f}%")
             
             if util >= 90:
-                print(f"  🚨 CRITICO: Recurso extremamente sobrecarregado!")
-                print(f"  💡 Recomendacao: Aumentar capacidade urgentemente")
+                print(f"  🚨 CRITICAL: Resource extremely overloaded!")
+                print(f"  💡 Recommendation: Urgently increase capacity")
             elif util >= 85:
-                print(f"  🔥 ALERTA: Recurso sobrecarregado")
-                print(f"  💡 Recomendacao: Considerar aumentar capacidade")
+                print(f"  🔥 WARNING: Resource overloaded")
+                print(f"  💡 Recommendation: Consider increasing capacity")
             elif util >= 70:
-                print(f"  ⚠️  ATENCAO: Utilizacao alta, monitorar")
+                print(f"  ⚠️  ATTENTION: High utilization, monitor closely")
             elif util >= 50:
-                print(f"  ✅ BOM: Utilizacao moderada e eficiente")
+                print(f"  ✅ GOOD: Moderate and efficient use")
             elif util >= 25:
-                print(f"  ℹ️  BAIXA: Utilizacao abaixo do ideal")
+                print(f"  ℹ️  LOW: Utilization below ideal levels.")
             else:
-                print(f"  ⚪ MUITO BAIXA: Recurso subutilizado")
+                print(f"  ⚪ VERY LOW: Underutilized resource")
             print()
 
                 

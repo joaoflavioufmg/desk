@@ -1,16 +1,11 @@
-#Key 
+# =====================================================================
+# FILE: validation/resource_validator.py
+# =====================================================================
 # Always validate (it's automatic by default)
 # Use print_resource_summary() during development
 # resource_units must be ≤ capacity (critical rule)
 # Validation prevents deadlocks before they happen
 # Clear error messages tell you exactly what to fix
-
-# When to Disable Validation
-# ⚠️ Rarely! Only when:
-
-# You're 100% certain configuration is correct
-# Running thousands of replications (validate once, then skip)
-# Debugging other issues and need to bypass
 
 # Validation Checks
 # Check                   Level       Description
@@ -20,9 +15,6 @@
 # Unregistered Resource   ❌ ERROR    Resource not found
 # Wrong Type              ⚠️ WARNING  Priority mismatch
 
-# =====================================================================
-# FILE: validation/resource_validator.py
-# =====================================================================
 """
 Resource configuration validation for simulation models.
 
@@ -49,7 +41,6 @@ class ResourceValidationError(Exception):
     - Valid resource types
     - Consistent resource usage across blocks
     """
-    # print(">>> VALIVAÇÃO DE RECURSOS!")
     pass
 
 
@@ -149,7 +140,7 @@ class ResourceValidator:
         """Validate ProcessBlock resource configuration."""
         resource = block.resource
         
-        # ✅ NEW: Skip validation if block has no resource (pure delay mode)
+        # Skip validation if block has no resource (pure delay mode)
         if resource is None:
             return  # No resource = no validation needed
         
@@ -164,7 +155,7 @@ class ResourceValidator:
             # CRITICAL ERROR: Units exceed capacity
             if units_requested > capacity:
                 self.errors.append(
-                    f"RESOURCE OVERALLOCATION: Block '{block_name}' requests "
+                    f"RESOURCE OVER ALLOCATION: Block '{block_name}' requests "
                     f"{units_requested} units of '{resource_name}', but capacity is "
                     f"only {capacity}. This will cause DEADLOCK!"
                 )
@@ -227,7 +218,7 @@ class ResourceValidator:
         
         for block_name, block in self.model.blocks.items():
             if isinstance(block, ProcessBlock):
-                # ✅ NEW: Skip if no resource (pure delay mode)
+                # Skip if no resource (pure delay mode)
                 if block.resource is None:
                     continue
                 
@@ -254,7 +245,7 @@ class ResourceValidator:
                 resources = []
                 
                 if isinstance(block, ProcessBlock):
-                    # ✅ NEW: Skip if no resource
+                    # Skip if no resource
                     if block.resource is not None:
                         resources = [block.resource]
                 else:
@@ -389,7 +380,7 @@ class ResourceValidator:
         print("RESOURCE CONFIGURATION SUMMARY")
         print("=" * 70)
         
-        # ✅ NEW: Count resource-free blocks
+        # Count resource-free blocks
         delay_only_blocks = []
         
         for name, resource in sorted(self.model.resources.items()):
@@ -406,7 +397,7 @@ class ResourceValidator:
             
             for block_name, block in self.model.blocks.items():
                 if isinstance(block, ProcessBlock):
-                    # ✅ NEW: Track delay-only blocks separately
+                    # Track delay-only blocks separately
                     if block.resource is None:
                         delay_only_blocks.append(block_name)
                     elif block.resource == resource:
@@ -431,7 +422,7 @@ class ResourceValidator:
             else:
                 print(f"  WARNING: Resource not used by any block!")
         
-        # ✅ NEW: Print delay-only blocks summary
+        # Print delay-only blocks summary
         if delay_only_blocks:
             print("\n" + "-" * 70)
             print("DELAY-ONLY BLOCKS (No Resource Required):")
@@ -452,146 +443,3 @@ class ResourceValidator:
             return "Resource"
         else:
             return "Unknown"
-
-
-# # =====================================================================
-# # Integration with SimulationModel
-# # =====================================================================
-# def add_validation_to_model():
-#     """
-#     Add these methods to core/simulation_model.py
-#     """
-#     pass  # See implementation below
-
-
-# # Example additions to SimulationModel class:
-# """
-# # FILE: core/simulation_model.py
-
-# class SimulationModel:
-#     # ... existing code ...
-    
-#     def validate_resources(self, raise_on_error: bool = True) -> bool:
-#         '''
-#         Validate resource configuration before running simulation.
-        
-#         Args:
-#             raise_on_error: If True, raise exception on errors
-            
-#         Returns:
-#             True if validation passes, False otherwise
-#         '''
-#         from validation.resource_validator import ResourceValidator
-        
-#         validator = ResourceValidator(self)
-#         return validator.validate_all(raise_on_error=raise_on_error)
-    
-#     def print_resource_summary(self):
-#         '''Print summary of all resources and their usage.'''
-#         from validation.resource_validator import ResourceValidator
-        
-#         validator = ResourceValidator(self)
-#         validator.print_resource_summary()
-    
-#     def run_simulation(self, check_system: bool = False, 
-#                       validate_resources: bool = True,  # NEW parameter
-#                       until: float = None, 
-#                       seed: int = None, 
-#                       warm_up_period: float = 0.0):
-#         '''Run the simulation with optional resource validation.'''
-        
-#         # NEW: Validate resources before running
-#         if validate_resources:
-#             self.validate_resources(raise_on_error=True)
-        
-#         # ... rest of existing run_simulation code ...
-# """
-
-
-# # =====================================================================
-# # USAGE EXAMPLES
-# # =====================================================================
-
-# def example_catching_errors():
-#     """Example showing how validator catches errors."""
-#     from core.simulation_model import SimulationModel
-#     from blocks.process_block import ProcessBlock
-#     from blocks.create_block import CreateBlock
-#     import random
-    
-#     model = SimulationModel()
-    
-#     # Create resources
-#     nursesT = model.add_resource("nursesT", 1, "priority")  # Only 1 nurse
-#     doctors = model.add_resource("doctors", 4, "priority")
-    
-#     # Create blocks
-#     arrivals = CreateBlock(
-#         "Arrivals", model.env,
-#         inter_arrival_time=lambda: random.expovariate(1/4),
-#         entity_prefix="Patient"
-#     )
-    
-#     # ERROR: Requesting 2 units when capacity is only 1
-#     triage = ProcessBlock(
-#         "Triage", model.env,
-#         resource=nursesT,
-#         delay_time=lambda: random.uniform(2, 5),
-#         resource_units=2  # <-- THIS WILL CAUSE ERROR!
-#     )
-    
-#     model.add_block(arrivals)
-#     model.add_block(triage)
-#     arrivals.connect_to(triage)
-    
-#     try:
-#         # This will catch the error BEFORE simulation starts
-#         model.run_simulation(until=1000, validate_resources=True)
-#     except Exception as e:
-#         print(f"Caught error: {e}")
-#         print("\nThe validator prevented a deadlock situation!")
-
-
-# def example_validation_workflow():
-#     """Example showing complete validation workflow."""
-#     from core.simulation_model import SimulationModel
-#     from validation.resource_validator import ResourceValidator
-    
-#     # Build model
-#     model = SimulationModel()
-#     # ... add resources and blocks ...
-    
-#     # Option 1: Validate explicitly before running
-#     validator = ResourceValidator(model)
-    
-#     # Check without raising exception
-#     if not validator.validate_all(raise_on_error=False):
-#         print("Validation failed! Review errors above.")
-#         # Print detailed resource summary
-#         validator.print_resource_summary()
-#         return
-    
-#     # Option 2: Let run_simulation validate automatically
-#     model.run_simulation(
-#         until=1000,
-#         validate_resources=True  # Default True
-#     )
-    
-#     # Option 3: Skip validation (not recommended)
-#     model.run_simulation(
-#         until=1000,
-#         validate_resources=False  # Use with caution!
-#     )
-
-
-# if __name__ == "__main__":
-#     print("Resource Validation Module")
-#     print("="*70)
-#     print("\nThis module provides:")
-#     print("  1. Detection of resource overallocation (units > capacity)")
-#     print("  2. Validation of resource types (Priority, Preemptive, Regular)")
-#     print("  3. Detection of unregistered resources")
-#     print("  4. Warning for potential deadlocks")
-#     print("  5. Resource usage summary")
-#     print("\nValidation runs automatically before simulation starts")
-#     print("to catch configuration errors early!")
