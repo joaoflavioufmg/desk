@@ -760,43 +760,7 @@ gamma,0.789100,0.052300,Yes,random.gammavariate(1.024,0.496)
 - **(*) asterisk**: Indicates significant fit at the chosen α level
 - Results are sorted by p-value (best fit first)
 
-## Programmatic Usage
 
-You can also use the tool as a Python module:
-
-```python
-from desk.distfit import DistributionFitter
-
-# Create fitter instance
-fitter = DistributionFitter(alpha=0.05, bins=50)
-
-# Load data
-fitter.load_data("foo.txt")
-
-# Or set data directly
-import numpy as np
-data = np.random.exponential(2.0, 1000)
-fitter.set_data(data)
-
-# Fit distributions
-results = fitter.fit_distributions()
-
-# Get best fit
-best_fit = fitter.get_best_fit()
-print(f"Best distribution: {best_fit.name}")
-print(f"P-value: {best_fit.p_value:.4f}")
-
-# Generate Python code
-code = fitter.get_python_random_code(best_fit)
-print(f"Python code: {code}")
-
-# Create plots
-fitter.plot_results(show_all=True)
-
-# Generate report
-report = fitter.generate_summary_report()
-print(report)
-```
 
 ## Statistical Method
 
@@ -816,7 +780,7 @@ The tool uses the **Kolmogorov-Smirnov test** [8] to assess goodness-of-fit:
 - **Stationarity**: Assumes data comes from a stationary process
 
 
-### Getting Help (DESK and DESK-DistFit)
+### Help (DESK and DESK-DistFit)
 
 ```bash
 # Show detailed help
