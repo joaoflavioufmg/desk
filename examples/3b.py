@@ -1,22 +1,5 @@
-# ####################################################################################
-# TODO: Checklist de ajustes em cada modelo:
-# FILE: 3.py
-# Função: build_ex3_model;
-# Atividades e termos em def distribution(tipo):
-# Resources: model.add_resource("Equipes", 1);
-# simulation_wrapper: model = build_ex3_model(event_logger);
-# def ex3_factorial_analysis(): def ex3_simulation_wrapper(arrival_rate=1, num_equipes=1,
-# def ex3_factorial_analysis(): ex3_simulation_wrapper: model = build_ex3_model()
-# factorial.add_factor(factor_name='arrival_rate',
-# factorial.add_factor(factor_name='num_equipes',
-# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
-# def main(): print("Building ex3 model...");     model = build_ex3_model(event_logger)
-# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
-# print("\nExporting event log...")    df = event_logger.export_to_csv("ex3_event_log.csv");
-# ####################################################################################
-
 # =====================================================================
-# FILE: 3.py
+# FILE: 3b.py
 # =====================================================================
 import random
 import sys
@@ -198,11 +181,11 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
     
     
     # ================================================================
-    # ✅ CREATE OBSERVER (separate from blocks)
+    # CREATE OBSERVER (separate from blocks)
     # ================================================================    
     observer = SimulationObserver(model)
     
-    # ✅ DEFINE CALLBACK: What to do when call is lost
+    # DEFINE CALLBACK: What to do when call is lost
     # def count_lost_call(entity, block_name, time, verbose=True):        
     def count_lost_call(entity, block_name, time, verbose=verbose):        
         """Called when entity disposed to DisposePerdida."""
@@ -213,7 +196,7 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
         if verbose:
             print(f"[{time:.2f}] Chamada {entity.id} PERDIDA - Total: {current + 1}")
     
-    # ✅ ATTACH OBSERVER: Monitor specific dispose block
+    # ATTACH OBSERVER: Monitor specific dispose block
     observer.on_entity_disposed(
         block_name='DisposePerdida',
         callback=count_lost_call
@@ -251,11 +234,7 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
 
     model = build_model(config.duration, event_logger, verbose=False)
 
-    # Validate once on first run
-    # if seed == 12345:
-    #     model.validate_resources()
-    
-    
+       
     model.run_simulation(
         validate_resources=False,
         until=until,
@@ -422,6 +401,7 @@ def main():
     )
     
     # === ANALYSIS PHASE (using separate modules) ===
+
     # ========================================
     # Trace specific chamada
     # ========================================    
@@ -573,12 +553,9 @@ def main():
     return model, event_logger
 
 
-# if __name__ == "__main__":
-#     model, logger = main()
-#     # run_replications()
-#     # factorial = ex3_factorial_analysis()
-#     # run_visualization(build_ex3_model, simulation_time=60)
-
+# ===========================================
+# Simulation Kit
+# ===========================================
 def run_single_replication():
     return main()
 
@@ -593,3 +570,4 @@ def run_factorial_cli():
 
 def run_visualization_cli(simulation_time=60):
     return run_visualization(build_model, simulation_time=simulation_time)
+# ===========================================

@@ -36,23 +36,6 @@ from desk.visualization.interface import run_visualization
 # diagramas de ciclo de atividades.
 # ####################################################################################
 
-# ####################################################################################
-# TODO: Checklist de ajustes em cada modelo:
-# FILE: ex1.py
-# Função: build_ex1_model;
-# Atividades e termos em def distribution(tipo):
-# Resources: model.add_resource("Equipes", 1);
-# simulation_wrapper: model = build_ex1_model(event_logger);
-# def ex1_factorial_analysis(): def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
-# def ex1_factorial_analysis(): ex1_simulation_wrapper: model = build_ex1_model()
-# factorial.add_factor(factor_name='arrival_rate',
-# factorial.add_factor(factor_name='num_equipes',
-# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
-# def main(): print("Building ex1 model...");     model = build_ex1_model(event_logger)
-# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
-# print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
-# ####################################################################################
-
 def build_model(final_simulation_time=None, event_logger=None, verbose=True,
                         entity_filter=None, resource_filter=None,
                         event_type_filter=None, time_range=None): 
@@ -125,26 +108,15 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
         event_logger=event_logger
     )
 
-    # def should_dispose(env):
-    #     """Return True if current time >= final_simulation_time - 30 days."""
-    #     time_threshold = final_simulation_time - 30 * DAYS
-    #     return env.now >= time_threshold
-
-    # def should_not_dispose(env):
-    #     """Return True if current time < final_simulation_time - 30 days."""
-    #     time_threshold = final_simulation_time - 30 * DAYS
-    #     return env.now < time_threshold
 
     decision_time.add_route(
         "Dispose_Yes", 
         next_block=None,  # Will be connected later
-        # time_condition=should_dispose)
         time_condition=lambda t: t >= (final_simulation_time - 0.1*final_simulation_time))
 
     decision_time.add_route(
         "Dispose_No", 
         next_block=None,  # Will be connected later
-        # time_condition=should_not_dispose)
         time_condition=lambda t: t < (final_simulation_time - 0.1*final_simulation_time))
 
     dispose = DisposeBlock(
@@ -205,9 +177,6 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
 
     model = build_model(config.duration, event_logger, verbose=False)
 
-    # # Validate once on first run
-    # if seed == 12345:
-    #     model.validate_resources()
 
     model.run_simulation(
         validate_resources=False,
@@ -368,6 +337,7 @@ def main():
     )    
     
     pause_simulation()
+
     # === ANALYSIS PHASE (using separate modules) ===
 
     # ========================================
@@ -500,19 +470,14 @@ def main():
     resource_metrics = metrics.get_resource_metrics_summary()
     
     print(f"\nAverage system time: {entity_metrics['tempo_medio_sistema']:.2f} min")
-    # print(f"Nurses utilization: "
-    #       f"{resource_metrics['nurses']['taxa_utilizacao']:.1%}")
     print(f"Random seed for this run: {config.seed}")
     
     return model, event_logger
 
 
-# if __name__ == "__main__":
-#     model, logger = main()
-#     # run_replications()
-#     # factorial = ex1_factorial_analysis()
-#     # run_visualization(build_ex1_model, simulation_time=365*1440)
-
+# ===========================================
+# Simulation Kit
+# ===========================================
 def run_single_replication():
     return main()
 
@@ -527,3 +492,4 @@ def run_factorial_cli():
 
 def run_visualization_cli(simulation_time=365*1440):
     return run_visualization(build_model, simulation_time=simulation_time)
+# ===========================================

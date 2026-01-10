@@ -22,23 +22,6 @@ from desk.config.simulation_config import SimulationConfig
 from desk.visualization.interface import run_visualization
 
 
-# ####################################################################################
-# TODO: Checklist de ajustes em cada modelo:
-# FILE: hospital.py
-# Função: build_ex1_model;
-# Atividades e termos em def distribution(tipo):
-# Resources: model.add_resource("Equipes", 1);
-# simulation_wrapper: model = build_ex1_model(event_logger);
-# def ex1_factorial_analysis(): def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
-# def ex1_factorial_analysis(): ex1_simulation_wrapper: model = build_ex1_model()
-# factorial.add_factor(factor_name='arrival_rate',
-# factorial.add_factor(factor_name='num_equipes',
-# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
-# def main(): print("Building ex1 model...");     model = build_ex1_model(event_logger)
-# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
-# print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
-# ####################################################################################
-
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================
@@ -220,7 +203,6 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
     pharmacy_block.connect_to(discharge)
 
 
-
     # ================================================================
     # CONFIGURE FINANCIAL ATTRIBUTES
     # ================================================================    
@@ -332,7 +314,6 @@ def factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        # from desk.hospital import build_model()
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
@@ -428,7 +409,6 @@ def main():
     model = build_model(config.duration, event_logger, verbose=True)
     
     
-    
     # Check stability BEFORE running (optional)
     print("\nChecking system stability...")
     stability_analyzer = StabilityAnalyzer(model)
@@ -446,7 +426,7 @@ def main():
     
     
     # === ANALYSIS PHASE (using separate modules) ===
-    
+    #     
     # ========================================
     # Trace specific patient
     # ========================================    
@@ -586,12 +566,9 @@ def main():
 
 
 
-# if __name__ == "__main__":
-#     model, logger = main()
-#     # run_replications()
-#     # factorial = hospital_factorial_analysis()    
-#     # run_visualization(build_model, simulation_time=500)
-
+# ===========================================
+# Simulation Kit
+# ===========================================
 def run_single_replication():
     return main()
 
@@ -606,3 +583,4 @@ def run_factorial_cli():
 
 def run_visualization_cli(simulation_time=500):
     return run_visualization(build_model, simulation_time=simulation_time)
+# ===========================================

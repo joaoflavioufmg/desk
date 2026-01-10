@@ -21,22 +21,6 @@ from desk.validation.warmup import WarmUpAnalyzer
 from desk.config.simulation_config import SimulationConfig
 from desk.visualization.interface import run_visualization
 
-# ####################################################################################
-# TODO: Checklist de ajustes em cada modelo:
-# FILE: hospital.py
-# Função: build_ex1_model;
-# Atividades e termos em def distribution(tipo):
-# Resources: model.add_resource("Equipes", 1);
-# simulation_wrapper: model = build_ex1_model(event_logger);
-# def ex1_factorial_analysis(): def ex1_simulation_wrapper(arrival_rate=1, num_equipes=1,
-# def ex1_factorial_analysis(): ex1_simulation_wrapper: model = build_ex1_model()
-# factorial.add_factor(factor_name='arrival_rate',
-# factorial.add_factor(factor_name='num_equipes',
-# factorial.plot_interaction_effects('system_time_avg', 'arrival_rate', 'num_equipes')
-# def main(): print("Building ex1 model...");     model = build_ex1_model(event_logger)
-# plotter.plot_resource_use_over_time(show_warm_up=True, resource='equipes', moving_average_window=50)    
-# print("\nExporting event log...")    df = event_logger.export_to_csv("ex1_event_log.csv");
-# ####################################################################################
 
 # ####################################################################################
 # Projeto: Problema do bar
@@ -218,15 +202,10 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
     servir.connect_to(decide_ent_origem)    
     beber.connect_to(decide_satisfeito)
 
-    # chegadas_garcons.connect_to(servir)
-    # lavar.connect_to(decision_time)
+    
     chegadas_garcons.connect_to(lavar)
     lavar.connect_to(decision_time)
-    # chegadas_clientes.connect_to(servir)    
-    # servir.connect_to(beber)    
-    # beber.connect_to(decide_satisfeito)
-    # chegadas_garcons.connect_to(lavar)
-    # lavar.connect_to(lavar)
+    
 
     # Decision routing functions
     def ori_cliente(entity):
@@ -268,7 +247,6 @@ def build_model(final_simulation_time=None, event_logger=None, verbose=True,
     servir.assign_attributes(cost=lambda: random.uniform(20, 30))    
     lavar.assign_attributes(cost=lambda: random.uniform(10, 20))
     dispose.assign_attributes(revenue=lambda: random.uniform(50, 100))    
-    # dispose.assign_attributes(revenue=lambda sedeOriginal: sedeOriginal * 20)    
     # ================================================================
     
     return model
@@ -294,9 +272,6 @@ def simulation_wrapper(seed=None, until=None, warm_up_period=None):
 
     model = build_model(config.duration, event_logger, verbose=False)
 
-    # Validate once on first run
-    # if seed == 12345:
-    #     model.validate_resources()
     
     
     model.run_simulation(
@@ -360,7 +335,6 @@ def factorial_analysis():
         # ############################################################
         # # O modelo de simulação é importado aqui
         # ############################################################
-        # from desk.hospital import build_ex2_model()
         
         # This would need to be modified in your actual model to accept these parameters
         # For now, this is a template showing how to structure it
@@ -471,6 +445,7 @@ def main():
     pause_simulation()
     
     # === ANALYSIS PHASE (using separate modules) ===
+
     # ========================================
     # Trace specific patient
     # ========================================    
@@ -595,19 +570,13 @@ def main():
     resource_metrics = metrics.get_resource_metrics_summary()
     
     print(f"\nAverage system time: {entity_metrics['tempo_medio_sistema']:.2f} min")
-    # print(f"Nurses utilization: "
-    #       f"{resource_metrics['nurses']['taxa_utilizacao']:.1%}")
     print(f"Random seed for this run: {config.seed}")
     
     return model, event_logger
 
-
-# if __name__ == "__main__":
-#     model, logger = main()
-#     # run_replications()
-#     # factorial = ex2_factorial_analysis()
-#     # run_visualization(build_ex2_model, simulation_time=8*60)
-
+# ===========================================
+# Simulation Kit
+# ===========================================
 def run_single_replication():
     return main()
 
@@ -622,3 +591,4 @@ def run_factorial_cli():
 
 def run_visualization_cli(simulation_time=8*60):
     return run_visualization(build_model, simulation_time=simulation_time)
+# ===========================================
