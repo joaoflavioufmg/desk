@@ -34,7 +34,7 @@ DESK is suitable for **applied decision support, teaching, and research**.
 - **Entity Attributes & State Variables**: Dynamic assignment and modification
 - **Priority Scheduling**: Activity-level and entity-level priority control
 - **Event Tracing**: Event logging with filtering and replay
-- **Visualization**: Graphical interface sincronized with event log printing
+- **Visualization**: Graphical interface synchronized with event log printing
 
 ![Visualization](figs/hospital-step.gif)
 
@@ -54,7 +54,7 @@ See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfi
 ---
 
 ### Experimental Design & Analysis
-- **Stability Analysis**: Preliminar capacity analysis on utilization (ρ < 1)
+- **Stability Analysis**: Preliminary capacity analysis on utilization (ρ < 1)
 - **Little’s Law verification**: Automatic analysis on stability (**L = λW**). *The average number of items in the system (L) is the average arrival rate (λ) multiplied by the average time an item spends in the system (W)* 
 - **Warm-Up Analysis**: Automated transient detection
 - **Replication Framework**: (Simulation) Automated multi-run experiments with confidence intervals
@@ -910,8 +910,8 @@ Attribution 4.0 (CC BY 4.0).
 **Course:** Simulating Logistics Systems
 
 **Credits:**
-* SimPy
-* bupaR (R)
+* SimPy (Python)
+* bupaR, processAnimate (R)
 
 ---
 
