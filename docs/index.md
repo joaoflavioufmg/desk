@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DESK — Discrete Event Simulation Kit
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18088013.svg)](https://doi.org/10.5281/zenodo.18088013)
@@ -114,7 +113,7 @@ desk-distfit -d input_data/data10.txt
 
 # DESK — Discrete Event Simulation Kit
 
-## 🚀 Basic Example (A single replication)
+## 🚀 Basic Example 
 
 Patients arrive at a hospital emergency department, where they are assessed through a triage system and then directed to the appropriate hospital units. The conceptual model is presented* below. 
 
@@ -127,6 +126,8 @@ Models in `.bpmn` format can be created and shared using the
 ---
 ![Basic example BPMN](figs/basic.svg)
 ---
+
+(A single replication)
 
 Create a `basic.py` file and Copy/Paste the Part1 code below.
 
@@ -929,6 +930,3 @@ If you use DESK in academic work, please cite:
   url = {https://github.com/joaoflavioufmg/desk}
 }
 ```
-=======
---8<-- "README.md"
->>>>>>> 471c613 (Connect README to MkDocs and ReadTheDocs)
