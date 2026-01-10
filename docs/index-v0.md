@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DESK — Discrete Event Simulation Kit
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18088013.svg)](https://doi.org/10.5281/zenodo.18088013)
@@ -906,7 +905,7 @@ Attribution 4.0 (CC BY 4.0).
 
 **Author:** Prof. João Flávio de Freitas Almeida <joao.flavio@dep.ufmg.br>
 
-**Graduate Program:** PPGEP — UFMG (Brazil)
+**Program:** PPGEP — UFMG (Brazil)
 
 **Course:** Simulating Logistics Systems
 
@@ -929,6 +928,3 @@ If you use DESK in academic work, please cite:
   url = {https://github.com/joaoflavioufmg/desk}
 }
 ```
-=======
---8<-- "README.md"
->>>>>>> 471c613 (Connect README to MkDocs and ReadTheDocs)
