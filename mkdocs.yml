@@ -16,7 +16,9 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
+  - Getting Started:
+      - Installation: installation.md
+      - Basic Example: basic_example.md
   - Input Analysis (DistFit): input_analysis.md
   - Replication Analysis: replication.md
   - Factorial Experiments: factorial.md

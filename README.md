@@ -113,7 +113,7 @@ desk-distfit -d input_data/data10.txt
 
 # DESK — Discrete Event Simulation Kit
 
-## 🚀 Basic Example (A single replication)
+## 🚀 Basic Example 
 
 Patients arrive at a hospital emergency department, where they are assessed through a triage system and then directed to the appropriate hospital units. The conceptual model is presented* below. 
 
@@ -126,6 +126,8 @@ Models in `.bpmn` format can be created and shared using the
 ---
 ![Basic example BPMN](figs/basic.svg)
 ---
+
+(A single replication)
 
 Create a `basic.py` file and Copy/Paste the Part1 code below.
 
