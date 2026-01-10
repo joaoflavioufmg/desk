@@ -1,19 +1,31 @@
-# Replication Analysis
+### Replication Framework 
+
+- **Replication Framework**: (Simulation) Automated multi-run experiments with confidence intervals
 
 
-```python
-from stats.replication import ReplicationFramework
+![Use](figs/use.png)
+---
+
+### Performance Metrics
+- **Entity Metrics**: System time, queue time, service time
+- **Resource Metrics**: Utilization, queue length, busy/idle time
+- **WIP Tracking**: Time-weighted work-in-process analysis
+
+![WIP](figs/wip.png)
 
 
-replication_framework = ReplicationFramework(
-simulation_function=simulation_wrapper,
-n_replications=30
-)
+---
 
+### Visualization & Reporting
+- **Real-Time Visualization**: Process animation during simulation
 
-replication_framework.run_replications(
-base_seed=12345,
-until=24*60,
-warm_up_period=2*60
-)
-```
+![Visualization](figs/hospital.gif)
+
+- **Statistical Plots**:
+  - Resource utilization over time
+  - WIP evolution
+  - System time distributions
+  - Activity-level metrics
+- **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
+
+- **Automated Reports**: Simulation results with diagnostics and recommendations

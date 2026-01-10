@@ -4,14 +4,20 @@
 
 ### Installation
 
-## Requirements
+## 🛠️ Requirements
 
-- Python >= 3.10
-- simpy >= 4.0.1
-- numpy
-- pandas
-- scipy
-- matplotlib
+* Python >= 3.11
+* simpy == 4.1.1
+* numpy == 2.2.6
+* pandas == 2.3.1
+* scipy == 1.15.3
+* matplotlib == 3.10.5
+
+**Optional (for process mining):**
+
+* R >= 4.0
+* BupaR
+* processanimateR
 
 ### Installation
 

@@ -1,11 +1,6 @@
-# Factorial and Scenario Experiments
+### Factorial Analysis
 
-```python
-from stats.factorial import FactorialExperiment
+- **Factorial Experiments**: Full factorial design with interaction analysis
 
-
-factorial = FactorialExperiment(
-simulation_function=hospital_simulation_wrapper,
-base_seed=12345
-)
-```
+![Use](figs/factorial.png)
+---
