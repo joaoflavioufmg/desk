@@ -15,6 +15,25 @@ DESK includes:
 
 ![WarmUp](figs/warmup.png)
 
+
+![WIP](figs/wip.png)
+
+
+---
+
+### Visualization & Reporting
+- **Real-Time Visualization**: Process animation during simulation
+
+![Visualization](figs/hospital.gif)
+
+- **Statistical Plots**:
+  - Resource utilization over time
+  - WIP evolution
+  - System time distributions
+  - Activity-level metrics
+
+- **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
+
 The resulting event-log .csv file is stored in result/ folder, e.g., `hospital_event_log.csv` file, to produce the animation below. The R code of the example (`hospital_bupar.R`) is available in r_animation/ folder.
 
 ---
