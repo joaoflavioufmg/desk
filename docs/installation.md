@@ -23,101 +23,105 @@
 
 🪟 Windows (PowerShell / VS Code / Cursor )
 
+*1) Clone the DESK repository*
 ```bash
-# 1) Clone the DESK repository
 git clone https://github.com/joaoflavioufmg/desk.git
 ```
 
+*2) Enter the project directory*
 ```bash
-# 2) Enter the project directory
 cd desk
 ```
 
+*3) Create a virtual environment*
 ```bash
-# 3) Create a virtual environment
 py -m venv venv
 ```
 
+*4) Allow PowerShell to activate virtual environments (run once per machine)*
 ```bash
-# 4) Allow PowerShell to activate virtual environments (run once per machine)
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
+*5) Activate the virtual environment*
 ```bash
-# 5) Activate the virtual environment
 .\venv\Scripts\Activate.ps1
 ```
 
+*6) Upgrade pip inside the virtual environment*
 ```bash
-# 6) Upgrade pip inside the virtual environment
-python -m pip install --upgrade pip
+py -m pip install --upgrade pip
 ```
 
+*7) Install DESK and its dependencies*
 ```bash
-# 7) Install DESK and its dependencies
 pip install .
 ```
 
+*8) Verify that DESK and DESK-DISTFIT were installed correctly*
 ```bash
-# 8) Verify that DESK was installed correctly
 desk-sim -h
+```
+```bash
 desk-distfit -h
 ```
 
+*9) Run the hospital example with visualization*
 ```bash
-# 9) Run the hospital example with visualization
 desk-sim -m examples/hospital.py --mode visualization
 ```
 
+*10) Run desk-distfit with some data*
 ```bash
-# 10) Run desk-distfit with some data
 desk-distfit -d input_data/data10.txt
 ```
 
 🐧 Linux / macOS (Terminal)
 
+*1) Clone the DESK repository*
 ```bash
-# 1) Clone the DESK repository
 git clone https://github.com/joaoflavioufmg/desk.git
 ```
 
+*2) Enter the project directory*
 ```bash
-# 2) Enter the project directory
 cd desk
 ```
 
+*3) Create a virtual environment*
 ```bash
-# 3) Create a virtual environment
-python3 -m venv venv
+python -m venv venv
 ```
 
+*4) Activate the virtual environment*
 ```bash
-# 4) Activate the virtual environment
 source venv/bin/activate
 ```
 
+*5) Upgrade pip inside the virtual environment*
 ```bash
-# 5) Upgrade pip inside the virtual environment
 python -m pip install --upgrade pip
 ```
 
+*6) Install DESK and its dependencies*
 ```bash
-# 6) Install DESK and its dependencies
 pip install .
 ```
 
+*7) Verify that DESK and DESK-DISTFIT were installed correctly*
 ```bash
-# 7) Verify that DESK was installed correctly
 desk-sim -h
+```
+```bash
 desk-distfit -h
 ```
 
+*8) Run the hospital example with visualization*
 ```bash
-# 8) Run the hospital example with visualization
 desk-sim -m examples/hospital.py --mode visualization
 ```
 
+*9) Run desk-distfit with some data*
 ```bash
-# 9) Run desk-distfit with some data
 desk-distfit -d input_data/data10.txt
 ```
