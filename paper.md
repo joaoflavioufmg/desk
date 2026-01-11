@@ -20,7 +20,7 @@ bibliography: paper.bib
 
 # Summary
 
-Discrete-event simulation (DES) is a widely adopted methodology for analyzing complex stochastic systems in operations research, logistics, healthcare, and service systems [@banks2010discrete; @law2015simulation]. Although there are mature simulation engines for model execution, researchers and students often encounter recurring challenges related to experiment design, replication management, and systematic result aggregation. These steps are often implemented ad hoc, which reduces reproducibility and increases development effort [@stodden2016enhancing].
+Discrete-event simulation (DES) is a widely adopted methodology for analyzing complex stochastic systems in operations research, logistics, healthcare, and service systems [@banks2010discrete; @law2015simulation]. Although there are mature simulation engines for model execution, researchers and students often encounter recurring challenges related to experiment design, replication management, and systematic result aggregation. These steps are often implemented ad hoc, which reduces reproducibility and increases development effort [@stodden2016reproducibility].
 
 DESK (Discrete Event Simulation Kit) is an open-source framework designed to support the experimental workflow of discrete-event simulation studies. Rather than focusing solely on model execution, DESK provides explicit abstractions for replication analysis, factorial experiments, scenario-based experiments, and the automated aggregation of performance metrics. DESK promotes reproducible and transparent simulation studies and is suitable for applied decision support, research and teaching applications.
 
@@ -28,7 +28,7 @@ DESK (Discrete Event Simulation Kit) is an open-source framework designed to sup
 
 Simulation-based studies typically require multiple replications, parameter variations, and statistical analysis of outputs to ensure valid inferences [@law2015simulation; @kleijnen2015design]. Despite their central role in scientific studies, these experimental components are rarely treated as primary entities in simulation software. Consequently, researchers often reimplement replication loops, parameter variations, and result aggregation logic across projects, which increases the risk of errors and limits reproducibility [@banks2010discrete].
 
-DESK addresses this issue by structuring simulation experiments as configurable, reusable software components. The framework separates model logic from experimental design, enabling systematic replication analysis and factorial experiments without modifying the core simulation code. This approach supports reproducible research practices and lowers the barrier to conducting rigorous simulation experiments, particularly in academic and educational contexts.
+DESK addresses this issue by structuring simulation experiments as configurable, reusable software components. The framework separates model logic from experimental design, enabling systematic replication analysis and factorial experiments without modifying the core simulation code. This approach supports reproducible research practices [@stodden2016reproducibility] and lowers the barrier to conducting rigorous simulation experiments, particularly in academic and educational contexts.
 
 # State of the Field
 
