@@ -57,7 +57,7 @@ DESK includes a replication framework that automates the execution of multiple s
 The framework supports factorial experiments by allowing users to define factors, levels, and parameter paths. DESK automatically generates experimental configurations, executes replications for each scenario, for analyzing main and interaction effects. This functionality directly supports classical and modern approaches to the design and analysis of simulation experiments [@montgomery2017design; @kleijnen2015design].
 
 ## Validation and diagnostics
-To ensure model reliability, DESK incorporates automated validation and diagnostic tools. Stability analysis checks resource utilization ($  \rho < 1  $) to verify system capacity and prevent unrealistic queue buildup. 
+To ensure model reliability, DESK incorporates automated validation and diagnostic tools. Stability analysis checks resource utilization to verify system capacity and prevent unrealistic queue buildup. 
 Warm-up period detection identifies the transient phase through time-series analysis of performance metrics, suggesting truncation points for steady-state analysis. Resource consistency validation confirms proper allocation and release, detecting potential deadlocks or leaks.
 
 ## Input analysis (`desk-distfit`)
