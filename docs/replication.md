@@ -241,6 +241,8 @@ Pharmacy:
   Relative precision: +/-3.5%
   RECOMMENDATION: Moderate and efficient use
      Ideal level for most systems
+
+     
 Results exported to results/framework_results.csv
        entities_processed  system_time_avg  ...  Consultation_total_cost  Pharmacy_total_cost
 count           30.000000        30.000000  ...                30.000000            30.000000
