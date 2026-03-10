@@ -121,109 +121,155 @@ class ModelInspector:
 # Auto-Layout Generator
 # =============================================================================
 class AutoLayout:
-    """Automatically generates layout positions for blocks."""
-    
+    """Automatically generates layout positions for blocks with overlap prevention."""
+
+    # Minimum pixel gaps between block bounding boxes
+    MIN_H_GAP = 30   # horizontal gap between blocks in the same level
+    MIN_V_GAP = 20   # vertical gap between blocks in different levels
+    BLOCK_W   = 130  # nominal block width (same as _draw_blocks uses ≈120, +margin)
+    BLOCK_H   = 50   # nominal block height
+
     @staticmethod
-    def generate(structure: Dict[str, Any], 
-                canvas_width: int = 1000,
-                canvas_height: int = 600) -> Dict[str, Tuple[int, int]]:
+    def generate(structure: Dict[str, Any],
+                 canvas_width: int = 1000,
+                 canvas_height: int = 600) -> Dict[str, Tuple[int, int]]:
         """
-        Generate automatic layout using hierarchical approach.
-        
-        Args:
-            structure: Model structure from ModelInspector
-            canvas_width: Canvas width
-            canvas_height: Canvas height
-            
+        Generate automatic layout.
+        1. Assign levels (BFS from sources).
+        2. Compute required canvas size so blocks never overlap.
+        3. Position blocks with proper spacing inside each level.
+        4. Apply a vertical force-directed pass to further separate nodes.
         Returns:
-            Dictionary mapping block names to (x, y) coordinates
+            Dict mapping block_name -> (x, y) centre coordinates.
         """
-        blocks = structure['blocks']
+        blocks      = structure['blocks']
         connections = structure['connections']
-        
-        # Build adjacency list
+
         graph = {name: [] for name in blocks.keys()}
         for from_block, to_block in connections:
             graph[from_block].append(to_block)
-        
-        # Find source nodes (CreateBlocks)
+
         sources = [name for name, info in blocks.items() if info['is_source']]
-        
-        # Perform topological sort to get levels
-        levels = AutoLayout._assign_levels(graph, sources)
-        
-        # Calculate positions
-        positions = AutoLayout._calculate_positions(
-            levels, canvas_width, canvas_height
-        )
-        
+        levels  = AutoLayout._assign_levels(graph, sources)
+
+        # --- compute required canvas extents ----------------------------
+        level_groups: Dict[int, list] = {}
+        for node, lvl in levels.items():
+            level_groups.setdefault(lvl, []).append(node)
+
+        max_level    = max(levels.values()) if levels else 0
+        max_in_level = max(len(v) for v in level_groups.values()) if level_groups else 1
+
+        # Required width: enough room for (max_level+1) columns
+        col_w = AutoLayout.BLOCK_W + AutoLayout.MIN_H_GAP
+        req_w = max(canvas_width, col_w * (max_level + 2) + 100)
+
+        # Required height: enough room for the tallest column
+        row_h = AutoLayout.BLOCK_H + AutoLayout.MIN_V_GAP
+        req_h = max(canvas_height, row_h * max_in_level + 120)
+
+        positions = AutoLayout._calculate_positions(levels, level_groups,
+                                                     max_level, req_w, req_h)
+        positions = AutoLayout._force_spread(positions, req_w, req_h)
         return positions
-    
+
     @staticmethod
-    def _assign_levels(graph: Dict[str, List[str]], 
+    def _assign_levels(graph: Dict[str, List[str]],
                        sources: List[str]) -> Dict[str, int]:
-        """Assign level (depth) to each node using BFS."""
-        levels = {}
-        visited = set()
+        """Assign BFS depth levels, ensuring max-depth wins for shared nodes."""
+        levels:  Dict[str, int] = {}
+        visited: set = set()
         queue_bfs = [(source, 0) for source in sources]
-        
+
         while queue_bfs:
             node, level = queue_bfs.pop(0)
-            
             if node in visited:
                 continue
-                
             visited.add(node)
             levels[node] = level
-            
             for neighbor in graph.get(node, []):
                 if neighbor not in visited:
                     queue_bfs.append((neighbor, level + 1))
-        
-        # Assign level 0 to any unvisited nodes (disconnected)
+
         for node in graph.keys():
             if node not in levels:
                 levels[node] = 0
-        
         return levels
-    
+
     @staticmethod
-    def _calculate_positions(levels: Dict[str, int],
-                            width: int, height: int) -> Dict[str, Tuple[int, int]]:
-        """Calculate (x, y) positions based on levels."""
-        # Group nodes by level
-        level_groups = {}
-        max_level = max(levels.values()) if levels else 0
-        
-        for node, level in levels.items():
-            if level not in level_groups:
-                level_groups[level] = []
-            level_groups[level].append(node)
-        
-        positions = {}
-        margin_x = 100
+    def _calculate_positions(levels, level_groups, max_level,
+                              width, height) -> Dict[str, Tuple[int, int]]:
+        """Place blocks in a clean grid: columns = levels, rows = nodes per level."""
+        margin_x = 80
         margin_y = 80
-        usable_width = width - 2 * margin_x
-        usable_height = height - 2 * margin_y
-        
-        # Calculate spacing
-        level_spacing = usable_width / (max_level + 1) if max_level > 0 else usable_width
-        
+        usable_w  = width  - 2 * margin_x
+        usable_h  = height - 2 * margin_y
+
+        col_step = usable_w / (max_level + 1) if max_level > 0 else usable_w
+
+        positions: Dict[str, Tuple[int, int]] = {}
         for level, nodes in level_groups.items():
-            x = margin_x + level * level_spacing
-            
-            # Vertical spacing within level
-            n_nodes = len(nodes)
-            if n_nodes == 1:
-                y_positions = [height // 2]
+            x = int(margin_x + level * col_step)
+            n = len(nodes)
+            if n == 1:
+                y_list = [height // 2]
             else:
-                node_spacing = usable_height / (n_nodes - 1)
-                y_positions = [margin_y + i * node_spacing for i in range(n_nodes)]
-            
-            for node, y in zip(nodes, y_positions):
-                positions[node] = (int(x), int(y))
-        
+                row_step = usable_h / (n - 1)
+                y_list = [int(margin_y + i * row_step) for i in range(n)]
+            for node, y in zip(nodes, y_list):
+                positions[node] = (x, y)
         return positions
+
+    @staticmethod
+    def _force_spread(positions: Dict[str, Tuple[int, int]],
+                      width: int, height: int,
+                      iterations: int = 120) -> Dict[str, Tuple[int, int]]:
+        """
+        Force-directed vertical (+ mild horizontal) spreading so blocks
+        never visually overlap.  X-axis movement is intentionally weak to
+        preserve the left-to-right flow order.
+        """
+        BW = AutoLayout.BLOCK_W
+        BH = AutoLayout.BLOCK_H
+        REPULSE  = 8000.0
+        DAMPING  = 0.80
+        X_WEIGHT = 0.15   # keep horizontal order intact
+
+        nodes = list(positions.keys())
+        pos = {n: [float(positions[n][0]), float(positions[n][1])] for n in nodes}
+        vel = {n: [0.0, 0.0] for n in nodes}
+        # Anchor x-positions (we only nudge y significantly)
+        anchor_x = {n: pos[n][0] for n in nodes}
+
+        for _ in range(iterations):
+            forces = {n: [0.0, 0.0] for n in nodes}
+
+            for i, a in enumerate(nodes):
+                for b in nodes[i + 1:]:
+                    dx = pos[b][0] - pos[a][0]
+                    dy = pos[b][1] - pos[a][1]
+                    dist = max(1.0, (dx * dx + dy * dy) ** 0.5)
+
+                    # Desired clearance based on block dimensions
+                    desired = ((BW + 20) ** 2 + (BH + 20) ** 2) ** 0.5
+                    if dist < desired:
+                        f  = REPULSE / (dist ** 2)
+                        fx = f * dx / dist
+                        fy = f * dy / dist
+                        forces[a][0] -= fx
+                        forces[a][1] -= fy
+                        forces[b][0] += fx
+                        forces[b][1] += fy
+
+            for n in nodes:
+                # Weak spring pulling back to anchor x
+                spring_x = (anchor_x[n] - pos[n][0]) * 2.0
+                vel[n][0] = (vel[n][0] + forces[n][0] * X_WEIGHT + spring_x) * DAMPING
+                vel[n][1] = (vel[n][1] + forces[n][1]) * DAMPING
+                pos[n][0] = max(80, min(width  - 80, pos[n][0] + vel[n][0]))
+                pos[n][1] = max(80, min(height - 80, pos[n][1] + vel[n][1]))
+
+        return {n: (int(pos[n][0]), int(pos[n][1])) for n in nodes}
 
 
 # =============================================================================
@@ -279,13 +325,18 @@ class SimulationVisualizer:
         self.stats_labels = {}
 
         # Visualization state
-        self.connection_paths = {}  # (from, to) -> [(x, y), ...]
-        self.queue_areas = {}       # block_name -> (x1, y1, x2, y2)
-        self.block_centers = {}     # block_name -> (x, y)
+        self.connection_paths = {}  # (from, to) -> [(x, y), ...]  (logical, kept for fallback)
+        self.queue_areas = {}       # block_name -> (x1, y1, x2, y2)  (logical)
+        self.block_centers = {}     # block_name -> (x, y)             (logical)
         self.entity_queue_slots = {}# block_name -> [entity_id, ...]
-        self.service_areas = {}     # block_name -> (x1, y1, x2, y2)
+        self.service_areas = {}     # block_name -> (x1, y1, x2, y2)  (logical)
         self.entity_service_slots = {}# block_name -> [entity_id, ...]
         self.resource_to_blocks_map = {} # Maps res_name -> [block_name]
+
+        # Canvas item IDs — used to read CURRENT (zoomed) positions from canvas
+        self.queue_rect_ids   = {}  # block_name -> canvas id of dashed queue rect
+        self.service_rect_ids = {}  # block_name -> canvas id of service rect (shape)
+        self.connection_line_ids = {}  # (from, to) -> canvas id of arrow line
         
         # Map resources to blocks
         from desk.blocks.process_block import ProcessBlock, MultiProcessBlock
@@ -319,6 +370,10 @@ class SimulationVisualizer:
         self.speed_label = None
         self.progress_bar = None
         self.step_pause_timer = None
+
+        # Generation counter: incremented on every reset so stale animation
+        # callbacks silently exit instead of moving already-deleted canvas items.
+        self._animation_generation = 0
         
         # (1) ADD: Simulation time limit (will be set by run())
         self._simulation_time_limit = float('inf')
@@ -342,19 +397,31 @@ class SimulationVisualizer:
         main_frame = ttk.Frame(container)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Canvas
-        # self.canvas = ZoomableCanvas(
-        self.canvas = tk.Canvas(        
-            main_frame, 
-            width=self.canvas_width, 
+        # Canvas frame with scrollbars (needed for large auto-layouts)
+        canvas_frame = ttk.Frame(main_frame)
+        canvas_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        h_scroll = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL)
+        h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+        v_scroll = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL)
+        v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.canvas = ZoomableCanvas(
+            canvas_frame,
+            on_zoom=self._on_zoom_changed,   # ← callback for font/entity rescaling
+            width=self.canvas_width,
             height=self.canvas_height,
-            bg="white"
+            bg="white",
+            xscrollcommand=h_scroll.set,
+            yscrollcommand=v_scroll.set,
         )
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        h_scroll.config(command=self.canvas.xview)
+        v_scroll.config(command=self.canvas.yview)
         
         
-        # Stats panel        
-        stats_frame = ttk.Frame(main_frame, width=240)
+        # Stats panel — wider to accommodate Block Types legend        
+        stats_frame = ttk.Frame(main_frame, width=270)
         stats_frame.pack(side=tk.RIGHT, fill=tk.Y, padx=5, pady=5)
         stats_frame.pack_propagate(False)
         
@@ -369,13 +436,16 @@ class SimulationVisualizer:
         
         # Setup shortcuts
         self._setup_keyboard_shortcuts()
+
+        # Update scroll region to match actual content size
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+        # Animate blocks into their auto-layout positions (yEd-style)
+        self.root.after(150, lambda: self._animate_layout_to_positions(self.positions))
         
-        # Add legend
-        self._draw_legend()
-        
-        # (3) MODIFY: Start event processing AND simulation tick
+        # Start event processing AND simulation tick
         self.root.after(50, self._process_events)
-        self.root.after(50, self._simulation_tick) # (1) ADD
+        self.root.after(50, self._simulation_tick)
     
     def _create_control_panel(self, parent):
         """Create playback control panel."""
@@ -466,15 +536,27 @@ class SimulationVisualizer:
             foreground="green"
         )
         self.status_label.pack(anchor=tk.W)
-        
-        # Keyboard shortcuts hint
+
+        # ── Zoom controls ─────────────────────────────────────────────────
         ttk.Separator(parent, orient=tk.VERTICAL).pack(
             side=tk.LEFT, fill=tk.Y, padx=10
         )
-        
-        ttk.Label(parent, text="⌨ Space=Play/Pause  R=Reset",
-                 font=("Arial", 8), foreground="gray").pack(side=tk.LEFT, padx=5)
-    
+        zoom_frame = ttk.Frame(parent)
+        zoom_frame.pack(side=tk.LEFT, padx=2)
+        ttk.Label(zoom_frame, text="Zoom:", font=("Arial", 9)).pack(anchor=tk.W)
+        zoom_btn_row = ttk.Frame(zoom_frame)
+        zoom_btn_row.pack()
+        ttk.Button(
+            zoom_btn_row, text="⟲ 1:1",
+            command=self._reset_zoom,
+            width=7
+        ).pack(side=tk.LEFT, padx=2)
+        ttk.Button(
+            zoom_btn_row, text="⤢ Fit",
+            command=self._fit_view,
+            width=7
+        ).pack(side=tk.LEFT, padx=2)
+
     def _create_stats_panel(self, parent):
         """Create statistics display panel."""
         # General stats
@@ -519,9 +601,77 @@ class SimulationVisualizer:
             self.stats_labels[queue_key] = ttk.Label(res_frame, text="0", width=5)
             self.stats_labels[queue_key].pack(side=tk.LEFT)
 
+        # Block Types legend at the bottom of the panel
+        self._draw_legend_panel(parent)
 
+
+    # ------------------------------------------------------------------
+    # Zoom-aware canvas coordinate helpers
+    # ------------------------------------------------------------------
+    def _current_block_center(self, name):
+        """Return the CURRENT (post-zoom) canvas centre of a block."""
+        if name not in self.block_widgets:
+            return self.block_centers.get(name, (0, 0))
+        shape, _ = self.block_widgets[name]
+        try:
+            bbox = self.canvas.bbox(shape)
+            if bbox:
+                return ((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2)
+        except tk.TclError:
+            pass
+        return self.block_centers.get(name, (0, 0))
+
+    def _current_queue_area(self, name):
+        """Return the CURRENT (post-zoom) bounding box of the queue rectangle."""
+        rid = self.queue_rect_ids.get(name)
+        if rid:
+            try:
+                bbox = self.canvas.bbox(rid)
+                if bbox:
+                    return bbox   # (x1, y1, x2, y2)
+            except tk.TclError:
+                pass
+        return self.queue_areas.get(name)
+
+    def _current_service_area(self, name):
+        """Return the CURRENT (post-zoom) bounding box of the service/block rect."""
+        rid = self.service_rect_ids.get(name)
+        if rid:
+            try:
+                bbox = self.canvas.bbox(rid)
+                if bbox:
+                    return bbox
+            except tk.TclError:
+                pass
+        return self.service_areas.get(name)
+
+    def _current_connection_path(self, from_name, to_name, num_points: int = 20):
+        """
+        Compute a path between two blocks using their CURRENT canvas positions.
+        Reads the actual arrow-line endpoints from the canvas item so the path
+        is correct at any zoom level.
+        """
+        lid = self.connection_line_ids.get((from_name, to_name))
+        if lid:
+            try:
+                coords = self.canvas.coords(lid)  # [x1, y1, x2, y2]
+                if len(coords) >= 4:
+                    x1, y1, x2, y2 = coords[0], coords[1], coords[-2], coords[-1]
+                    return [(x1 + (x2 - x1) * i / num_points,
+                             y1 + (y2 - y1) * i / num_points)
+                            for i in range(num_points + 1)]
+            except tk.TclError:
+                pass
+        # Fallback: compute from current block centres
+        fx, fy = self._current_block_center(from_name)
+        tx, ty = self._current_block_center(to_name)
+        return [(fx + (tx - fx) * i / num_points,
+                 fy + (ty - fy) * i / num_points)
+                for i in range(num_points + 1)]
+
+    # ------------------------------------------------------------------
     def _draw_blocks(self):
-        """Draw all blocks on canvas."""
+        """Draw all blocks on canvas and store canvas item IDs."""
         block_width = 120
         block_height = 40
         for name, (x, y) in self.positions.items():
@@ -538,15 +688,14 @@ class SimulationVisualizer:
             y1 = y - block_height / 2
             x2 = x + block_width / 2
             y2 = y + block_height / 2
-            
 
             # Draw diamond for DECIDE blocks
             if info['is_decision']:
                 diamond_points = [
-                    x, y - 35,     # top
-                    x + 60, y,     # right
-                    x, y + 35,     # bottom
-                    x - 60, y      # left
+                    x, y - 35,
+                    x + 60, y,
+                    x, y + 35,
+                    x - 60, y
                 ]
                 shape = self.canvas.create_polygon(
                     diamond_points, fill=color, outline="black", width=2
@@ -554,6 +703,7 @@ class SimulationVisualizer:
                 text = self.canvas.create_text(x, y, text=name, font=("Arial", 9, "bold"))
                 self.block_widgets[name] = (shape, text)
                 self.block_centers[name] = (x, y)
+                self.service_rect_ids[name] = shape  # polygon serves as shape ID
 
             # Default rectangle for others
             else:
@@ -561,56 +711,61 @@ class SimulationVisualizer:
                 text = self.canvas.create_text(x, y, text=name, width=block_width - 10, justify=tk.CENTER)
                 self.block_widgets[name] = (rect, text)
                 self.block_centers[name] = (x, y)
+                self.service_rect_ids[name] = rect  # store shape ID
 
             if info['is_process']:
-                # Queue area above
+                # Queue area above the block
                 q_y1 = y1 - block_height
                 q_y2 = y1
                 self.queue_areas[name] = (x1, q_y1, x2, q_y2)
-                self.canvas.create_rectangle(self.queue_areas[name], dash=(2,2), fill="white")
+                qrid = self.canvas.create_rectangle(
+                    self.queue_areas[name], dash=(2, 2), fill="white"
+                )
+                self.queue_rect_ids[name] = qrid   # ← store canvas ID
                 self.entity_queue_slots.setdefault(name, [])
-                # Service area
+                # Service area = block rectangle
                 self.service_areas[name] = (x1, y1, x2, y2)
                 self.entity_service_slots.setdefault(name, [])
 
     def _draw_connections(self):
-        """Draw connections between blocks with correct arrow direction."""
+        """Draw connections between blocks and store canvas line IDs."""
         for from_name, to_name in self.structure['connections']:
             from_pos = self.positions[from_name]
-            to_pos = self.positions[to_name]
-            x1 = from_pos[0] + 60  # right side
+            to_pos   = self.positions[to_name]
+            x1 = from_pos[0] + 60   # right edge of from-block
             y1 = from_pos[1]
-            x2 = to_pos[0] - 60  # left side
+            x2 = to_pos[0]   - 60   # left  edge of to-block
             y2 = to_pos[1]
-            # Draw line with arrow at the end (-->)
-            self.canvas.create_line(x1, y1, x2, y2, arrow=tk.LAST, width=2)
-            # Path for animation
-            path = []
+            lid = self.canvas.create_line(x1, y1, x2, y2, arrow=tk.LAST, width=2)
+            self.connection_line_ids[(from_name, to_name)] = lid   # ← store ID
+            # Logical path (kept for fallback / non-zoomed use)
             num_points = 20
-            for i in range(num_points + 1):
-                t = i / num_points
-                px = x1 + t * (x2 - x1)
-                py = y1 + t * (y2 - y1)
-                path.append((px, py))
-            self.connection_paths[(from_name, to_name)] = path
+            self.connection_paths[(from_name, to_name)] = [
+                (x1 + (x2 - x1) * i / num_points,
+                 y1 + (y2 - y1) * i / num_points)
+                for i in range(num_points + 1)
+            ]
 
-    def _draw_legend(self):
-        """Draw legend for block types."""
-        legend_x = self.canvas_width - 160
-        legend_y = 10
-        self.canvas.create_rectangle(legend_x, legend_y, legend_x + 150, legend_y + 110, fill="lightgray", outline="black")
-        self.canvas.create_text(legend_x + 75, legend_y + 10, text="Block Types", font=("Arial", 10, "bold"))
+    def _draw_legend_panel(self, parent):
+        """Draw Block Types legend inside the right stats panel (not on canvas)."""
+        ttk.Separator(parent, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=10)
+        ttk.Label(parent, text="Block Types", font=("Arial", 10, "bold")).pack(anchor=tk.W)
+
         items = [
-            ("CREATE (Source)", "lightgreen"),
-            ("DISPOSE (Sink)", "lightpink"),
-            ("DECIDE (Decision) ◆", "lightyellow"),
-            ("PROCESS (Activity)", "lightblue")
+            ("CREATE  (Source)",    "#90EE90"),   # lightgreen
+            ("DISPOSE (Sink)",      "#FFB6C1"),   # lightpink
+            ("DECIDE  (Decision) ◆","#FFFFE0"),   # lightyellow
+            ("PROCESS (Activity)",  "#ADD8E6"),   # lightblue
         ]
-        dy = 25
-        for text, color in items:
-            self.canvas.create_rectangle(legend_x + 10, legend_y + dy, legend_x + 30, legend_y + dy + 15, fill=color)
-            self.canvas.create_text(legend_x + 40, legend_y + dy + 7.5, text=text, anchor=tk.W)
-            dy += 20
+        for label_text, hex_color in items:
+            row = ttk.Frame(parent)
+            row.pack(fill=tk.X, pady=1)
+            # Colour swatch drawn on a tiny canvas
+            swatch = tk.Canvas(row, width=18, height=14,
+                               bg=hex_color, highlightthickness=1,
+                               highlightbackground="black")
+            swatch.pack(side=tk.LEFT, padx=(2, 5))
+            ttk.Label(row, text=label_text, font=("Arial", 9)).pack(side=tk.LEFT)
 
     def _process_events(self):
         """Process pending visualization events."""
@@ -629,17 +784,24 @@ class SimulationVisualizer:
         self.root.after(50, self._process_events)
 
     def _handle_entity_created(self, event):
-        """Handle entity creation event."""
-        data = event.data
-        entity_id = data['entity_id']
+        """Handle entity creation — size and font are scaled to current zoom."""
+        data          = event.data
+        entity_id     = data['entity_id']
         entity_number = data['entity_number']
-        block_name = data['block_name']
-        x, y = self.block_centers[block_name]
-        circle = self.canvas.create_oval(x-12, y-12, x+12, y+12, fill="red")
-        text = self.canvas.create_text(x, y-1, text=str(entity_number), fill="white", font=("Arial", 8, "bold"))
+        block_name    = data['block_name']
+        x, y = self._current_block_center(block_name)
+
+        # Scale radius and font to match current zoom level
+        scale  = getattr(self.canvas, '_scale', 1.0)
+        r      = max(5, self._BASE_ENTITY_RADIUS * scale)
+        efont  = ("Arial", max(4, int(self._BASE_ENTITY_FONT * scale)), "bold")
+
+        circle = self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="red")
+        text   = self.canvas.create_text(x, y - 1, text=str(entity_number),
+                                         fill="white", font=efont)
         self.entities_on_canvas[entity_id] = (circle, text)
         self.stats['total_created'] += 1
-        self.stats['current_wip'] += 1
+        self.stats['current_wip']   += 1
         self._update_stats_display()
 
     def _handle_entity_moved(self, event):
@@ -853,68 +1015,206 @@ class SimulationVisualizer:
         else:
             self.speed_label.config(foreground="blue")
     
+    def _reset_zoom(self):
+        """Reset canvas to 1:1 scale using ZoomableCanvas.reset_zoom()."""
+        self.canvas.reset_zoom()
+
+    def _fit_view(self):
+        """Fit all diagram content into the visible canvas area."""
+        self.canvas.fit_view()
+
+    # ------------------------------------------------------------------
+    # Zoom-change callback — rescale fonts and entity oval sizes
+    # ------------------------------------------------------------------
+    # Base font sizes (at scale 1.0)
+    _BASE_BLOCK_FONT_DECIDE  = 9   # bold  — DECIDE diamonds
+    _BASE_BLOCK_FONT_OTHER   = 9   # normal — all other blocks
+    _BASE_ENTITY_FONT        = 8   # bold  — entity number inside ball
+    _BASE_ENTITY_RADIUS      = 12  # logical pixels
+
+    def _on_zoom_changed(self, new_scale: float):
+        """
+        Called by ZoomableCanvas after every zoom (wheel, reset, fit).
+        Updates:
+          • block-name font sizes  — scaled proportionally
+          • entity-number font sizes — scaled proportionally
+          • entity oval sizes — rescaled to always be BASE_ENTITY_RADIUS * scale
+        """
+        # ── Block name fonts ────────────────────────────────────────────
+        for name, (shape_id, text_id) in self.block_widgets.items():
+            info = self.structure['blocks'].get(name, {})
+            if info.get('is_decision'):
+                sz   = max(5, int(self._BASE_BLOCK_FONT_DECIDE * new_scale))
+                font = ("Arial", sz, "bold")
+            else:
+                sz   = max(5, int(self._BASE_BLOCK_FONT_OTHER * new_scale))
+                font = ("Arial", sz)
+            try:
+                self.canvas.itemconfig(text_id, font=font)
+            except tk.TclError:
+                pass
+
+        # ── Entity fonts + oval sizes ───────────────────────────────────
+        target_r = max(5, self._BASE_ENTITY_RADIUS * new_scale)
+        efont = ("Arial", max(4, int(self._BASE_ENTITY_FONT * new_scale)), "bold")
+        for entity_id, (circle_id, text_id) in list(self.entities_on_canvas.items()):
+            try:
+                # Re-centre the oval at its current centre with the target radius
+                coords = self.canvas.coords(circle_id)
+                if len(coords) == 4:
+                    cx = (coords[0] + coords[2]) / 2
+                    cy = (coords[1] + coords[3]) / 2
+                    self.canvas.coords(circle_id,
+                                       cx - target_r, cy - target_r,
+                                       cx + target_r, cy + target_r)
+                    self.canvas.coords(text_id, cx, cy - 1)
+                self.canvas.itemconfig(text_id, font=efont)
+            except tk.TclError:
+                pass
+
     # Reset logic
     def _reset_simulation(self):
-        """Reset simulation to initial state."""
-        # Clear entities
+        """Stop and reset simulation to initial state."""
+        # ── 1. STOP everything immediately ──────────────────────────────
+        self.is_running = False
+        self.is_paused  = True
+        self._animation_generation += 1
+
+        if self.step_pause_timer:
+            self.root.after_cancel(self.step_pause_timer)
+            self.step_pause_timer = None
+
+        # ── 2. Clear canvas entities ─────────────────────────────────────
         for entity_id, (circle, text) in list(self.entities_on_canvas.items()):
             self.canvas.delete(circle)
             self.canvas.delete(text)
-        
         self.entities_on_canvas.clear()
-        
+
         # Clear queue/service slots
         self.entity_queue_slots.clear()
         self.entity_service_slots.clear()
-        
-        # Reset stats
+
+        # ── 3. Reset stats ───────────────────────────────────────────────
         self.stats = {
             'total_created': 0,
             'total_disposed': 0,
             'current_wip': 0,
             'simulation_time': 0.0
         }
-        # Clear derived stats
         for key in list(self.stats_labels.keys()):
-             if key.endswith('_util'):
-                 self.stats_labels[key].config(text="0.00%")
-             elif key.endswith('_queue'):
-                 self.stats_labels[key].config(text="0")
-
+            if key.endswith('_util'):
+                self.stats_labels[key].config(text="0.00%")
+            elif key.endswith('_queue'):
+                self.stats_labels[key].config(text="0")
         self._update_stats_display()
-        
-        # Rebuild model
-        self.model = self.model_builder()
+
+        # ── 4. Rebuild model & re-instrument ─────────────────────────────
+        self.model      = self.model_builder()
         self.instrument = VisualizationInstrument(self.model, self.event_queue)
-        
-        # Re-extract structure (original code was missing this, but it's not
-        # strictly necessary if structure is identical, but good practice)
-        self.structure = ModelInspector.extract_structure(self.model)
+        self.structure  = ModelInspector.extract_structure(self.model)
+
         if hasattr(self, 'custom_positions') and self.custom_positions:
-             self.positions = self.custom_positions
+            self.positions = self.custom_positions
         else:
-             self.positions = AutoLayout.generate(
-                 self.structure, self.canvas_width, self.canvas_height
-             )
-        
-        # Redraw
+            self.positions = AutoLayout.generate(
+                self.structure, self.canvas_width, self.canvas_height
+            )
+
+        # ── 5. Redraw (also resets canvas transform to 1:1) ───────────────
+        self.canvas.reset_zoom()          # ← reset zoom before redrawing
         self.canvas.delete("all")
+
+        # Clear all canvas-item-ID caches
+        self.queue_rect_ids.clear()
+        self.service_rect_ids.clear()
+        self.connection_line_ids.clear()
+        self.connection_paths.clear()
+        self.block_widgets.clear()
+        self.block_centers.clear()
+        self.queue_areas.clear()
+        self.service_areas.clear()
+
         self._draw_blocks()
         self._draw_connections()
-        self._draw_legend()
-        
-        # Re-initialize the SimPy generators
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+        # ── 6. Animate layout into place (yEd-style) ─────────────────────
+        self._animate_layout_to_positions(self.positions)
+
+        # ── 7. Re-init SimPy generators & update UI ───────────────────────
         self._initialize_simulation()
-            
-        # Reset playback state
-        self.is_paused = True
-        self.is_running = True # It's "running" in the sense that it's ready
         self.play_button.config(text="▶ Play")
         self.status_label.config(text="Ready", foreground="green")
-        
-        if self.step_pause_timer:
-             self.root.after_cancel(self.step_pause_timer)
-             self.step_pause_timer = None
+
+    def _animate_layout_to_positions(self, target_positions: dict, frames: int = 30, delay_ms: int = 20):
+        """
+        Animate blocks smoothly from their current canvas positions to
+        target_positions — gives the yEd 'automatic layout animation' feel.
+        """
+        # Capture current centre of every block widget
+        start = {}
+        for name, (shape, label_id) in self.block_widgets.items():
+            coords = self.canvas.bbox(shape)
+            if coords:
+                cx = (coords[0] + coords[2]) / 2
+                cy = (coords[1] + coords[3]) / 2
+                start[name] = (cx, cy)
+            else:
+                start[name] = target_positions.get(name, (0, 0))
+
+        gen = self._animation_generation  # capture so stale calls exit
+
+        def step(frame):
+            if gen != self._animation_generation:
+                return  # reset happened; abort
+            t = frame / frames
+            # Ease-in-out cubic: smooth start and end
+            t_eased = t * t * (3 - 2 * t)
+
+            for name, (tx, ty) in target_positions.items():
+                if name not in self.block_widgets:
+                    continue
+                sx, sy = start.get(name, (tx, ty))
+                nx = sx + (tx - sx) * t_eased
+                ny = sy + (ty - sy) * t_eased
+                dx = nx - sx - (nx - sx) * ((frame - 1) / frames if frame > 0 else 0)
+
+                # Compute incremental delta from last frame position
+                prev_t = ((frame - 1) / frames) if frame > 0 else 0
+                prev_eased = prev_t * prev_t * (3 - 2 * prev_t)
+                prev_nx = sx + (tx - sx) * prev_eased
+                prev_ny = sy + (ty - sy) * prev_eased
+                ddx = nx - prev_nx
+                ddy = ny - prev_ny
+
+                shape, label_id = self.block_widgets[name]
+                try:
+                    self.canvas.move(shape,    ddx, ddy)
+                    self.canvas.move(label_id, ddx, ddy)
+                except tk.TclError:
+                    pass
+
+                # Also move queue / service dashed boxes
+                if name in self.queue_areas:
+                    qa = self.queue_areas[name]
+                    self.queue_areas[name] = (qa[0]+ddx, qa[1]+ddy, qa[2]+ddx, qa[3]+ddy)
+                if name in self.service_areas:
+                    sa = self.service_areas[name]
+                    self.service_areas[name] = (sa[0]+ddx, sa[1]+ddy, sa[2]+ddx, sa[3]+ddy)
+
+                # Update centre cache
+                self.block_centers[name] = (tx, ty) if frame == frames else (
+                    int(sx + (tx - sx) * t_eased),
+                    int(sy + (ty - sy) * t_eased)
+                )
+
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+            if frame < frames:
+                self.root.after(delay_ms, lambda: step(frame + 1))
+
+        step(1)
+
 
     def _handle_stats_update(self, event):
         """Handle statistics update event."""
@@ -931,11 +1231,11 @@ class SimulationVisualizer:
     
     def _animate_move_along_path(self, entity_id, circle, text, from_block, to_block, state):
         """
-        Animate entity movement along a pre-defined path.
-        FIX: Entities now follow connector paths smoothly.
+        Animate entity movement.  All target coordinates are read from the
+        CURRENT (post-zoom) canvas positions of block shapes and queue rects,
+        so entities land correctly at any zoom level.
         """
-        
-        # Remove from previous position before animating
+        # Remove from previous slot
         if from_block:
             if from_block in self.entity_queue_slots and entity_id in self.entity_queue_slots[from_block]:
                 self.entity_queue_slots[from_block].remove(entity_id)
@@ -943,53 +1243,68 @@ class SimulationVisualizer:
             if from_block in self.entity_service_slots and entity_id in self.entity_service_slots[from_block]:
                 self.entity_service_slots[from_block].remove(entity_id)
                 self._reposition_service(from_block)
-        
+
         # Case 1: Move from queue to service (within same block)
         if from_block == to_block and state == 'service':
-            target_x, target_y = self.block_centers[to_block]
-            self._animate_segment(entity_id, circle, text, [(target_x, target_y)], 0, to_block, state)
+            target_x, target_y = self._current_block_center(to_block)
+            self._animate_segment(entity_id, circle, text,
+                                  [(target_x, target_y)], 0, to_block, state)
             return
 
-        # Case 2: Move between different blocks
-        path_segments = self.connection_paths.get((from_block, to_block))
-        
+        # Case 2: Move between different blocks — path from CURRENT canvas coords
+        path_segments = self._current_connection_path(from_block, to_block)
+
         if not path_segments:
-            # No predefined path - snap to target
-            target_x, target_y = (0, 0)
+            # Snap to target
             if state == 'queue' and to_block in self.queue_areas:
-                if entity_id not in self.entity_queue_slots[to_block]:
-                    self.entity_queue_slots[to_block].append(entity_id)
+                if entity_id not in self.entity_queue_slots.get(to_block, []):
+                    self.entity_queue_slots.setdefault(to_block, []).append(entity_id)
                 self._reposition_queue(to_block)
                 return
             else:
-                target_x, target_y = self.block_centers[to_block]
-                
-            self.canvas.moveto(circle, target_x - 12, target_y - 12)
-            self.canvas.moveto(text, target_x, target_y - 1)
-            return
-        
-        # Start recursive animation along the path
+                target_x, target_y = self._current_block_center(to_block)
+                try:
+                    coords = self.canvas.coords(circle)
+                    r = (coords[2] - coords[0]) / 2 if len(coords) == 4 else \
+                        max(5, self._BASE_ENTITY_RADIUS * getattr(self.canvas, '_scale', 1.0))
+                    self.canvas.coords(circle, target_x - r, target_y - r,
+                                               target_x + r, target_y + r)
+                    self.canvas.coords(text, target_x, target_y - 1)
+                except tk.TclError:
+                    pass
+                return
+
         self._animate_segment(entity_id, circle, text, path_segments, 0, to_block, state)
 
-    def _animate_segment(self, entity_id, circle, text, path_segments, index, final_block, final_state):
+    def _animate_segment(self, entity_id, circle, text, path_segments, index, final_block, final_state, _gen=None):
         """
         Recursively animates one segment of a path.
         FIX: Smooth animation along connector paths.
+        Uses _gen to detect and skip animations that were started before the last Reset.
         """
+        # Capture generation on first call; abort if stale on subsequent calls
+        if _gen is None:
+            _gen = self._animation_generation
+        if _gen != self._animation_generation:
+            return  # reset happened → discard this animation
+
         if index >= len(path_segments):
-            # Animation complete, place entity
-            if final_state == 'queue' and final_block in self.queue_areas:
-                if entity_id not in self.entity_queue_slots[final_block]:
-                    self.entity_queue_slots[final_block].append(entity_id) 
+            # Animation complete — place entity at CURRENT canvas position
+            q_area = self._current_queue_area(final_block)
+            s_area = self._current_service_area(final_block)
+
+            if final_state == 'queue' and q_area is not None:
+                if entity_id not in self.entity_queue_slots.get(final_block, []):
+                    self.entity_queue_slots.setdefault(final_block, []).append(entity_id)
                 self._reposition_queue(final_block)
-            elif final_state == 'service' and final_block in self.service_areas:
-                if entity_id not in self.entity_service_slots[final_block]:
-                    self.entity_service_slots[final_block].append(entity_id)
+            elif final_state == 'service' and s_area is not None:
+                if entity_id not in self.entity_service_slots.get(final_block, []):
+                    self.entity_service_slots.setdefault(final_block, []).append(entity_id)
                 self._reposition_service(final_block)
             else:
                 if entity_id not in self.entity_service_slots.get(final_block, []):
                     self.entity_service_slots.setdefault(final_block, []).append(entity_id)
-                self._reposition_service(final_block) 
+                self._reposition_service(final_block)
             return
 
         # Get current position
@@ -1015,9 +1330,12 @@ class SimulationVisualizer:
         step_dy = dy / steps_to_move
         
         def animation_loop(step):
+            # Abort if a Reset happened since this animation started
+            if _gen != self._animation_generation:
+                return
             if step >= steps_to_move:
                 # Segment complete, move to next
-                self._animate_segment(entity_id, circle, text, path_segments, index + 1, final_block, final_state)
+                self._animate_segment(entity_id, circle, text, path_segments, index + 1, final_block, final_state, _gen)
                 return
             
             try:
@@ -1040,75 +1358,69 @@ class SimulationVisualizer:
         animation_loop(0)
 
     def _reposition_queue(self, block_name):
-        """Repositions all entities in a block's queue area."""
-        if block_name not in self.queue_areas:
+        """Repositions all entities in a block's queue area using CURRENT canvas coords."""
+        q_area = self._current_queue_area(block_name)
+        if q_area is None:
             return
-            
-        q_area = self.queue_areas[block_name]
+
         queue = self.entity_queue_slots.get(block_name, [])
-        
-        slot_width = 24
-        max_in_row = int((q_area[2] - q_area[0]) / slot_width)
-        
+        slot_w = max(1, (q_area[2] - q_area[0]) / max(1, len(queue) if queue else 5))
+        slot_w = min(slot_w, 24 * max(1.0, getattr(self.canvas, '_scale', 1.0)))
+        max_in_row = max(1, int((q_area[2] - q_area[0]) / slot_w))
+
         for i, entity_id in enumerate(queue):
             if entity_id not in self.entities_on_canvas:
                 continue
-                
             circle, text = self.entities_on_canvas[entity_id]
-            
-            x = q_area[0] + (i % max_in_row * slot_width) + (slot_width / 2)
-            y = (q_area[1] + q_area[3]) / 2
-            
+            cx = q_area[0] + (i % max_in_row) * slot_w + slot_w / 2
+            cy = (q_area[1] + q_area[3]) / 2
             try:
-                self.canvas.moveto(circle, x - 12, y - 12)
-                self.canvas.moveto(text, x, y - 1)
+                coords = self.canvas.coords(circle)
+                r = (coords[2] - coords[0]) / 2 if len(coords) == 4 else \
+                    max(5, self._BASE_ENTITY_RADIUS * getattr(self.canvas, '_scale', 1.0))
+                self.canvas.coords(circle, cx - r, cy - r, cx + r, cy + r)
+                self.canvas.coords(text,   cx, cy - 1)
             except tk.TclError:
                 continue
-        # ADD at the END of the method:
-        self._update_stats_display()  # Force immediate update
+        self._update_stats_display()
     
     def _reposition_service(self, block_name):
-        """Repositions all entities in a block's service area."""
-        if block_name not in self.service_areas:
-            if block_name not in self.block_centers: 
+        """Repositions all entities in a block's service area using CURRENT canvas coords."""
+        s_area       = self._current_service_area(block_name)
+        service_list = self.entity_service_slots.get(block_name, [])
+        scale        = getattr(self.canvas, '_scale', 1.0)
+
+        def _place(entity_id, cx, cy):
+            """Move entity circle+text to centre (cx, cy) using its actual radius."""
+            if entity_id not in self.entities_on_canvas:
                 return
-            target_x, target_y = self.block_centers[block_name]
-            service_list = self.entity_service_slots.get(block_name, [])
-            for entity_id in service_list:
-                if entity_id in self.entities_on_canvas:
-                    circle, text = self.entities_on_canvas[entity_id]
-                    try:
-                        self.canvas.moveto(circle, target_x - 12, target_y - 12)
-                        self.canvas.moveto(text, target_x, target_y - 1)
-                    except tk.TclError: 
-                        pass
-            self._update_stats_display()  # Force immediate update
+            circle, text = self.entities_on_canvas[entity_id]
+            try:
+                coords = self.canvas.coords(circle)
+                r = (coords[2] - coords[0]) / 2 if len(coords) == 4 else \
+                    max(5, self._BASE_ENTITY_RADIUS * scale)
+                self.canvas.coords(circle, cx - r, cy - r, cx + r, cy + r)
+                self.canvas.coords(text,   cx, cy - 1)
+            except tk.TclError:
+                pass
+
+        if s_area is None:
+            cx, cy = self._current_block_center(block_name)
+            for eid in service_list:
+                _place(eid, cx, cy)
+            self._update_stats_display()
             return
 
-        s_area = self.service_areas[block_name]
-        service_list = self.entity_service_slots.get(block_name, [])
-        
-        slot_width = 24
-        max_in_row = int((s_area[2] - s_area[0]) / slot_width)
-        if max_in_row == 0: 
-            max_in_row = 1
-        
+        slot_w = max(1, (s_area[2] - s_area[0]) /
+                    max(1, len(service_list) if service_list else 5))
+        slot_w = min(slot_w, 24 * max(1.0, scale))
+        max_in_row = max(1, int((s_area[2] - s_area[0]) / slot_w))
+
         for i, entity_id in enumerate(service_list):
-            if entity_id not in self.entities_on_canvas:
-                continue
-                
-            circle, text = self.entities_on_canvas[entity_id]
-            
-            x = s_area[0] + (i % max_in_row * slot_width) + (slot_width / 2)
-            y = (s_area[1] + s_area[3]) / 2
-            
-            try:
-                self.canvas.moveto(circle, x - 12, y - 12)
-                self.canvas.moveto(text, x, y - 1)
-            except tk.TclError:
-                continue
-        # ADD at the END of the method:
-        self._update_stats_display()  # Force immediate update
+            cx = s_area[0] + (i % max_in_row) * slot_w + slot_w / 2
+            cy = (s_area[1] + s_area[3]) / 2
+            _place(entity_id, cx, cy)
+        self._update_stats_display()
     
     def _update_stats_display(self):
         """
@@ -1455,39 +1767,137 @@ class VisualizationInstrument:
 # Enables Zooming Canvas
 # =============================================================================
 class ZoomableCanvas(tk.Canvas):
-    def __init__(self, master, **kwargs):
+    """
+    Canvas subclass with mouse-wheel zoom, middle-button pan,
+    Reset Zoom and Fit View helpers.
+
+    Zoom transform is tracked as a single cumulative scale factor
+    (_scale) plus the canvas-coordinate origin shift (_ox, _oy).
+
+    on_zoom: optional callable(new_scale) called after every zoom change so
+    the host can rescale fonts, entity sizes, etc.
+    """
+
+    # Base entity radius (logical px at scale 1.0)
+    BASE_ENTITY_RADIUS = 12
+
+    def __init__(self, master, on_zoom=None, **kwargs):
         super().__init__(master, **kwargs)
 
-        # Bind mouse wheel to zoom
-        self.bind("<MouseWheel>", self._zoom)          # Windows
-        self.bind("<Button-4>", self._zoom)            # Linux scroll up
-        self.bind("<Button-5>", self._zoom)            # Linux scroll down
+        self._scale   = 1.0
+        self._ox      = 0.0
+        self._oy      = 0.0
+        self._on_zoom = on_zoom   # callback(new_scale)
 
-        # Optional: Middle mouse button for dragging (panning)
-        self.bind("<ButtonPress-2>", self._start_pan)
-        self.bind("<B2-Motion>", self._do_pan)
+        self.bind("<MouseWheel>", self._on_wheel)
+        self.bind("<Button-4>",   self._on_wheel)
+        self.bind("<Button-5>",   self._on_wheel)
 
-        self.pan_start = None
+        self.bind("<ButtonPress-2>",     self._pan_start)
+        self.bind("<B2-Motion>",         self._pan_move)
+        self.bind("<Alt-ButtonPress-1>", self._pan_start)
+        self.bind("<Alt-B1-Motion>",     self._pan_move)
 
-    def _zoom(self, event):
-        # Determine zoom factor: scroll up = zoom in, scroll down = zoom out
-        if event.delta > 0 or event.num == 4:
-            factor = 1.1
-        else:
-            factor = 0.9
+        self._pan_last = None
 
-        # Zoom everything on the canvas
-        self.scale("all", event.x, event.y, factor, factor)
+    # ------------------------------------------------------------------
+    # Internal helper — apply a zoom factor around a canvas point
+    # ------------------------------------------------------------------
+    def _apply_scale(self, factor: float, cx: float, cy: float):
+        """Scale all items by *factor* around canvas point (cx, cy)."""
+        self.scale("all", cx, cy, factor, factor)
+        self._scale *= factor
+        self._ox = cx + (self._ox - cx) * factor
+        self._oy = cy + (self._oy - cy) * factor
         self.configure(scrollregion=self.bbox("all"))
+        if self._on_zoom:
+            self._on_zoom(self._scale)
 
-    def _start_pan(self, event):
-        self.pan_start = (event.x, event.y)
+    # ------------------------------------------------------------------
+    # Coordinate helpers
+    # ------------------------------------------------------------------
+    def logical_to_canvas(self, lx: float, ly: float):
+        return (self._ox + lx * self._scale,
+                self._oy + ly * self._scale)
 
-    def _do_pan(self, event):
-        dx = event.x - self.pan_start[0]
-        dy = event.y - self.pan_start[1]
-        self.pan_start = (event.x, event.y)
-        self.move("all", dx, dy)
+    def canvas_to_logical(self, cx: float, cy: float):
+        if self._scale == 0:
+            return (cx, cy)
+        return ((cx - self._ox) / self._scale,
+                (cy - self._oy) / self._scale)
+
+    # ------------------------------------------------------------------
+    # Zoom / Pan
+    # ------------------------------------------------------------------
+    def _on_wheel(self, event):
+        factor = 1.1 if (event.delta > 0 or event.num == 4) else 0.9
+        cx = self.canvasx(event.x)
+        cy = self.canvasy(event.y)
+        self._apply_scale(factor, cx, cy)
+
+    def _pan_start(self, event):
+        self._pan_last = (self.canvasx(event.x), self.canvasy(event.y))
+
+    def _pan_move(self, event):
+        cx = self.canvasx(event.x)
+        cy = self.canvasy(event.y)
+        if self._pan_last:
+            dx = cx - self._pan_last[0]
+            dy = cy - self._pan_last[1]
+            self.move("all", dx, dy)
+            self._ox += dx
+            self._oy += dy
+            self.configure(scrollregion=self.bbox("all"))
+        self._pan_last = (cx, cy)
+
+    # ------------------------------------------------------------------
+    # Reset Zoom / Fit View
+    # ------------------------------------------------------------------
+    def reset_zoom(self):
+        """Restore 1:1 scale and origin."""
+        if abs(self._scale - 1.0) < 1e-6 and abs(self._ox) < 1 and abs(self._oy) < 1:
+            return
+        inv = 1.0 / self._scale
+        self.scale("all", self._ox, self._oy, inv, inv)
+        self.move("all", -self._ox, -self._oy)
+        self._scale = 1.0
+        self._ox    = 0.0
+        self._oy    = 0.0
+        self.configure(scrollregion=self.bbox("all"))
+        if self._on_zoom:
+            self._on_zoom(self._scale)
+
+    def fit_view(self, padding: int = 40):
+        """Scale + translate so all content fits inside the visible area."""
+        bbox = self.bbox("all")
+        if not bbox:
+            return
+        x1, y1, x2, y2 = bbox
+        item_w = max(1, x2 - x1)
+        item_h = max(1, y2 - y1)
+
+        w = self.winfo_width()
+        h = self.winfo_height()
+        if w < 10 or h < 10:
+            w, h = int(self["width"]), int(self["height"])
+
+        s = min((w - 2 * padding) / item_w,
+                (h - 2 * padding) / item_h)
+
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        self._apply_scale(s, cx, cy)
+
+        # Centre the content
+        new_bbox = self.bbox("all")
+        if new_bbox:
+            nx1, ny1, nx2, ny2 = new_bbox
+            shift_x = w / 2 - (nx1 + nx2) / 2
+            shift_y = h / 2 - (ny1 + ny2) / 2
+            self.move("all", shift_x, shift_y)
+            self._ox += shift_x
+            self._oy += shift_y
+            self.configure(scrollregion=self.bbox("all"))
 
 
 def run_visualization(model_builder, simulation_time: float = 100):
