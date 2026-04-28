@@ -932,11 +932,11 @@ Attribution 4.0 (CC BY 4.0).
 If you use DESK in academic work, please cite:
 
 ```bibtex
-@software{desk2025,
+@software{desk2025almeida,
   author = {Almeida, João Flávio de Freitas},
   title = {DESK: Discrete Event Simulation Kit},
   year = {2025},
   institution = {PPGEP-UFMG},
-  url = {https://github.com/joaoflavioufmg/desk}
+  url = {https://desk-sim.readthedocs.io/en/latest/}
 }
 ```
