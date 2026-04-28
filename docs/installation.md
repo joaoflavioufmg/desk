@@ -6,7 +6,7 @@
 
 ## 🛠️ Requirements
 
-* Python >= 3.11
+* Python >= 3.10 <= 3.13
 * simpy == 4.1.1
 * numpy == 2.2.6
 * pandas == 2.3.1
