@@ -84,11 +84,11 @@ See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfi
   - System time distributions
   - Activity-level metrics
 - **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
-
 - **Automated Reports**: Simulation results with diagnostics and recommendations
 ---
 
-## 🚀 Quick Start
+
+### 🚀 Quick Start
 
 🪟 Windows (PowerShell / VS Code / Cursor )
 
@@ -862,8 +862,14 @@ pytest
 
 ## Changelog
 
-### Version 1.1.2
+### Version 3.0.0
+- DESK-DistFit upgrade of distribution with scipy to python functions
+
+
+### Version 2.0.0
 - Complete rewrite DESK CLI interface
+
+### Version 1.1.2
 - Complete rewrite DESK-DistFit CLI interface
 
 
