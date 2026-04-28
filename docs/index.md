@@ -92,23 +92,61 @@ See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfi
 
 ### Installation
 
+🪟 Windows (PowerShell / VS Code / Cursor )
+
+*1) Clone the DESK repository*
 ```bash
-# Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
+```
+
+*2) Enter the project directory*
+```bash
 cd desk
+```
 
-# Install dependencies
+*3) Create a virtual environment*
+```bash
+py -3.13 -m venv venv
+```
+
+*4) Allow PowerShell to activate virtual environments (run once per machine)*
+```bash
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+*5) Activate the virtual environment*
+```bash
+.\venv\Scripts\Activate.ps1
+```
+
+*6) Upgrade pip inside the virtual environment*
+```bash
+py -m pip install --upgrade pip
+```
+
+*7) Install DESK and its dependencies*
+```bash
 pip install .
-# or
-pip install -e .
+```
 
-# Then test:
+*8) Verify that DESK and DESK-DISTFIT were installed correctly*
+```bash
 desk-sim -h
-desk-sim -m examples/hospital.py --mode visualization
-
+```
+```bash
 desk-distfit -h
+```
+
+*9) Run the hospital example with visualization*
+```bash
+desk-sim -m examples/hospital.py --mode visualization
+```
+
+*10) Run desk-distfit with some data*
+```bash
 desk-distfit -d input_data/data10.txt
 ```
+
 
 
 # DESK — Discrete Event Simulation Kit

@@ -35,7 +35,7 @@ cd desk
 
 *3) Create a virtual environment*
 ```bash
-py -m venv venv
+py -3.13 -m venv venv
 ```
 
 *4) Allow PowerShell to activate virtual environments (run once per machine)*
@@ -90,7 +90,7 @@ cd desk
 
 *3) Create a virtual environment*
 ```bash
-python -m venv venv
+python -3.13 -m venv venv
 ```
 
 *4) Activate the virtual environment*
