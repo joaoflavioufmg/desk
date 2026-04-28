@@ -661,6 +661,9 @@ desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 # Save results to file
 desk-distfit -d input_data/foo.txt -o results.txt
 
+# Sizing subsample
+desk-distfit -d data.txt --max-sample 500  
+
 # Generate CSV output
 desk-distfit -d input_data/foo.txt -o results.csv --format csv
 

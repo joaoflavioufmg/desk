@@ -533,9 +533,7 @@ class DistributionFitter:
 
         x_min, x_max = self.data.min(), self.data.max()
         pad   = 0.08 * (x_max - x_min)
-        # Start slightly above 0 to avoid singularities (e.g. Weibull with shape < 1)
-        x_lo  = max(1e-9, x_min - pad) if x_min >= 0 else x_min - pad
-        x_rng = np.linspace(x_lo, x_max + pad, 1000)
+        x_rng = np.linspace(max(0, x_min - pad), x_max + pad, 1000)
 
         # ── Panel 1: Data Histogram (full dataset) ───────────
         ax1 = axes[0]
@@ -576,6 +574,7 @@ class DistributionFitter:
                 with warnings.catch_warnings():
                     warnings.filterwarnings('ignore', category=RuntimeWarning)
                     y = dist.pdf(x_rng, *arg, loc=loc, scale=scale)
+                y = np.where(np.isfinite(y), y, np.nan)
                 lw    = 2.2 if idx == 0 else 1.4
                 alpha = 1.0 if idx == 0 else 0.65
                 label = f"{r.name}  (p={r.p_value:.3f}{'✓' if r.is_significant else ''})"
@@ -606,6 +605,7 @@ class DistributionFitter:
                 with warnings.catch_warnings():
                     warnings.filterwarnings('ignore', category=RuntimeWarning)
                     cdf_y = dist.cdf(x_rng, *arg, loc=loc, scale=scale)
+                cdf_y = np.where(np.isfinite(cdf_y), cdf_y, np.nan)
                 lw    = 2.2 if idx == 0 else 1.4
                 alpha = 1.0 if idx == 0 else 0.65
                 label = f"{r.name}  D={r.statistic:.4f}"
@@ -622,6 +622,7 @@ class DistributionFitter:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=RuntimeWarning)
                 cdf_at_data = dist.cdf(sorted_data, *arg, loc=loc, scale=scale)
+            cdf_at_data = np.where(np.isfinite(cdf_at_data), cdf_at_data, np.nan)
             diffs = np.abs(ecdf_y - cdf_at_data)
             k_idx = int(np.argmax(diffs))
             x_ks  = sorted_data[k_idx]

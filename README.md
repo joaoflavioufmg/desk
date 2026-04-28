@@ -617,6 +617,9 @@ desk-distfit -d input_data/foo.txt
 # Custom significance level
 desk-distfit -d input_data/foo.txt -a 0.01
 
+# Sizing subsample
+desk-distfit -d data.txt --max-sample 500  
+
 # Test specific distributions
 desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 
@@ -657,6 +660,9 @@ desk-distfit -d input_data/foo.txt -a 0.01
 
 # Test specific distributions only
 desk-distfit -d input_data/foo.txt --distributions norm expon gamma
+
+# Sizing subsample
+desk-distfit -d data.txt --max-sample 500  
 
 # Save results to file
 desk-distfit -d input_data/foo.txt -o results.txt
