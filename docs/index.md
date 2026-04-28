@@ -862,8 +862,14 @@ pytest
 
 ## Changelog
 
-### Version 1.1.2
+### Version 3.0.0
+- DESK-DistFit upgrade of distribution with scipy to python functions
+
+
+### Version 2.0.0
 - Complete rewrite DESK CLI interface
+
+### Version 1.1.2
 - Complete rewrite DESK-DistFit CLI interface
 
 
