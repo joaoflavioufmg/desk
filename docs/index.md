@@ -145,7 +145,6 @@ desk-sim -m examples/hospital.py --mode visualization
 desk-distfit -d input_data/data10.txt
 ```
 
-
 # DESK — Discrete Event Simulation Kit
 
 ## 🚀 Basic Example 
@@ -554,7 +553,7 @@ DESK includes:
 
 ## 🛠️ Requirements
 
-* Python >= 3.10 <= 3.13
+* Python >= 3.10
 * simpy == 4.1.1
 * numpy == 2.2.6
 * pandas == 2.3.1
@@ -832,14 +831,12 @@ desk-distfit -d input_data/foo.txt -v
 # Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
 
-# Access desk folder
-cd desk
-
-# Create and activate virtual environment
-python -3.13 -m venv venv
-. venv\Scripts\activate.ps1  # On Linux: source venv/bin/activate
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install development dependencies
+cd desk
 pip install .
 
 # Run tests
