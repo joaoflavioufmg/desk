@@ -43,6 +43,12 @@ from desk.visualization.interface import run_visualization
 # neste caso, a ocupação média da central.
 # ##################################################################
 
+# desk-sim -m src/3.py --mode visualization
+# desk-sim -m src/3.py --mode single
+# desk-sim -m src/3.py --mode replications
+# desk-sim -m src/3.py --mode factorial
+
+
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================

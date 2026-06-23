@@ -36,6 +36,12 @@ from desk.visualization.interface import run_visualization
 # diagramas de ciclo de atividades.
 # ####################################################################################
 
+# desk-sim -m src/1.py --mode visualization
+# desk-sim -m src/1.py --mode single
+# desk-sim -m src/1.py --mode replications
+# desk-sim -m src/1.py --mode factorial
+
+
 def build_model(final_simulation_time=None, event_logger=None, verbose=True,
                         entity_filter=None, resource_filter=None,
                         event_type_filter=None, time_range=None): 
