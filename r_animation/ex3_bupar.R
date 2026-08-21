@@ -36,7 +36,14 @@ print(verification_plot)
 # NOTE: Replace "ex1_event_log_bupar.csv" with the actual path if running outside a script's directory
 # event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/ex3_event_log.csv")
 # event_log <- read.csv("C:/Users/user/Desktop/desk/visualization/ex3a_event_log.csv")
-event_log <- read.csv("C:/Users/user/Desktop/desk/results/ex3b_event_log.csv")
+event_log <- read.csv("C:/Users/user/Desktop/desk/results/ex3b_event_log.csv",
+  quote = "\"",
+  stringsAsFactors = FALSE,
+  check.names = FALSE)
+
+
+# Ensure resource is a character field.
+event_log$resource <- trimws(as.character(event_log$resource))
 
 
 # Map priorities
