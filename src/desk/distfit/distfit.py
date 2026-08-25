@@ -10,8 +10,17 @@ tasks are expressed as structured actions (`desk-distfit`),
 ensuring consistency, reproducibility, and ease of learning across
 the framework. Fit probability distributions to empirical data.
 
+Data is parsed leniently (`load_data`), then cleaned (`clean_data`)
+before any fit is attempted: missing/infinite values are dropped,
+optional domain bounds are enforced, duplicates and outliers are
+detected and reported (outliers are flagged, not removed, unless
+explicitly requested), constant data is flagged, and a lag-1
+autocorrelation check warns when the i.i.d. assumption behind
+`dist.fit()` looks doubtful. Every decision is recorded in a
+`CleaningReport` attached to the fitter and printed alongside results.
+
 Author: João Flávio F. Almeida (PPGEP-UFMG) <joao.flavio@dep.ufmg.br>
-Course: EPD899: Simulating Logistics Systems
+Course: EPD933: Simulating Logistics Systems
 
 ═══════════════════════════════════════════════════════════════
 SCIPY → PYTHON RANDOM MODULE: PARAMETER TRANSLATION REFERENCE
@@ -74,6 +83,92 @@ class DistributionResult:
     parameters: Tuple
     sse: float = None
     is_significant: bool = None
+
+
+@dataclass
+class CleaningReport:
+    """
+    Record of every decision made while turning raw parsed input into
+    the series actually handed to `dist.fit()`. Kept and surfaced
+    alongside the fit results because a distribution fit is only as
+    trustworthy as the data cleaning that preceded it.
+    """
+    n_raw_lines: int = 0
+    n_parse_errors: int = 0
+    parse_error_samples: List[str] = None
+
+    n_missing_or_inf: int = 0
+
+    n_domain_violations: int = 0
+    domain_min: Optional[float] = None
+    domain_max: Optional[float] = None
+
+    n_duplicates: int = 0
+    duplicates_removed: bool = False
+
+    is_constant: bool = False
+
+    outlier_method: str = "none"
+    outlier_threshold: float = None
+    n_outliers_flagged: int = 0
+    n_outliers_removed: int = 0
+    outlier_sample: List[float] = None
+
+    autocorr_lag1: Optional[float] = None
+    autocorr_warning: bool = False
+
+    n_final: int = 0
+    notes: List[str] = None
+
+    def __post_init__(self):
+        if self.parse_error_samples is None:
+            self.parse_error_samples = []
+        if self.outlier_sample is None:
+            self.outlier_sample = []
+        if self.notes is None:
+            self.notes = []
+
+    def summary(self) -> str:
+        """Human-readable cleaning report for CLI / file output."""
+        lines = [
+            "",
+            "Data Cleaning Report",
+            "=" * 60,
+            f"  Raw lines read        : {self.n_raw_lines}",
+            f"  Unparseable lines     : {self.n_parse_errors}"
+            + (f"  (e.g. {self.parse_error_samples[:3]})" if self.parse_error_samples else ""),
+            f"  Missing / inf values  : {self.n_missing_or_inf}",
+        ]
+        if self.domain_min is not None or self.domain_max is not None:
+            lines.append(
+                f"  Domain violations     : {self.n_domain_violations}  "
+                f"(bounds=[{self.domain_min}, {self.domain_max}])"
+            )
+        lines.append(
+            f"  Duplicate values      : {self.n_duplicates}"
+            f"  ({'removed' if self.duplicates_removed else 'kept'})"
+        )
+        if self.is_constant:
+            lines.append("  ⚠ Data is constant (zero variance) — fitting is not meaningful.")
+        lines.append(
+            f"  Outlier screening     : method={self.outlier_method}"
+            + (f", threshold={self.outlier_threshold}" if self.outlier_threshold else "")
+        )
+        lines.append(
+            f"  Outliers flagged/removed : {self.n_outliers_flagged} / {self.n_outliers_removed}"
+        )
+        if self.outlier_sample:
+            lines.append(f"    sample: {self.outlier_sample}")
+        if self.autocorr_lag1 is not None:
+            flag = "  ⚠ possible dependence" if self.autocorr_warning else ""
+            lines.append(f"  Lag-1 autocorrelation : {self.autocorr_lag1:.3f}{flag}")
+        lines.append(f"  Final N used for fitting : {self.n_final}")
+        if self.notes:
+            lines.append("")
+            lines.append("  Notes:")
+            for n in self.notes:
+                lines.append(f"    · {n}")
+        return "\n".join(lines)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -248,26 +343,269 @@ class DistributionFitter:
         self.force_loc_zero = force_loc_zero
         self.max_sample_size = max_sample_size or 0
         self.results: List[DistributionResult] = []
-        self.data: Optional[pd.Series] = None       # full dataset (plots / stats)
-        self._fit_data: Optional[pd.Series] = None  # subsample used for fitting
+        self.raw_data: Optional[pd.Series] = None    # parsed, uncleaned
+        self.data: Optional[pd.Series] = None        # cleaned dataset (plots / stats / fit)
+        self._fit_data: Optional[pd.Series] = None   # subsample used for fitting
         self._was_sampled: bool = False
+        self._parse_errors: List[Tuple[int, str]] = []
+        self.cleaning_report: Optional[CleaningReport] = None
 
     # ── Data loading ──────────────────────────────────────────
 
     def load_data(self, filepath: Union[str, Path]) -> pd.Series:
-        """Load one numeric value per line from a plain-text file."""
+        """
+        Load one value per line from a plain-text file.
+
+        Unlike a strict `float(line)` parse, unparseable lines are
+        skipped (not fatal) and recorded so `clean_data()` / the
+        cleaning report can surface exactly what was dropped and why,
+        instead of the whole run crashing on one bad row.
+
+        This method only parses — it does NOT clean. Call
+        `clean_data()` afterwards (or let `fit_distributions()` do it
+        with default settings) before fitting.
+        """
         filepath = Path(filepath)
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
+
+        values: List[float] = []
+        parse_errors: List[Tuple[int, str]] = []
+        line_no = 0
         with open(filepath, 'r', encoding='utf-8') as f:
-            values = [float(line.strip()) for line in f if line.strip()]
-        self.data = pd.Series(values, name='data')
-        logger.info(f"Loaded {len(self.data)} data points from {filepath}")
-        return self.data
+            for line_no, raw_line in enumerate(f, 1):
+                stripped = raw_line.strip()
+                if not stripped:
+                    continue
+                try:
+                    values.append(float(stripped))
+                except ValueError:
+                    parse_errors.append((line_no, stripped))
+
+        if not values:
+            raise ValueError(f"No numeric data could be parsed from {filepath}")
+
+        self.raw_data = pd.Series(values, name='data')
+        self._parse_errors = parse_errors
+        self._raw_line_count = line_no
+
+        if parse_errors:
+            logger.warning(
+                f"Skipped {len(parse_errors)} unparseable line(s) in {filepath} "
+                f"(first: line {parse_errors[0][0]} = {parse_errors[0][1]!r})"
+            )
+        logger.info(f"Parsed {len(self.raw_data)} numeric values from {filepath}")
+        return self.raw_data
 
     def set_data(self, data: Union[list, np.ndarray, pd.Series]) -> pd.Series:
-        self.data = pd.Series(data, name='data')
-        logger.info(f"Set {len(self.data)} data points")
+        """Set raw (uncleaned) data directly, e.g. from an in-memory array."""
+        self.raw_data = pd.Series(data, name='data')
+        self._parse_errors = []
+        self._raw_line_count = len(self.raw_data)
+        logger.info(f"Set {len(self.raw_data)} data points")
+        return self.raw_data
+
+    # ── Data cleaning ─────────────────────────────────────────
+
+    def clean_data(self,
+                    domain_min: Optional[float] = None,
+                    domain_max: Optional[float] = None,
+                    dedupe: bool = False,
+                    outlier_method: str = 'mad',
+                    outlier_threshold: float = 3.5,
+                    remove_outliers: bool = False,
+                    autocorr_warn_threshold: float = 0.2,
+                    verbose: bool = True) -> pd.Series:
+        """
+        Turn `self.raw_data` into `self.data`, the series used for every
+        downstream statistic, fit, and plot. Every step is optional /
+        parameterised and every decision is logged to `self.cleaning_report`
+        so the cleaning is auditable rather than silent.
+
+        Steps (in order):
+          1. Missing / infinite values   — always dropped (never valid
+             inputs to `dist.fit()`).
+          2. Domain bounds               — hard, physically-impossible
+             values outside [domain_min, domain_max] are always dropped
+             if bounds are supplied (e.g. negative service times).
+          3. Duplicates                  — counted and reported; only
+             removed if `dedupe=True`. Repeated identical values are
+             common and legitimate in count/interarrival data, so they
+             are NOT silently dropped by default.
+          4. Constant-data check         — flags zero-variance data,
+             where a distribution fit is meaningless.
+          5. Outlier screening           — flagged using a robust
+             method (MAD-based modified z-score by default; IQR and
+             classic z-score also available). Outliers are FLAGGED,
+             not removed, unless `remove_outliers=True` — aggressive
+             trimming can distort genuine tail behaviour, which matters
+             a lot when fitting heavy-tailed distributions like
+             `lognorm`, `gamma`, or `weibull_min`.
+          6. Independence check          — lag-1 autocorrelation is
+             computed and a warning is logged (not acted on
+             automatically) if it exceeds `autocorr_warn_threshold`,
+             since `dist.fit()` assumes i.i.d. draws and sequential
+             dependence (trends, regimes, queueing effects) will bias
+             goodness-of-fit conclusions even on otherwise clean data.
+
+        Args:
+            domain_min/domain_max: physically valid range; values
+                outside are treated as errors and always removed.
+            dedupe: remove exact duplicate values if True.
+            outlier_method: 'mad' (default, robust), 'iqr', 'zscore',
+                or 'none' to skip screening entirely.
+            outlier_threshold: cutoff for the chosen method (MAD modified
+                z-score: ~3.5 is the standard Iglewicz & Hoaglin cutoff;
+                IQR: multiplier on the IQR, typically 1.5–3.0; zscore:
+                number of standard deviations).
+            remove_outliers: if True, drop flagged outliers; if False
+                (default), keep them but record them in the report.
+            autocorr_warn_threshold: |lag-1 autocorrelation| above which
+                a dependence warning is logged.
+            verbose: log a summary via `logger.info` when done.
+
+        Returns:
+            The cleaned `pd.Series` (also stored as `self.data`).
+        """
+        if self.raw_data is None:
+            raise ValueError("No data loaded. Call load_data() or set_data() first.")
+
+        report = CleaningReport(
+            n_raw_lines=len(self.raw_data) + len(self._parse_errors),
+            n_parse_errors=len(self._parse_errors),
+            parse_error_samples=[txt for _, txt in self._parse_errors[:5]],
+            domain_min=domain_min,
+            domain_max=domain_max,
+        )
+
+        series = self.raw_data.copy()
+
+        # 1. Missing / infinite values ------------------------------------
+        bad_mask = series.isna() | np.isinf(series)
+        n_missing = int(bad_mask.sum())
+        if n_missing:
+            series = series[~bad_mask]
+            report.notes.append(f"Dropped {n_missing} missing/inf value(s).")
+        report.n_missing_or_inf = n_missing
+
+        # 2. Domain bounds (hard physical limits) --------------------------
+        n_domain = 0
+        if domain_min is not None:
+            bad = series < domain_min
+            n_domain += int(bad.sum())
+            series = series[~bad]
+        if domain_max is not None:
+            bad = series > domain_max
+            n_domain += int(bad.sum())
+            series = series[~bad]
+        if n_domain:
+            report.notes.append(
+                f"Removed {n_domain} value(s) outside domain bounds "
+                f"[{domain_min}, {domain_max}]."
+            )
+        report.n_domain_violations = n_domain
+
+        # 3. Duplicates ------------------------------------------------------
+        n_dupes = int(series.duplicated().sum())
+        report.n_duplicates = n_dupes
+        if n_dupes:
+            if dedupe:
+                series = series.drop_duplicates()
+                report.duplicates_removed = True
+                report.notes.append(f"Removed {n_dupes} exact duplicate value(s) (dedupe=True).")
+            else:
+                report.notes.append(
+                    f"{n_dupes} duplicate value(s) detected but kept (duplicates are "
+                    f"often legitimate in count/interarrival data; pass dedupe=True to remove)."
+                )
+
+        # 4. Constant-data check ----------------------------------------------
+        if series.nunique() <= 1:
+            report.is_constant = True
+            report.notes.append(
+                "Data is constant (zero variance) — distribution fitting is not meaningful."
+            )
+
+        # 5. Outlier screening --------------------------------------------------
+        report.outlier_method = outlier_method
+        report.outlier_threshold = outlier_threshold if outlier_method != 'none' else None
+        outlier_mask = pd.Series(False, index=series.index)
+
+        if outlier_method != 'none' and not report.is_constant and len(series) > 3:
+            if outlier_method == 'iqr':
+                q1, q3 = series.quantile(0.25), series.quantile(0.75)
+                iqr = q3 - q1
+                lo, hi = q1 - outlier_threshold * iqr, q3 + outlier_threshold * iqr
+                outlier_mask = (series < lo) | (series > hi)
+            elif outlier_method == 'zscore':
+                mu, sd = series.mean(), series.std()
+                if sd > 0:
+                    z = (series - mu) / sd
+                    outlier_mask = z.abs() > outlier_threshold
+            elif outlier_method == 'mad':
+                med = series.median()
+                mad = (series - med).abs().median()
+                if mad > 0:
+                    mod_z = 0.6745 * (series - med) / mad
+                    outlier_mask = mod_z.abs() > outlier_threshold
+            else:
+                raise ValueError(
+                    f"Unknown outlier_method '{outlier_method}'. "
+                    f"Choose from: 'mad', 'iqr', 'zscore', 'none'."
+                )
+
+        n_flagged = int(outlier_mask.sum())
+        report.n_outliers_flagged = n_flagged
+        if n_flagged:
+            report.outlier_sample = [round(v, 4) for v in series[outlier_mask].head(5).tolist()]
+            if remove_outliers:
+                series = series[~outlier_mask]
+                report.n_outliers_removed = n_flagged
+                report.notes.append(
+                    f"Removed {n_flagged} outlier(s) via '{outlier_method}' method "
+                    f"(threshold={outlier_threshold}). Sample: {report.outlier_sample}."
+                )
+            else:
+                report.notes.append(
+                    f"Flagged {n_flagged} potential outlier(s) via '{outlier_method}' method "
+                    f"(threshold={outlier_threshold}) but KEPT them by default — extreme "
+                    f"values may be genuine tail behaviour rather than errors, and dropping "
+                    f"them can distort heavy-tailed fits. Sample: {report.outlier_sample}. "
+                    f"Pass remove_outliers=True to drop them instead."
+                )
+
+        # 6. Independence / autocorrelation check (informational only) --------
+        if len(series) > 10:
+            try:
+                ac1 = float(pd.Series(series.values).autocorr(lag=1))
+            except Exception:
+                ac1 = None
+            if ac1 is not None and not math.isnan(ac1):
+                report.autocorr_lag1 = ac1
+                if abs(ac1) > autocorr_warn_threshold:
+                    report.autocorr_warning = True
+                    report.notes.append(
+                        f"Lag-1 autocorrelation = {ac1:.3f} exceeds ±{autocorr_warn_threshold}. "
+                        f"Distribution fitting assumes i.i.d. draws — sequential dependence "
+                        f"(trend, regime shift, queueing effects) can bias the fit and make "
+                        f"KS p-values unreliable. Interpret results with caution."
+                    )
+
+        series = series.reset_index(drop=True)
+        series.name = 'data'
+        report.n_final = len(series)
+
+        self.data = series
+        self.cleaning_report = report
+
+        if verbose:
+            logger.info(
+                f"Cleaning complete: {report.n_raw_lines} raw → {report.n_final} final "
+                f"observation(s) used for fitting."
+            )
+            for note in report.notes:
+                logger.info(f"  · {note}")
+
         return self.data
 
     def _prepare_fit_data(self) -> pd.Series:
@@ -338,7 +676,10 @@ class DistributionFitter:
         Results are sorted by p-value (descending).
         """
         if self.data is None:
-            raise ValueError("No data loaded. Call load_data() or set_data() first.")
+            if self.raw_data is None:
+                raise ValueError("No data loaded. Call load_data() or set_data() first.")
+            logger.info("clean_data() not called explicitly — running it now with default settings.")
+            self.clean_data()
 
         self._prepare_fit_data()
         distributions = distributions or self.DEFAULT_DISTRIBUTIONS
@@ -364,7 +705,7 @@ class DistributionFitter:
                     pdf_vals = dist.pdf(x_mid, *arg, loc=loc, scale=scale)
                 sse = float(np.sum((y_hist - pdf_vals) ** 2))
 
-                is_sig = p_value >= self.alpha
+                is_sig = bool(p_value >= self.alpha)
                 result = DistributionResult(
                     name=dist_name,
                     statistic=ks_stat,
@@ -463,7 +804,10 @@ class DistributionFitter:
         param_str = ", ".join(f"{k}={v:.4g}" for k, v in zip(pnames, best.parameters))
         python_code = self.get_python_random_code(best)
 
-        lines = [
+        lines = []
+        if self.cleaning_report is not None:
+            lines.append(self.cleaning_report.summary())
+        lines += [
             "",
             "Distribution Fitting Summary Report",
             "=" * 60,
@@ -688,11 +1032,39 @@ Examples:
   desk-distfit -d data/arrivals.txt --no-floc0   # allow loc≠0 for all dists
   desk-distfit -d data/arrivals.txt --max-sample 5000  # larger subsample
   desk-distfit -d data/arrivals.txt --max-sample 0     # fit on full dataset
+
+  Data cleaning (on by default):
+  desk-distfit -d data/arrivals.txt --domain-min 0            # drop negative times
+  desk-distfit -d data/arrivals.txt --dedupe                  # drop exact duplicates
+  desk-distfit -d data/arrivals.txt --outlier-method iqr --outlier-threshold 1.5
+  desk-distfit -d data/arrivals.txt --remove-outliers         # actually drop flagged outliers
+  desk-distfit -d data/arrivals.txt --no-clean                # legacy behaviour (minimal safety only)
         """
     )
     parser.add_argument('-d', '--data',    required=True, help='Data file (one value per line)')
     parser.add_argument('-a', '--alpha',   type=float, default=0.05, help='KS significance level (default: 0.05)')
     parser.add_argument('-b', '--bins',    type=int,   default=50,   help='Histogram bins (default: 50)')
+
+    # ── Data cleaning options ──────────────────────────────────
+    cleaning = parser.add_argument_group('data cleaning')
+    cleaning.add_argument('--no-clean', action='store_true',
+                           help='Skip cleaning entirely; only drop missing/inf values')
+    cleaning.add_argument('--domain-min', type=float, default=None,
+                           help='Hard lower bound; values below are treated as errors and removed')
+    cleaning.add_argument('--domain-max', type=float, default=None,
+                           help='Hard upper bound; values above are treated as errors and removed')
+    cleaning.add_argument('--dedupe', action='store_true',
+                           help='Remove exact duplicate values (off by default; duplicates '
+                                'are often legitimate)')
+    cleaning.add_argument('--outlier-method', choices=['mad', 'iqr', 'zscore', 'none'],
+                           default='mad', help='Outlier screening method (default: mad)')
+    cleaning.add_argument('--outlier-threshold', type=float, default=3.5,
+                           help='Outlier cutoff for the chosen method (default: 3.5)')
+    cleaning.add_argument('--remove-outliers', action='store_true',
+                           help='Actually drop flagged outliers instead of just reporting them')
+    cleaning.add_argument('--autocorr-warn-threshold', type=float, default=0.2,
+                           help='|lag-1 autocorrelation| above which a dependence warning is '
+                                'logged (default: 0.2)')
     parser.add_argument('--distributions', nargs='+',
                         choices=DistributionFitter.DEFAULT_DISTRIBUTIONS,
                         metavar='DIST', help='Distributions to test')
@@ -716,6 +1088,7 @@ def save_results(fitter: DistributionFitter, filepath: str, fmt: str) -> None:
 
     if fmt == 'table':
         with open(filepath, 'w', encoding='utf-8') as f:
+            # generate_summary_report() already includes the cleaning report
             f.write(fitter.generate_summary_report())
             f.write("\n\nDetailed Results:\n" + "─" * 80 + "\n")
             for i, r in enumerate(fitter.results, 1):
@@ -736,7 +1109,28 @@ def save_results(fitter: DistributionFitter, filepath: str, fmt: str) -> None:
                              fitter.get_python_random_code(r)])
 
     elif fmt == 'json':
+        cleaning = None
+        if fitter.cleaning_report is not None:
+            cr = fitter.cleaning_report
+            cleaning = {
+                'n_raw_lines': cr.n_raw_lines,
+                'n_parse_errors': cr.n_parse_errors,
+                'n_missing_or_inf': cr.n_missing_or_inf,
+                'n_domain_violations': cr.n_domain_violations,
+                'n_duplicates': cr.n_duplicates,
+                'duplicates_removed': cr.duplicates_removed,
+                'is_constant': cr.is_constant,
+                'outlier_method': cr.outlier_method,
+                'outlier_threshold': cr.outlier_threshold,
+                'n_outliers_flagged': cr.n_outliers_flagged,
+                'n_outliers_removed': cr.n_outliers_removed,
+                'autocorr_lag1': cr.autocorr_lag1,
+                'autocorr_warning': cr.autocorr_warning,
+                'n_final': cr.n_final,
+                'notes': cr.notes,
+            }
         out = {
+            'cleaning': cleaning,
             'data_stats': {
                 'n': len(fitter.data),
                 'mean': float(fitter.data.mean()),
@@ -778,7 +1172,29 @@ def run_cli(args: argparse.Namespace) -> int:
         fitter.load_data(data_path)
 
         print(f"\nData file : {data_path}")
-        print(f"N={len(fitter.data):,}  mean={fitter.data.mean():.4f}  "
+        print(f"Raw parsed N = {len(fitter.raw_data):,}"
+              + (f"  ({len(fitter._parse_errors)} unparseable line(s) skipped)"
+                 if fitter._parse_errors else ""))
+
+        if args.no_clean:
+            # Minimal safety net only: drop missing/inf, nothing else.
+            fitter.clean_data(outlier_method='none', dedupe=False)
+            fitter.cleaning_report.notes.insert(
+                0, "Full cleaning skipped (--no-clean); only missing/inf values were dropped."
+            )
+            logger.info("Skipping full data cleaning (--no-clean).")
+        else:
+            fitter.clean_data(
+                domain_min=args.domain_min,
+                domain_max=args.domain_max,
+                dedupe=args.dedupe,
+                outlier_method=args.outlier_method,
+                outlier_threshold=args.outlier_threshold,
+                remove_outliers=args.remove_outliers,
+                autocorr_warn_threshold=args.autocorr_warn_threshold,
+            )
+
+        print(f"\nN={len(fitter.data):,}  mean={fitter.data.mean():.4f}  "
               f"std={fitter.data.std():.4f}  "
               f"min={fitter.data.min():.4f}  max={fitter.data.max():.4f}")
         if force_loc_zero:

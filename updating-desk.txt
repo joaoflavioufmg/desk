@@ -1,0 +1,10 @@
+# Adjust pyproject.toml version
+# Adjust requirements.txt version, e.g. git+https://github.com/joaoflavioufmg/desk.git@v4.0.0#egg=desk-sim
+git add .
+git commit -m "Release v4.0.0"
+git push origin main
+git tags
+git tag v4.0.0
+git push origin v4.0.0
+git tags
+git push origin --tags
