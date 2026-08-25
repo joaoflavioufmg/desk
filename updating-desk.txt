@@ -3,8 +3,8 @@
 git add .
 git commit -m "Release v4.0.0"
 git push origin main
-git tags
+git tag
 git tag v4.0.0
 git push origin v4.0.0
-git tags
-git push origin --tags
+git tag
+git push origin --tag
