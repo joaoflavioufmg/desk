@@ -7,4 +7,3 @@ git tag
 git tag -a v4.0.0 -m "Release v4.0.0"
 git push origin v4.0.0
 git tag
-git push origin --tag
