@@ -102,6 +102,21 @@ desk-distfit -d input_data/foo.txt -v
 
 # Complete example with multiple options
 desk-distfit -d input_data/foo.txt -a 0.01 -b 100 --show-all -o results.json --format json -v
+
+# Drop negative times
+desk-distfit -d input_data/data1.txt --domain-min 0            
+
+# Drop exact duplicates
+desk-distfit -d input_data/data1.txt --dedupe                  
+
+# Adjust outlier threshold to 1.5
+desk-distfit -d input_data/data1.txt --outlier-method iqr --outlier-threshold 1.5
+
+# Actually drop flagged outliers
+desk-distfit -d input_data/data1.txt --remove-outliers         
+
+# legacy behaviour (minimal safety only)
+desk-distfit -d input_data/data1.txt --no-clean                
 ```
 
 ## Input Data Format
