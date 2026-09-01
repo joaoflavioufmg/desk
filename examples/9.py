@@ -48,6 +48,28 @@ from desk.stats.factorial import FactorialExperiment
 from desk.visualization.interface import run_visualization
 
 
+# ####################################################################################
+# Projeto: Oficina de carros
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Uma oficina de automóveis realiza serviços de manutenção mecânica, manutenção elétrica e 
+# lanternagem. Para tanto, esta oficina conta com 4 equipes: duas equipes para manutenção 
+# mecânica, uma equipe para manutenção elétrica e uma equipe para lanternagem. 
+# Os carros, ao chegarem na oficina, passam por uma triagem inicial, realizada por 
+# um único funcionário, e são encaminhados para realização dos serviços, 
+# sendo que 45% deles necessitam de manutenção mecânica, 25% de manutenção elétrica,
+#  18% de lanternagem e 12% de manutenção mecânica e lanternagem. 
+# Os carros que necessitam de lanternagem e manutenção mecânica (12%) são atendidos 
+# primeiramente no serviço que apresentar a menor fila de espera e, após sua realização, 
+# são encaminhados ao outro serviço, tendo prioridade de atendimento sobre os veículos que 
+# porventura estiverem na fila de espera para realização daquele serviço.
+# O intervalo entre chegadas de carros segue uma distribuição exponencial com média de 2 h. 
+# O tempo de triagem segue uma distribuição normal com média de 0,17 h e desvio padrão de 0,02 h. 
+# O tempo de manutenção mecânica segue uma distribuição exponencial com média de 3,8 h. 
+# O tempo de manutenção elétrica segue uma distribuição exponencial com média de 2.5 h. 
+# O tempo de lanternagem segue uma distribuição exponencial com média de 5 h. 
+# ####################################################################################
+
 # desk-sim -m examples/9.py --mode visualization
 # desk-sim -m examples/9.py --mode single
 # desk-sim -m examples/9.py --mode replications

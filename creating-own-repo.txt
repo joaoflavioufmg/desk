@@ -1,0 +1,22 @@
+# Create your own project and clone DESK
+# creating your own repository on git:
+git init
+git add .
+git commit -m "Initial commit"
+
+
+# Create an empty repository on GitHub
+# Log in to GitHub.
+# Click New repository.
+# Enter a repository name (e.g., my-project).
+# Do not check:
+	# Add a README
+	# Add .gitignore
+	# Add a license
+
+# (Creating an empty repository avoids merge conflicts.)
+
+git remote add origin https://github.com/<your-username>/my-project.git
+git remote -v
+git branch -M main
+git push -u origin main

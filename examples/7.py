@@ -48,6 +48,30 @@ from desk.stats.factorial import FactorialExperiment
 from desk.visualization.interface import run_visualization
  
 
+
+# ####################################################################################
+# Projeto: Comercio eletronico
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Em uma empresa de comércio eletrônico, os pedidos chegam ao setor de vendas via correio eletrônico onde são analisados por um funcionário que verifica se todos os itens do pedido existem no estoque da empresa.
+# Caso falte algum item, o pedido é encaminhado ao departamento de produção, saindo do setor de vendas.
+# Caso todos os itens estejam disponíveis, o pedido é enviado para um outro funcionário, que entra em 
+# contato com a administradora de cartões de crédito para verificar se a compra pode ser debitada no 
+# cartão de crédito fornecido pelo cliente.
+# Caso exista algum problema com o cartão, o pedido é recusado e o funcionário, antes de verificar 
+# o próximo pedido, redige e envia uma mensagem para o cliente informando a recusa da administradora 
+# do cartão. Se a administradora do cartão aceitar o débito, o pedido é encaminhado ao almoxarifado, 
+# saindo do setor de vendas.
+# Os pedidos chegam a intervalos de 10 minutos, seguindo uma distribuição exponencial. 
+# O tempo de verificação do estoque segue uma distribuição normal com média de 8 minutos e 
+# desvio padrão de 0,75 minutos. O processo de verificação do crédito segue uma distribuição 
+# triangular com mínimo de 4, moda de 6 e máximo de 9 minutos. O tempo de redigir e enviar a  
+# mensagem para o cliente, quando o pedido é recusado pela administradora de cartões, 
+# segue uma distribuição normal com média de 3 minutos e desvio padrão de 0,5 minutos. 
+# Sabe-se que historicamente, 20% dos pedidos contém itens em falta e que 7% das 
+# transações com cartão são recusadas pela administradora. Construa o DCA para este sistema.
+# ####################################################################################
+
 # desk-sim -m examples/7.py --mode visualization
 # desk-sim -m examples/7.py --mode single
 # desk-sim -m examples/7.py --mode replications

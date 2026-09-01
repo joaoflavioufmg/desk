@@ -55,6 +55,34 @@ from desk.config.simulation_config import SimulationConfig
 # Interface visual: animação em tempo real da simulação
 from desk.visualization.interface import run_visualization
 
+# ####################################################################################
+# Projeto: Empresa de transporte
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Uma empresa usa matérias-primas do tipo A e B (MPA,MPB), que são transportadas por caminhões, 
+# de mesma capacidade, que chegam à empresa segundo uma distribuição exponencial com média 
+# de 25 minutos. Sabe-se que 30% desses caminhões trazem MPA e o restante, do tipo MPB. 
+# Ao chegarem à empresa os caminhões têm sua carga checada por um funcionário da portaria, 
+# que preenche um formulário e encaminha o caminhão para uma das docas de descarga, 
+# atividade que possui duração exponencialmente distribuída com média de 5 minutos. 
+# Existe 1 doca (Doca A) para descarga de caminhões que transportam MPA e 2 docas 
+# para aqueles que transportam MPB (Doca B1 e Doca B2). 
+# O tempo de descarga dos caminhões que transportam MPA segue uma distribuição normal 
+# com média de 30 minutos e desvio padrão de 6 minutos. O tempo de descarga dos caminhões 
+# que transportam MPB segue uma distribuição triangular com moda de 38, mínimo de 30 e 
+# máximo de 50 minutos. Os caminhões com MPB são encaminhados para a doca que tiver 
+# menor fila (B1 ou B2). Após a descarga, os caminhões seguem para outro setor da empresa 
+# onde entregam as notas fiscais e os recibos de descarga. 
+# Neste setor, os caminhões são atendidos por um funcionário, que preenche um formulário 
+# de liberação do veículo. O tempo gasto pelo funcionário para realização deste serviço 
+# segue uma distribuição normal com média de 7 minutos e desvio padrão de 2 minutos.
+# Após receberem o formulário de liberação, os caminhões se dirigem à portaria da empresa, 
+# onde o mesmo funcionário que os recebeu faz uma vistoria de segurança nos caminhões 
+# e os libera em seguida. O tempo gasto nesta vistoria é exponencialmente distribuído 
+# com média de 4 minutos. O funcionário da portaria prioriza o atendimento de chegada 
+# de caminhões em relação à vistoria de saída. Construa o DCA para este sistema.
+# ####################################################################################
+
 # desk-sim -m examples/6.py --mode visualization
 # desk-sim -m examples/6.py --mode single
 # desk-sim -m examples/6.py --mode replications

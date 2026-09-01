@@ -2,7 +2,11 @@
 DESK - SIMULAÇÃO COM VISUALIZAÇÃO EM TEMPO REAL
 Consultório Médico com interface gráfica animada
 Parâmetros REALISTAS para demonstração
+<<<<<<< HEAD
 Autor: 
+=======
+Autor: [Seu Nome]
+>>>>>>> 650004406e9edbfa08a4e39f3bf05d12cb35892d
 Disciplina: Simulação de Sistemas
 """
 
@@ -16,6 +20,28 @@ import numpy as np
 from collections import deque
 import time
 
+
+# ####################################################################################
+# Projeto: Consutório médico
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Um consultório médico opera da seguinte forma (todos os valores de tempo estão em minutos): 
+# os clientes chegam a intervalos que seguem uma distribuição triangular com moda de 30 , 
+# mínimo de 23 e máximo de 35. Ao chegarem, são atendidos por uma secretária que preenche 
+# um formulário eletrônico contendo informações sobre o paciente. O tempo deste atendimento 
+# segue uma distribuição normal com média de 2 e desvio padrão de 0,5.
+# Preenchido o formulário, o cliente aguarda pela consulta com o médico, cuja duração segue 
+# uma distribuição normal com média de 20 e desvio padrão de 5. Após a consulta 10% dos 
+# pacientes são submetidos a algum exame no próprio consultório, enquanto os demais vão embora. 
+# O exame é realizado logo após a consulta e feito pelo próprio médico, tendo uma duração 
+# exponencialmente distribuída com média igual a 5. Após isso, os clientes deixam o consultório.
+# A secretária além de atender os clientes e preencher os formulários, também atende o telefone, 
+# cujas chamadas chegam a intervalos que seguem uma distribuição exponencial com média de 5. 
+# A duração da conversa telefônica é exponencialmente distribuída com média igual a 3. 
+# O atendimento telefônico, quando a secretária está disponível, é prioritário. 
+# Quando ela está atendendo algum paciente, ela termina o atendimento antes de atender 
+# o telefone. 
+# ####################################################################################
 
 # =====================================================================
 # PARÂMETROS REALISTAS

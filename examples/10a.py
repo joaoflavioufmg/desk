@@ -54,6 +54,33 @@ from desk.validation.warmup import WarmUpAnalyzer
 from desk.config.simulation_config import SimulationConfig
 from desk.visualization.interface import run_visualization
 
+
+# ####################################################################################
+# Projeto: Manutencao de maquinas internas e externas
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Uma empresa possui uma oficina de manutenção de 5 máquinas que são utilizadas para operação 
+# dentro de sua área industrial. Dentro da oficina existem duas estações de reparo, estação A e B. 
+# Em cada uma destas estações, existe apenas 1 operador disponível para execução dos trabalhos. 
+# A probabilidade de uma máquina necessitar de reparos na estação A é de 75% e na estação B de 25%. 
+# Uma máquina, após reparada vai para uma inspeção final, onde existe um único operador que 
+# realiza o trabalho. Após a inspeção, 90% das máquinas são liberadas para operação e 
+# 10% retornam para nova manutenção. Esta nova manutenção sempre ocorre na mesma estação 
+# onde a máquina foi reparada inicialmente. Além da manutenção das máquinas da empresa, 
+# esta oficina também está estudando a possibilidade de realizar serviços para terceiros, 
+# isto é, manutenção em máquinas de outras empresas. As máquinas externas sempre 
+# seriam reparadas na estação B e, após o reparo, também seriam inspecionadas pelo 
+# mesmo operador que inspeciona as máquinas internas e seriam liberadas (neste caso a 
+# taxa é de 82% dos casos) ou retidas para nova manutenção (18% dos casos). 
+# A nova manutenção, neste caso, sempre aconteceria na estação B. Os tempos relacionados 
+# a este sistema foram levantados e apresentam as seguintes distribuições: 
+# Inspeção: Weibull (31.05, 1.03)min; Reparo Estação A: Exp (88.98)min; 
+# Reparo Estação B: Gama (60.48, 1.03)min; Intervalo entre falhas: Gama (10.36, 0.97)h; 
+# Intervalo entre chegadas de máquinas externas: Gama (7.97, 0.96)h. 
+# De posse dos dados acima, construa 2 DCA's e modelos no DESK: Um DCA somente com máquinas internas, 
+# e outro DCA com máquinas internas e externas.
+# ####################################################################################
+
 # desk-sim -m examples/10a.py --mode visualization
 # desk-sim -m examples/10a.py --mode single
 # desk-sim -m examples/10a.py --mode replications

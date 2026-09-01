@@ -23,6 +23,26 @@ from desk.stats.replication import ReplicationFramework
 from desk.visualization.interface import run_visualization
 
 
+# ####################################################################################
+# Projeto: Sondas de Petroleo
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Uma empresa opera 7 sondas de perfuração de petróleo num campo petrolífero no mar.
+# As sondas trabalham em operação contínua, interrompendo seu funcionamento apenas para 
+# manutenção corretiva. O tempo entre falhas é descrito por uma distribuição normal 
+# com média 168 e desvio padrão de 24 horas. A manutenção é feita por uma única equipe 
+# e sua duração é exponencialmente distribuída com média de 24 horas. 
+# No início da operação a equipe se encontra em uma base em terra. 
+# A cada quebra de sonda, a equipe se desloca para o local da sonda, ali permanecendo 
+# até o término da manutenção. Ao final da manutenção, se não houver outras sondas 
+# quebradas, a equipe retorna à base. Caso haja outra sonda quebrada, a equipe se 
+# desloca diretamente para a sonda que estiver há mais tempo aguardando manutenção. 
+# Os tempos de deslocamento entre as sondas são descritos por uma distribuição normal 
+# com média de 0,9h e desvio padrão de 0,2h. Os tempos de deslocamento entre as sondas 
+# e a base em terra também seguem uma distribuição normal com média de 1,2h e desvio 
+# padrão de 0,2h. Posto isto, fazer o DCA representativo do sistema.
+# ####################################################################################
+
 # desk-sim -m examples/8.py --mode visualization
 # desk-sim -m examples/8.py --mode single
 # desk-sim -m examples/8.py --mode replications

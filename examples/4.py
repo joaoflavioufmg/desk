@@ -22,6 +22,28 @@ from desk.stats.replication import ReplicationFramework
 from desk.stats.factorial import FactorialExperiment
 from desk.visualization.interface import run_visualization
 
+
+# ####################################################################################
+# Projeto: Porto de minerio
+# Autor: João Flávio F. ALmeida <joao.flavio@dep.ufmg.br>
+# Implementação: Alunos da disciplina EPD733 - Simulação de sistema logísticos - PPGEP-UFMG
+# Um porto de embarque de minério possui apenas 1 píer e opera da seguinte forma: 
+# Os navios chegam ao porto em intervalos de tempo que seguem uma distribuição exponencial 
+# com média de 4,39 dias. A capacidade dos navios varia da seguinte forma: 
+# 75% são de 100.000t, 15% são de 200.000t, e 10% são de 150.000t.
+# Chegando ao porto, os navios encontrando o píer vago e, desde que haja minério no estoque, 
+# começam a ser carregados a uma taxa de 1.200 t/h. Caso o estoque de minério termine 
+# antes do navio ser completamente carregado, o navio aguardará no píer a chegada de
+#  minério, ou seja, ele só deixa o píer quando estiver completamente carregado. 
+# O minério chega ao porto via ferrovia, sendo que cada trem é composto de 80 vagões 
+# com capacidade de 100t cada um. Os trens chegam ao porto, em média, a cada 7 horas, 
+# seguindo uma distribuição normal, com desvio padrão de 1,07 hora. Os trens, 
+# chegando ao porto, têm seus vagões descarregados um a um, por um único virador de vagões. 
+# O tempo de descarga de cada vagão segue uma distribuição normal com média de 2,5 
+# minutos e desvio padrão de 0,3 minutos. Ao fim da descarga de cada vagão, obviamente, 
+# o estoque de minério do porto aumenta em 100t. Construa o DCA para este sistema.
+# ####################################################################################
+
 # desk-sim -m examples/4.py --mode visualization
 # desk-sim -m examples/4.py --mode single
 # desk-sim -m examples/4.py --mode replications

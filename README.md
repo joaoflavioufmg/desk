@@ -84,32 +84,66 @@ See [DESK Distribution Fitting Tool](#desk-distribution-fitting-tool-desk-distfi
   - System time distributions
   - Activity-level metrics
 - **BupaR Integration**: Process mining and animation files for ProcessAnimate in R ([processanimateR](https://bupaverse.github.io/processanimateR/)).
-
 - **Automated Reports**: Simulation results with diagnostics and recommendations
 ---
 
-## 🚀 Quick Start
 
-### Installation
+### 🚀 Quick Start
 
+🪟 Windows (PowerShell / VS Code / Cursor )
+
+*1) Clone the DESK repository*
 ```bash
-# Clone the repository
 git clone https://github.com/joaoflavioufmg/desk.git
-cd desk
-
-# Install dependencies
-pip install .
-# or
-pip install -e .
-
-# Then test:
-desk-sim -h
-desk-sim -m examples/hospital.py --mode visualization
-
-desk-distfit -h
-desk-distfit -d input_data/data10.txt
 ```
 
+*2) Enter the project directory*
+```bash
+cd desk
+```
+
+*3) Create a virtual environment*
+```bash
+py -3.13 -m venv venv
+```
+
+*4) Allow PowerShell to activate virtual environments (run once per machine)*
+```bash
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+*5) Activate the virtual environment*
+```bash
+.\venv\Scripts\Activate.ps1
+```
+
+*6) Upgrade pip inside the virtual environment*
+```bash
+py -m pip install --upgrade pip
+```
+
+*7) Install DESK and its dependencies*
+```bash
+pip install .
+```
+
+*8) Verify that DESK and DESK-DISTFIT were installed correctly*
+```bash
+desk-sim -h
+```
+```bash
+desk-distfit -h
+```
+
+*9) Run the hospital example with visualization*
+```bash
+desk-sim -m examples/hospital.py --mode visualization
+```
+
+*10) Run desk-distfit with some data*
+```bash
+desk-distfit -d input_data/data10.txt
+```
 
 # DESK — Discrete Event Simulation Kit
 
@@ -583,6 +617,9 @@ desk-distfit -d input_data/foo.txt
 # Custom significance level
 desk-distfit -d input_data/foo.txt -a 0.01
 
+# Sizing subsample
+desk-distfit -d data.txt --max-sample 500  
+
 # Test specific distributions
 desk-distfit -d input_data/foo.txt --distributions norm expon gamma
 
@@ -623,6 +660,9 @@ desk-distfit -d input_data/foo.txt -a 0.01
 
 # Test specific distributions only
 desk-distfit -d input_data/foo.txt --distributions norm expon gamma
+
+# Sizing subsample
+desk-distfit -d data.txt --max-sample 500  
 
 # Save results to file
 desk-distfit -d input_data/foo.txt -o results.txt
@@ -828,8 +868,14 @@ pytest
 
 ## Changelog
 
-### Version 1.1.2
+### Version 3.0.0
+- DESK-DistFit upgrade of distribution with scipy to python functions
+
+
+### Version 2.0.0
 - Complete rewrite DESK CLI interface
+
+### Version 1.1.2
 - Complete rewrite DESK-DistFit CLI interface
 
 
@@ -886,11 +932,11 @@ Attribution 4.0 (CC BY 4.0).
 If you use DESK in academic work, please cite:
 
 ```bibtex
-@software{desk2025,
+@software{desk2025almeida,
   author = {Almeida, João Flávio de Freitas},
   title = {DESK: Discrete Event Simulation Kit},
   year = {2025},
   institution = {PPGEP-UFMG},
-  url = {https://github.com/joaoflavioufmg/desk}
+  url = {https://desk-sim.readthedocs.io/en/latest/}
 }
 ```
