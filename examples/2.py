@@ -43,6 +43,12 @@ from desk.visualization.interface import run_visualization
 # Pede-se desenvolver um modelo utilizando o DCA para representação do sistema.
 # ####################################################################################
 
+# desk-sim -m examples/2.py --mode visualization
+# desk-sim -m examples/2.py --mode single
+# desk-sim -m examples/2.py --mode replications
+# desk-sim -m examples/2.py --mode factorial
+
+
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================

@@ -33,6 +33,12 @@ from desk.visualization.interface import run_visualization
 # Não há limite preestabelecido para o número de retornos que uma chamada pode ter.
 # ####################################################################################
 
+# desk-sim -m examples/3a.py --mode visualization
+# desk-sim -m examples/3a.py --mode single
+# desk-sim -m examples/3a.py --mode replications
+# desk-sim -m examples/3a.py --mode factorial
+
+
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================

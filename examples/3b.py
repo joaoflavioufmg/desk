@@ -33,6 +33,13 @@ from desk.visualization.interface import run_visualization
 # (não há retorno neste caso).
 # ####################################################################################
 
+
+# desk-sim -m examples/3b.py --mode visualization
+# desk-sim -m examples/3b.py --mode single
+# desk-sim -m examples/3b.py --mode replications
+# desk-sim -m examples/3b.py --mode factorial
+
+
 # ================================================================
 # Each ACD model is implemented here
 # ================================================================

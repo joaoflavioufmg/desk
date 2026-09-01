@@ -83,70 +83,7 @@ class SimulationPlotter:
         axes[-1].set_xlabel('Simulation Time')
         plt.tight_layout()
         plt.show()
-
-    def plot_container_use_over_time(self, show_warm_up: bool = True,
-                                     container: Optional[str] = None,
-                                     moving_average_window: int = 50):
-        """
-        Plot simpy.Container-based occupancy over time — the Container
-        equivalent of plot_resource_use_over_time().
-
-        Some capacity constraints (e.g. an OR "held" across multiple
-        chained ProcessBlocks — see hrtn.py's CC_SeizeOR /
-        CC_SeizeSRPA_ReleaseOR pattern) can't use model.add_resource(),
-        because a simpy.Resource's request token must be released by the
-        same process that acquired it. Those constraints are modeled as
-        raw simpy.Container objects instead, with occupancy manually
-        logged by whichever blocks call .get()/.put() on them. This
-        method plots those logs using the exact same step-function /
-        cumulative-average / moving-average / warm-up styling as
-        plot_resource_use_over_time().
-
-        Requires the model to expose two matching dicts, populated at
-        build time wherever such a Container is created:
-            model.containers          : dict[name] -> simpy.Container
-            model.container_wip_logs  : dict[name] -> list[(time, occupied)]
-
-        Args:
-            show_warm_up: Mark warm-up period visually
-            container: Specific container to plot (None = all)
-            moving_average_window: Window size for smoothing
-        """
-        containers = getattr(self.model, 'containers', None)
-        wip_logs = getattr(self.model, 'container_wip_logs', None)
-
-        if not containers or not wip_logs:
-            print("No Container-based resources found for plotting "
-                  "(expected model.containers / model.container_wip_logs)")
-            return
-
-        if container:
-            if container in containers:
-                containers = {container: containers[container]}
-            else:
-                print(f"Container '{container}' not found")
-                return
-
-        num_containers = len(containers)
-        fig, axes = plt.subplots(num_containers, 1,
-                                figsize=(12, 4 * num_containers))
-        if num_containers == 1:
-            axes = [axes]
-
-        fig.suptitle('Container Occupancy (determine the optimal warm-up time)',
-                     fontsize=14, fontweight='bold')
-
-        for idx, (name, container_obj) in enumerate(containers.items()):
-            ax = axes[idx] if num_containers > 1 else axes[0]
-            data = sorted(wip_logs.get(name, []), key=lambda x: x[0])
-            capacity = container_obj.capacity
-            self._plot_utilization_series(ax, name, data, capacity,
-                                         show_warm_up, moving_average_window)
-
-        axes[-1].set_xlabel('Simulation Time')
-        plt.tight_layout()
-        plt.show()
-
+    
     def _plot_single_resource(self, ax, resource_name: str, blocks: List,
                              show_warm_up: bool, moving_avg_window: int):
         """Plot utilization for a single resource."""
@@ -182,93 +119,79 @@ class SimulationPlotter:
         # Sort and filter data
         all_data.sort(key=lambda x: x[0])
 
-        capacity = self.model.resources[resource_name].capacity
-        self._plot_utilization_series(ax, resource_name, all_data, capacity,
-                                     show_warm_up, moving_avg_window)
+        max_time = (self.model.env.now if self.model.env.now > 0 
+                   else max(point[0] for point in all_data))
 
-    def _plot_utilization_series(self, ax, name: str, data: List, capacity: int,
-                                 show_warm_up: bool, moving_avg_window: int):
-        """
-        Shared rendering core for both plot_resource_use_over_time() and
-        plot_container_use_over_time(): turns a sorted list of
-        (time, occupied_count) points plus a capacity into the step
-        function / cumulative average / moving average / warm-up plot.
-        """
-        if not data:
-            ax.text(0.5, 0.5, 'No data available',
-                   ha='center', va='center', transform=ax.transAxes)
-            ax.set_title(f'{name} (capacity: {capacity})')
-            return
 
-        max_time = (self.model.env.now if self.model.env.now > 0
-                   else max(point[0] for point in data))
-
-        data = [point for point in data if point[0] <= max_time]
-
-        if not data:
-            ax.text(0.5, 0.5, 'Filtered data is empty',
+        all_data = [point for point in all_data if point[0] <= max_time]
+        
+        if not all_data:
+            ax.text(0.5, 0.5, 'Filtered data is empty', 
                    ha='center', va='center', transform=ax.transAxes)
             return
-
+        
         # Extract time and utilization with step function
-        times, utilizations = self._create_step_function(data, capacity, max_time)
+        times, utilizations = self._create_step_function(
+            all_data, resource_name, max_time)
 
+        
         # Plot utilization
-        ax.plot(times, utilizations, drawstyle='steps-post',
-               alpha=0.7, color='lightblue', linewidth=1.5,
+        ax.plot(times, utilizations, drawstyle='steps-post', 
+               alpha=0.7, color='lightblue', linewidth=1.5, 
                label='Use')
-
+        
         # Plot cumulative average (dark green)
         if len(utilizations) >= 2:
             times_array = np.array(times)
             utils_array = np.array(utilizations)
-
+            
             # Calculate cumulative average
             cumulative_avg = np.cumsum(utils_array) / np.arange(1, len(utils_array) + 1)
-
-            ax.plot(times_array, cumulative_avg, color='darkgreen',
+            
+            ax.plot(times_array, cumulative_avg, color='darkgreen', 
                 linewidth=2.5, label='Cumulative average (Warm-up)',
                 alpha=0.9, linestyle='-')
-
+        
         # Plot moving average (dark blue - existing)
         if len(utilizations) >= moving_avg_window:
             times_array = np.array(times)
             utils_array = np.array(utilizations)
-            moving_avg = np.convolve(utils_array,
+            moving_avg = np.convolve(utils_array, 
                                     np.ones(moving_avg_window)/moving_avg_window,
                                     mode='valid')
             moving_avg_times = times_array[moving_avg_window-1:]
-            ax.plot(moving_avg_times, moving_avg, color='darkblue',
+            ax.plot(moving_avg_times, moving_avg, color='darkblue', 
                    linewidth=2, label=f'Moving average ({moving_avg_window} points)',
                    alpha=0.8)
-
+        
         # Mark warm-up period
         if show_warm_up and self.model.warm_up_period > 0:
-            ax.axvline(x=self.model.warm_up_period, color='red',
-                      linestyle='--', linewidth=2,
+            ax.axvline(x=self.model.warm_up_period, color='red', 
+                      linestyle='--', linewidth=2, 
                       label=f'End of Warm-up (t={self.model.warm_up_period})')
-            ax.axvspan(0, self.model.warm_up_period, alpha=0.2,
+            ax.axvspan(0, self.model.warm_up_period, alpha=0.2, 
                       color='red', label='Warm-up period')
-
+        
         # Formatting
-        ax.set_title(f'{name} (Capacity: {capacity})')
+        capacity = self.model.resources[resource_name].capacity
+        ax.set_title(f'{resource_name} (Capacity: {capacity})')
         ax.set_ylabel('Use (%)')
         ax.set_ylim(0, 105)
         ax.set_xlim(0, max_time)
         ax.grid(True, alpha=0.3)
         ax.legend(loc='upper right', fontsize=9)  # Smaller font for more labels
-
+        
         # Add utilization bands
-        ax.axhline(y=85, color='orange', linestyle=':', alpha=0.7,
+        ax.axhline(y=85, color='orange', linestyle=':', alpha=0.7, 
                   label='85% (Recommended limit)')
         ax.axhline(y=100, color='red', linestyle=':', alpha=0.7)
-
-    def _create_step_function(self, data: List, capacity: int,
+    
+    def _create_step_function(self, data: List, resource_name: str, 
                              max_time: float) -> tuple:
-        """Create step function for utilization (0-100%) from raw
-        (time, occupied_count) points, given a fixed capacity."""
+        """Create step function for resource utilization."""
         times = []
         utilizations = []
+        capacity = self.model.resources[resource_name].capacity
         
         for i, point in enumerate(data):
             current_time = point[0]
